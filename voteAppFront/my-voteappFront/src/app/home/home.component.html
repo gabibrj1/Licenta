@@ -1,0 +1,76 @@
+<div class="home-container">
+  <!-- Navbar Section -->
+  <nav class="navbar">
+    <button (click)="navigateTo('auth')" class="nav-button" [disabled]="loading.signup">
+      <mat-progress-spinner *ngIf="loading.signup" diameter="20" mode="indeterminate"></mat-progress-spinner>
+      <span *ngIf="!loading.signup"><fa-icon [icon]="['fas', 'user']"></fa-icon></span>
+      <span *ngIf="loading.signup">Loading...</span>
+      <span *ngIf="!loading.signup">SignUp</span>
+    </button>
+    
+    <button (click)="navigateTo('')" class="nav-button" [disabled]="loading.home">
+      <mat-progress-spinner *ngIf="loading.home" diameter="20" mode="indeterminate"></mat-progress-spinner>
+      <span *ngIf="!loading.home"><fa-icon [icon]="['fas', 'home']"></fa-icon></span>
+      <span *ngIf="loading.home">Loading...</span>
+      <span *ngIf="!loading.home">Home</span>
+    </button>
+    
+  </nav>
+
+  <!-- Header Section -->
+  <header>
+    <h1>Bun venit la Aplicația de Vot Online cu Inteligență Artificială!</h1>
+    <p>Votează cu încredere, rapid și sigur, utilizând tehnologie de ultimă oră.</p>
+  </header>
+
+  <!-- Main Image Section -->
+  <section class="main-content">
+    <img src="assets/icons/background.jpeg" alt="Ilustrare Vot AI" class="hero-image" />
+    <div class="intro-text">
+      <h2>Transformăm modul în care votezi</h2>
+      <p>Aplicația noastră utilizează inteligență artificială pentru a asigura corectitudinea și transparența voturilor.</p>
+    </div>
+  </section>
+
+  <!-- About Us Section -->
+  <section class="about">
+    <h3>Despre Noi</h3>
+    <p>Folosim algoritmi avansați și AI pentru a crea o experiență de vot sigură și intuitivă, protejând confidențialitatea utilizatorilor și asigurând rezultate precise.</p>
+  </section>
+
+  <!-- Features Section -->
+  <section class="features">
+    <h3>Funcționalități Cheie</h3>
+    <ul>
+      <li>🔒 Securitate de top pentru toate voturile</li>
+      <li>📊 Analiză în timp real a rezultatelor</li>
+      <li>🤖 Detecție a comportamentului fraudulos cu ajutorul AI</li>
+      <li>📱 Accesibilitate multiplatformă</li>
+      <li>🕐 Votare rapidă și ușoară, oriunde te afli</li>
+    </ul>
+  </section>
+
+  <!-- Testimonials Section -->
+  <section class="testimonials">
+    <h3>Ce spun utilizatorii noștri</h3>
+    <div class="testimonial-card">
+      <div class="testimonial-icon">
+        <fa-icon [icon]="['fas', 'user-circle']"></fa-icon>
+      </div>
+      <p>„O aplicație revoluționară! M-a făcut să am încredere în votul online.”</p>
+      <span>- Maria Popescu</span>
+    </div>
+    <div class="testimonial-card">
+      <div class="testimonial-icon">
+        <fa-icon [icon]="['fas', 'user-circle']"></fa-icon>
+      </div>
+      <p>„Rapid, sigur și foarte ușor de folosit. Recomand cu încredere!”</p>
+      <span>- Ion Ionescu</span>
+    </div>
+  </section>
+
+  <!-- Footer Section -->
+  <footer class="footer">
+    <p>&copy; 2024 Aplicația de Vot Online. Toate drepturile rezervate.</p>
+  </footer>
+</div>

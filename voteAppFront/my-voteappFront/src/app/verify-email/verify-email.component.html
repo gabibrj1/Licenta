@@ -1,0 +1,31 @@
+<div class="verify-email-container">
+  <h2>📧 Verificare Email</h2>
+
+  <form (ngSubmit)="verifyCode()" class="verification-form">
+    <mat-form-field appearance="fill">
+      <mat-label>Adresă Email</mat-label>
+      <input matInput type="email" [(ngModel)]="email" name="email" required>
+    </mat-form-field>
+
+    <mat-form-field appearance="fill">
+      <mat-label>Cod de Verificare</mat-label>
+      <input matInput type="text" [(ngModel)]="verificationCode" name="verificationCode" required>
+    </mat-form-field>
+
+    <button mat-raised-button color="primary" type="submit">
+      Verifică Codul
+    </button>
+  </form>
+
+  <!-- Mesaj de confirmare sau eroare -->
+  <div *ngIf="message" class="message" [ngClass]="{'success': isSuccess, 'error': !isSuccess}">
+    {{ message }}
+  </div>
+
+  <!-- Email Animation -->
+  <div class="email-animation">
+    <div class="envelope">
+      <div class="letter">✉️</div>
+    </div>
+  </div>
+</div>

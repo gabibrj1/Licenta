@@ -1,0 +1,10 @@
+{
+    "python.pythonPath": "C:\\Users\brj\\.virtualenvs\\voting-_6WK1L0I\\Scripts\\python.exe",
+    "python.analysis.extraPaths": ["C:\\Users\\brj\\Desktop\\voting"],
+    "python.envFile": "${workspaceFolder}/.env",
+    "python.analysis.diagnosticSeverityOverrides": {
+    "reportMissingImports": "none"
+    
+  }
+
+}

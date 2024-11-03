@@ -1,0 +1,13 @@
+voting/media/
+*.env
+voting/voting/settings.py
+voting/db.sqlite3
+voting/__pycache__/
+voting/**/*.pyc
+voting/staticfiles/
+voting/static/
+voting/.pytest_cache/
+voteappFront/node_modules/
+voteappFront/dist/
+voteappFront/src/environments/environment.ts
+voteappFront/src/environments/environment.prod.ts

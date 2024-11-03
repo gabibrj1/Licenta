@@ -1,0 +1,23 @@
+<!-- gdpr-dialog.component.html -->
+<div class="gdpr-dialog">
+    <h1>Termeni și Condiții GDPR</h1>
+    <div class="gdpr-content">
+      <p>
+        Conform Regulamentului General privind Protecția Datelor (GDPR), avem obligația să vă informăm despre modul în care datele dvs. personale sunt colectate, stocate și utilizate.
+      </p>
+      <p>
+        Datele dvs. vor fi păstrate în siguranță și utilizate doar pentru scopurile specificate în acest formular. Aveți dreptul să accesați, modificați sau ștergeți aceste date în orice moment.
+      </p>
+      <p>
+        Pentru mai multe informații, consultați regulamentul GDPR accesând linkul de mai jos:
+      </p>
+      <p>
+        <a href="https://www.mai.gov.ro/despre-noi/organizare/aparat-central/oficiul-responsabilului-cu-protectia-datelor-personale/21616-2/" target="_blank">Citiți mai multe despre GDPR</a>
+      </p>
+    </div>
+    <div class="gdpr-actions">
+      <button mat-button color="warn" (click)="onCancel()">Anulați</button>
+      <button mat-raised-button color="primary" (click)="onAgree()">Sunt de acord</button>
+    </div>
+  </div>
+  

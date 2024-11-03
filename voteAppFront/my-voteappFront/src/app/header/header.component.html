@@ -1,0 +1,20 @@
+<div class="header">
+    <!-- Burger menu -->
+    <div class="burger-menu">
+      <span class="burger-icon">
+        <!-- Iconița SVG pentru burger menu -->
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect y="5" width="24" height="2" rx="1" fill="#ecf0f1"/>
+          <rect y="11" width="24" height="2" rx="1" fill="#ecf0f1"/>
+          <rect y="17" width="24" height="2" rx="1" fill="#ecf0f1"/>
+        </svg>
+      </span>
+      <div class="menu-options">
+        <button (click)="navigateTo('')" class="menu-item">Home</button>
+        <button (click)="navigateTo('auth')" class="menu-item">Auth</button>
+        <button (click)="navigateTo('voteapp-front')" class="menu-item">Register</button>
+        <button (click)="goBack()" class="menu-item">Back</button>
+      </div>
+    </div>
+  </div>
+  

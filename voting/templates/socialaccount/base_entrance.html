@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block head_title %}{% endblock head_title %}</title>
+  
+  <!-- Importa fontul Poppins de la Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+  
+  <!-- Font Awesome pentru iconițe social media -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
+  <!-- Stiluri CSS -->
+  <style>
+    body {
+      font-family: 'Poppins', sans-serif;
+      margin: 0;
+      padding: 0;
+      background: linear-gradient(135deg, #4f6dff, #36c7d0);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* Iconițe social media animate */
+    .social-icons {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 1;
+    }
+
+    .social-icons i {
+      font-size: 3rem;
+      opacity: 0;
+      color: white;
+      animation: float 8s infinite ease-in-out;
+      position: absolute;
+    }
+
+    .social-icons i:nth-child(1) { 
+      top: -200px; 
+      left: -200px;
+      animation-delay: 0s;
+    }
+
+    .social-icons i:nth-child(2) { 
+      top: 200px; 
+      right: -200px;
+      animation-delay: 2s;
+    }
+
+    .social-icons i:nth-child(3) { 
+      bottom: -200px; 
+      right: -200px;
+      animation-delay: 4s;
+    }
+
+    .social-icons i:nth-child(4) { 
+      bottom: -200px; 
+      left: 200px;
+      animation-delay: 6s;
+    }
+
+    @keyframes float {
+      0%, 100% { opacity: 0; transform: translateY(0) scale(0.9); }
+      50% { opacity: 1; transform: translateY(-50px) scale(1); }
+    }
+
+    /* Stiluri pentru conținutul principal */
+    .page-content {
+      background-color: white;
+      padding: 3rem;
+      border-radius: 16px;
+      box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
+      max-width: 500px;
+      width: 100%;
+      text-align: center;
+      position: relative;
+      z-index: 2; /* Să fie deasupra iconițelor animate */
+    }
+
+    h1 {
+      font-size: 2.5rem;
+      color: #333;
+      margin-bottom: 1.5rem;
+      font-weight: 600;
+    }
+
+    p {
+      font-size: 1rem;
+      color: #666;
+      margin-bottom: 2rem;
+    }
+
+    form {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      animation: fadeIn 1s ease-out;
+    }
+
+    button {
+      background-color: #4f6dff;
+      color: white;
+      border: none;
+      padding: 0.85rem 1.75rem;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+      animation: slideUp 1.2s ease-out;
+    }
+
+    button:hover {
+      background-color: #3552d2;
+    }
+
+    .additional-info {
+      margin-top: 2rem;
+      font-size: 0.9rem;
+      color: #999;
+    }
+
+    /* Animații */
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    @keyframes slideUp {
+      from { transform: translateY(50px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Iconițe social media animate -->
+  <div class="social-icons">
+    <i class="fab fa-google"></i>
+    <i class="fab fa-facebook-f"></i>
+  </div>
+
+  <!-- Formularul principal -->
+  <div class="page-content">
+    {% block content %}
+    <h1>Conectare cu un cont terț</h1>
+    <p>Alegeți furnizorul prin care doriți să vă conectați.</p>
+    
+    <!-- Form-ul de conectare -->
+    <form method="post">
+      {% csrf_token %}
+      <button type="submit">Continuă</button>
+    </form>
+    
+    <div class="additional-info">
+      <p>Nu aveți un cont? <a href="#">Înregistrați-vă aici</a></p>
+    </div>
+    {% endblock content %}
+  </div>
+</body>
+</html>

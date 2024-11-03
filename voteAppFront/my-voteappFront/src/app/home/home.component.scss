@@ -1,0 +1,163 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.home-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0;  // Elimină padding-ul pentru ca header-ul să fie lipit de margine
+  font-family: Arial, sans-serif;
+  color: #f0f0f0;  // Ajustare pentru vizibilitate pe fundal
+  background: url('/assets/icons/vote.webp') no-repeat center center;
+  background-size: cover;
+
+  .navbar {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+    width: 100%;
+    padding: 0.5rem;
+    background-color: rgba(10, 61, 98, 0.9); // Culoare mai închisă, semi-transparentă
+    border-bottom: none;
+
+    .nav-button {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.6rem 1.2rem;
+      font-size: 1rem;
+      font-weight: bold;
+      color: #fff;
+      background: none;
+      border: none;
+      cursor: pointer;
+      position: relative;
+      
+      &:hover {
+        color: #3c8dbc;
+      }
+
+      .spinner {
+        position: absolute;
+        width: 1rem;
+        height: 1rem;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        border-radius: 50%;
+        border-top-color: #fff;
+        animation: spin 0.6s linear infinite;
+      }
+    }
+  }
+
+  header {
+    text-align: center;
+    padding: 1rem;
+    background-color: rgba(10, 61, 98, 0.9);
+    width: 100%;
+    h1 {
+      font-size: 2.5rem;
+      color: #f0f0f0;
+    }
+    p {
+      font-size: 1.2rem;
+      color: #dcdcdc;
+    }
+  }
+
+  .main-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin: 2rem 0;
+
+    .hero-image {
+      width: 40%;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      margin-bottom: 1rem;
+    }
+
+    .intro-text {
+      text-align: center;
+      h2 {
+        font-size: 2rem;
+        color: rgba(0, 0, 0, 0.6);
+      }
+      p {
+        font-size: 1.1rem;
+        color:rgba(0, 0, 0, 0.6);
+      }
+    }
+  }
+
+  .about, .features, .testimonials {
+    width: 80%;
+    margin: 1rem 0;
+    padding: 1rem;
+    background: rgba(0, 0, 0, 0.6);
+    border-radius: 8px;
+
+    h3 {
+      font-size: 1.6rem;
+      color: #4caf50;
+    }
+
+    p, ul, .testimonial {
+      font-size: 1rem;
+      color: #ddd;
+    }
+  }
+  .testimonials {
+    background:  rgba(0, 0, 0, 0.6);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  
+    .testimonial-card {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 1rem;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 10px;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+  
+      p {
+        font-size: 1rem;
+        color: #f0f0f0;
+        flex-grow: 1;
+        margin: 0;
+      }
+  
+      span {
+        font-size: 0.9rem;
+        color: #cccccc;
+        font-style: italic;
+      }
+  
+      .testimonial-icon {
+        font-size: 2rem;
+        color: #4caf50;
+      }
+    }
+  }
+
+  .footer {
+    text-align: center;
+    background-color: rgba(10, 61, 98, 0.9);
+    width: 100%;
+    color: #f0f0f0;
+    padding: 0.5rem;
+    margin-top: auto;
+  }
+
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+}
