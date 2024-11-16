@@ -5,6 +5,7 @@ from django.utils import timezone
 
 #manager personalizat pentru User
 class CustomUserManager(BaseUserManager):
+    
     #crearea unui utilizator obisnuit
     def create_user(self, email=None, password=None, cnp=None, **extra_fields):
         if not email and not cnp:
@@ -67,7 +68,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     #asociem managerul personalizat
     objects = CustomUserManager()
 
-    #repr text a modelului ( email sau cnp )
+    #repr textuala a modelului ( email sau cnp )
     def __str__(self):
         return self.email if self.email else self.cnp
 

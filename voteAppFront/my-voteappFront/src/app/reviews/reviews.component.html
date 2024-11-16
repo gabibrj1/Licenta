@@ -1,0 +1,24 @@
+<app-header></app-header> <!-- Header pentru toate paginile -->
+
+<div class="reviews-container">
+  <h1>Recenzii complete</h1>
+
+  <div class="reviews-list">
+    <div class="review-card" *ngFor="let review of reviews.concat(additionalReviews)">
+      <p>"{{ review.text }}"</p>
+      <strong>{{ review.author }}, {{ review.position }}</strong>
+      <div class="stars">
+        <ng-container [ngSwitch]="review.rating">
+          <span *ngSwitchCase="5">★★★★★</span>
+          <span *ngSwitchCase="4.5">★★★★☆</span>
+          <span *ngSwitchCase="4">★★★★</span>
+        </ng-container>
+      </div>
+    </div>
+  </div>
+
+  
+
+
+  <button class="back-button" (click)="navigateBack()">Înapoi</button>
+</div>

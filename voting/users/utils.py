@@ -5,11 +5,10 @@ import cv2
 import numpy as np
 from decouple import config
 
-# Configurarea căii pentru Tesseract
 pytesseract.pytesseract.tesseract_cmd = config('TESSERACT_CMD_PATH')
 
 def preprocess_image(image):
-    """aplica threshold și morfologie pentru a prelucra imaginea."""
+    """aplica threshold si morfologie pentru a prelucra imaginea"""
     #convertim imaginea la tonuri de gri
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     #aplicam threshold pentru a evidentia textul
@@ -22,7 +21,7 @@ def preprocess_image(image):
 def extract_text_from_image(image_file):
     """Extrage textul din fisierul de imagine incarcat."""
     try:
-        #citim continutul fis si il pastram in memorie
+        #citim continutul fisierului si il pastram in memorie
         image_data = image_file.read()
         #trnasf datele intr-un array numpy
         np_image = np.frombuffer(image_data, np.uint8)
@@ -54,7 +53,7 @@ def parse_id_card(text):
     if cnp_match:
         data['cnp'] = cnp_match.group(1) if cnp_match.group(1) else cnp_match.group(0)
 
-    # extragem seria si numărul
+    # extragem seria si numarul
     series_number_match = re.search(r'SERIA\s*([A-Z]{2})\s*NR\s*(\d{6})', text)
     if series_number_match:
         data['series'] = series_number_match.group(1)

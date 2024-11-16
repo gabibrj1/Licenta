@@ -1,6 +1,7 @@
 from django import forms
 from .models import User
 
+#formular pentru inregistrarea utilizatorilor
 class RegistrationForm(forms.ModelForm):
     password = forms.CharField(widget=forms.PasswordInput)
     confirm_password = forms.CharField(widget=forms.PasswordInput)
@@ -19,6 +20,7 @@ class RegistrationForm(forms.ModelForm):
             raise forms.ValidationError("Parolele nu se potrivesc")
         return cleaned_data
 
+#formular pentru completarea datelor din carte de identitate
 class IDCardForm(forms.ModelForm):
     class Meta:
         model = User

@@ -1,0 +1,10 @@
+<div class="menu-container">
+  <h1>Meniu Principal</h1>
+  <div *ngIf="userEmail; else socialLoginMessage">
+    <p>Email: {{ userEmail }}</p>
+  </div>
+  <ng-template #socialLoginMessage>
+    <p>{{ message }}</p>
+  </ng-template>
+  <button (click)="logout()">Logout</button>
+</div>

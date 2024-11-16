@@ -17,6 +17,10 @@ from django.core.mail import EmailMessage
 from allauth.socialaccount.models import SocialAccount  
 from django.shortcuts import render
 from decouple import config
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework_simplejwt.tokens import RefreshToken
+from django.contrib.auth import authenticate
 
 
 def privacy_policy(request):
@@ -26,6 +30,7 @@ def terms_of_service(request):
     return render(request, 'terms_of_service.html')
 
 def social_login_redirect(request, provider):
+    #stiluri pt pagina
     provider_class = 'google-logo' if provider == 'Google' else 'facebook-logo'
     context = {
         'provider': provider,
@@ -33,6 +38,7 @@ def social_login_redirect(request, provider):
     }
     return render(request, 'social_login_redirect.html', context)
 
+#view pt incarcarea unei imagini cu buletinul
 class UploadIdView(APIView):
     permission_classes = [AllowAny]
 
@@ -58,6 +64,7 @@ class RegisterView(APIView):
         serializer = UserSerializer(data=request.data)
 
         if serializer.is_valid():
+            #creeaza un nou utilizator
             user = serializer.save()
             user.is_active = False # initial contul este inactiv pentru toti utilizatorii noi
 
@@ -97,6 +104,76 @@ class RegisterView(APIView):
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+class SocialLoginCallbackView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        provider = request.data.get('provider')
+        code = request.data.get('code')
+        
+        try:
+            if not request.user.is_authenticated:
+                return Response({'error': 'Autentificare eșuată'}, status=403)
+            
+            # Generare tokeni JWT
+            refresh = RefreshToken.for_user(request.user)
+            tokens = {
+                'refresh': str(refresh),
+                'access': str(refresh.access_token),
+            }
+            
+            # returneaza informatii user si token  uri
+            user_data = {
+                'email': request.user.email,
+                'first_name': request.user.first_name,
+                'last_name': request.user.last_name,
+                'message': 'Autentificare socială reușită!',
+                'tokens': tokens
+            }
+            
+            return Response(user_data, status=200)
+            
+        except Exception as e:
+            return Response({'error': str(e)}, status=400)
+
+#view pt autentif clasica cu mail si parola   
+class LoginView(APIView):
+    permission_classes = [AllowAny]  # Permite accesul public pentru autentificare
+
+    def post(self, request):
+        email = request.data.get('email')
+        password = request.data.get('password')
+
+        # cauta utilizatorul după email
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            return Response(
+                {"detail": "Autentificare eșuată. Verifică email-ul și parola."},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+
+        # verif daca utilizatorul are un cont social asociat
+        if SocialAccount.objects.filter(user=user).exists():
+            return Response(
+                {"detail": "Folosește autentificarea socială pentru acest cont (Facebook/Google)."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        # Autentificare clasica
+        user = authenticate(request, username=email, password=password)
+        if user is not None:
+            refresh = RefreshToken.for_user(user)
+            return Response({
+                'refresh': str(refresh),
+                'access': str(refresh.access_token),
+            }, status=status.HTTP_200_OK)
+
+        # Parola este gresita
+        return Response(
+            {"detail": "Autentificare eșuată. Verifică email-ul și parola."},
+            status=status.HTTP_401_UNAUTHORIZED
+        )
 
 class VerifyEmailView(APIView):
     permission_classes = [AllowAny]
@@ -164,3 +241,34 @@ def upload_id_card(request):
         else:
             return JsonResponse({'error': 'Buletin invalid'}, status=400)
     return JsonResponse({'error': 'Invalid request'}, status=400)
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def send_feedback(request):
+    feedback_email = request.data.get('email')
+    if not feedback_email or not User.objects.filter(email=feedback_email, is_active=True).exists():
+        return Response(
+            {'error': 'Se poate trimite feedback numai dacă sunteți conectat la aplicație.'},
+            status=status.HTTP_403_FORBIDDEN
+        )
+
+    feedback_data = {
+        'name': request.data.get('name'),
+        'phone': request.data.get('phone'),
+        'email': feedback_email,
+        'message': request.data.get('message')
+    }
+
+    feedback_template = render_to_string('feedback_email.html', feedback_data)
+
+    email = EmailMessage(
+        subject='Feedback de la utilizator',
+        body=feedback_template,
+        from_email=config('DEFAULT_FROM_EMAIL'),
+        to=[config('ADMIN_EMAIL')],
+        reply_to=[feedback_email],
+    )
+    email.content_subtype = 'html'
+    email.send()
+
+    return Response({'message': 'Feedback-ul a fost trimis cu succes!'}, status=status.HTTP_200_OK)

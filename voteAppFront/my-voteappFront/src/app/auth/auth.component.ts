@@ -1,5 +1,5 @@
-import { Component, ElementRef, ViewChild, Renderer2 } from '@angular/core';
-import { Router } from '@angular/router';
+import { Component, ElementRef, ViewChild, Renderer2, OnInit } from '@angular/core';
+import { Router, ActivatedRoute, Params} from '@angular/router';
 import { AuthService } from '../services/auth.service';
 import { MatSnackBar } from '@angular/material/snack-bar';
 
@@ -22,18 +22,60 @@ export class AuthComponent {
   isCameraOpen: boolean = false;
   capturedImage: string | null = null;
   uploadedImageName: string | null = null;
+  isLoading: boolean = false;
   @ViewChild('video') videoElement!: ElementRef;
   videoStream!: MediaStream;
 
-  constructor(private authService: AuthService, private router: Router, private renderer: Renderer2, private snackBar: MatSnackBar) {}
+  constructor(
+    private authService: AuthService,
+    private router: Router,
+    private renderer: Renderer2, 
+    private snackBar: MatSnackBar,
+    private route:ActivatedRoute,
+  
+  ) {}
 
   ngOnInit() {
+    this.checkSocialLoginRedirect();
     const savedDarkMode = localStorage.getItem('darkMode');
     if (savedDarkMode) {
       this.darkMode = JSON.parse(savedDarkMode);
       this.applyDarkMode();
     }
   }
+  private checkSocialLoginRedirect(): void {
+    this.route.queryParams.subscribe(params => {
+      const code = params['code'];
+      const state = params['state'];
+  
+      // Deduce provider-ul din URL sau parametri
+      let provider: string | null = null;
+      if (window.location.href.includes('google')) {
+        provider = 'google';
+      } else if (window.location.href.includes('facebook')) {
+        provider = 'facebook';
+      }
+  
+      if (code && provider) {
+        this.authService.socialLoginCallback(code, provider).subscribe(
+          (response) => {
+            localStorage.setItem('access_token', response.access);
+            localStorage.setItem('refresh_token', response.refresh);
+            this.snackBar.open('Autentificare socială reușită!', 'Închide', { duration: 3000 });
+            this.router.navigate(['/menu']);
+          },
+          (error) => {
+            console.error('Eroare la autentificarea socială:', error);
+            this.showErrorMessage('Autentificarea socială a eșuat. Încercați din nou.');
+            this.router.navigate(['/auth']); // in caz de esec, redirectionam la autentificare
+          }
+        );
+      }
+    });
+  }
+  
+  
+  
 
   toggleDarkMode() {
     this.darkMode = !this.darkMode;
@@ -57,31 +99,32 @@ export class AuthComponent {
     }
   }
 
-  onSubmit() {
-    if (this.useIdCardAuth) {
-      if (this.cnp && this.series && this.firstName && this.lastName) {
-        this.authService.loginWithIDCard(this.cnp, this.series, this.firstName, this.lastName).subscribe(
-          response => this.router.navigate(['/dashboard']),
-          error => {
-            this.showErrorMessage('Autentificarea prin buletin a eșuat. Te rugăm să încerci din nou.');
-          }
-        );
-      } else {
-        this.showErrorMessage('Te rugăm să completezi toate câmpurile necesare.');
-      }
+  onSubmit(): void {
+    if (this.email && this.password) {
+      this.isLoading = true;
+      this.authService.login(this.email, this.password).subscribe(
+        (response: any) => {
+          localStorage.setItem('access_token', response.access);
+          localStorage.setItem('refresh_token', response.refresh);
+
+          this.snackBar.open('Autentificare reușită!', 'Închide', { duration: 3000 });
+          this.router.navigate(['/menu']);
+        },
+        (error) => {
+          console.error('Autentificare eșuată', error);
+          this.showErrorMessage('Autentificarea a eșuat. Verifică email-ul și parola.');
+          this.isLoading = false;
+        }
+      );
     } else {
-      if (this.email && this.password) {
-        this.authService.login(this.email, this.password).subscribe(
-          response => this.router.navigate(['/dashboard']),
-          error => {
-            this.showErrorMessage('Autentificarea a eșuat. Verifică email-ul și parola.');
-          }
-        );
-      } else {
-        this.showErrorMessage('Te rugăm să introduci email-ul și parola.');
-      }
+      this.showErrorMessage('Te rugăm să introduci email-ul și parola.');
     }
   }
+
+  
+  
+  
+
 
   private showErrorMessage(message: string) {
     this.snackBar.open(message, 'Închide', {
@@ -96,7 +139,6 @@ export class AuthComponent {
     this.router.navigate(['/voteapp-front']);
   }
 
-  // File Upload
   onFileUpload(event: any): void {
     const file = event.target.files[0];
     if (file) {
@@ -132,7 +174,6 @@ export class AuthComponent {
 }
 
 
-  // Camera Functions
   openCamera() {
     this.isCameraOpen = true;
     navigator.mediaDevices.getUserMedia({ video: true })
@@ -177,4 +218,22 @@ export class AuthComponent {
       duration: 3000
     });
   }
+  loginWithGoogle() {
+    this.isLoading = true;
+    setTimeout(() => {
+      window.location.href = 'http://localhost:8000/accounts/google/login';
+    }, 1000); 
+  }
+
+
+
+  loginWithFacebook() {
+    this.isLoading = true;
+    setTimeout(() => {
+      window.location.href = 'http://localhost:8000/accounts/facebook/login';
+    }, 1000);
+  }
 }
+
+
+

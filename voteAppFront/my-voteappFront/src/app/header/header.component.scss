@@ -1,109 +1,75 @@
 .header {
-    position: fixed;
-    top: 0;
-    left: 0;
+  width: 100%;
+  position: fixed;
+  top: 0;
+  padding: 15px 30px;
+  background: rgba(0, 0, 0, 0.9);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: #fff;
+  z-index: 10;
+
+  .header-content {
+    padding-right: 60px;
+    display: flex;
+    justify-content: space-between;
     width: 100%;
-    background-color: #2a2f3a;
-    padding: 12px 20px;
-    color: white;
-    z-index: 1000;
+
+    .logo {
+      font-size: 1.8em;
+      color: #00c8ff;
+      cursor: pointer;
+    }
+
+    .burger-menu, .close-menu {
+      font-size: 2em;
+      color: #00c8ff;
+      background: none;
+      border: none;
+      cursor: pointer;
+
+      &:hover {
+        color: #33e1ff;
+      }
+    }
+  }
+
+  .navigation {
     display: flex;
-    align-items: center;
-    justify-content: flex-start;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-    border-radius: 0 0 15px 15px;
-    transition: background-color 0.3s ease;
-  }
-  
-  .header:hover {
-    background-color: #1f252f;
-  }
-  
-  /* Burger Menu */
-  .burger-menu {
-    position: relative;
-    display: inline-block;
-  }
-  
-  .burger-icon {
-    cursor: pointer;
-    padding: 8px;
-    border-radius: 50%;
-    background-color: #34495e;
-    transition: background-color 0.3s ease, transform 0.2s ease;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  
-  .burger-icon:hover {
-    background-color: #1abc9c;
-    transform: scale(1.1);
-  }
-  
-  /* Menu dropdown animation */
-  .menu-options {
-    display: none;
+    flex-direction: row;
+    gap: 20px;
     position: absolute;
     top: 100%;
     left: 0;
-    background-color: #34495e;
-    min-width: 160px;
-    border-radius: 8px;
-    padding: 8px 0; /* Reduced padding to fit better */
+    right: 0;
+    background-color: rgba(28, 31, 38, 0.95);
+    padding: 10px 20px;
+    transform: scaleY(0);
+    transform-origin: top;
+    transition: transform 0.3s ease, opacity 0.3s ease;
+    visibility: hidden;
     opacity: 0;
-    transform: translateY(-10px);
-    transition: opacity 0.4s ease, transform 0.4s ease;
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
-    overflow: hidden; /* Ensures hover effects stay within bounds */
-    box-sizing: border-box;
+
+    &.open {
+      transform: scaleY(1);
+      visibility: visible;
+      opacity: 1;
+    }
+
+    .menu-item {
+      color: #ddd;
+      font-size: 1em;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      transition: color 0.3s;
+      cursor: pointer;
+
+      &:hover {
+        color: #00c8ff;
+      }
+    }
   }
-  
-  /* Show menu on hover with animation */
-  .burger-menu:hover .menu-options {
-    display: block;
-    opacity: 1;
-    transform: translateY(0);
-  }
-  
-  /* Style for each menu option */
-  .menu-item {
-    width: 100%;
-    padding: 10px 15px; /* Adjusted padding */
-    margin: 0; /* Removed margin to prevent overlap */
-    color: white;
-    text-align: left;
-    background: none;
-    border: none;
-    cursor: pointer;
-    font-size: 16px;
-    transition: background-color 0.3s ease, color 0.3s ease, transform 0.2s ease;
-    display: flex;
-    align-items: center;
-    border-radius: 0; /* No radius to avoid spillover */
-    box-sizing: border-box;
-  }
-  
-  /* Hover effect for menu options */
-  .menu-item:hover {
-    background-color: #1abc9c;
-    color: #ecf0f1;
-    transform: translateX(5px); /* Smooth right shift */
-  }
-  
-  /* Add icon before text */
-  .menu-item::before {
-    content: '▶';
-    margin-right: 10px;
-    color: #ecf0f1;
-    font-size: 14px;
-    opacity: 0.6;
-    transition: color 0.3s ease, transform 0.3s ease;
-  }
-  
-  .menu-item:hover::before {
-    color: #ffffff;
-    transform: rotate(90deg);
-  }
-  
+}

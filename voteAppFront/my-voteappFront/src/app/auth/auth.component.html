@@ -1,9 +1,7 @@
 <app-header></app-header>
 <div class="page-container">
   <div class="auth-container" [ngClass]="{'dark-mode': darkMode}">
-    <h2>Autentificare</h2>
-
-    <!-- Dark Mode Toggle -->
+    <h2>🔐 Autentificare</h2>
     <div class="dark-mode-button">
       <button mat-button [class.active]="darkMode" (click)="toggleDarkMode()">
         <mat-icon>brightness_2</mat-icon>
@@ -12,7 +10,7 @@
     </div>
 
     <form (ngSubmit)="onSubmit()">
-      <!-- Email Authentication -->
+   
       <mat-form-field appearance="fill">
         <mat-label>Email</mat-label>
         <input matInput type="email" [(ngModel)]="email" name="email" required />
@@ -27,13 +25,13 @@
       <div class="register-link">
         <p>Nu ai deja un cont? <a (click)="navigateToRegister()">Înregistrează-te</a></p>
       </div>
+      
 
-      <!-- Checkbox for ID card authentication -->
+     
       <mat-checkbox [(ngModel)]="useIdCardAuth" name="useIdCardAuth" (change)="onIdCardAuthChange()" class="auth-checkbox">
         <span [ngClass]="{'dark-mode-text': darkMode}" class="custom-checkbox-text">Autentificare prin buletin</span>
       </mat-checkbox>
 
-      <!-- Conditional fields for ID card authentication -->
       <div *ngIf="useIdCardAuth">
         <mat-form-field appearance="fill">
           <mat-label>CNP</mat-label>
@@ -55,7 +53,7 @@
           <input matInput type="text" [(ngModel)]="series" name="series" required />
         </mat-form-field>
 
-        <!-- Camera and Upload Buttons (Unified Container) -->
+  
         <div class="camera-upload-buttons">
           <button mat-raised-button color="accent" class="unified-btn" (click)="openCamera()">📸 Deschide Camera</button>
           <label class="unified-btn upload-btn">
@@ -64,7 +62,6 @@
           </label>
         </div>
 
-        <!-- Show image file name or "C.I." if captured -->
         <div class="image-info">
           <span *ngIf="uploadedImageName">{{ uploadedImageName }}</span>
           <span *ngIf="capturedImage">C.I.</span>
@@ -73,7 +70,6 @@
           </button>
         </div>
 
-        <!-- Video element to display the camera -->
         <div *ngIf="isCameraOpen" class="camera-container">
           <video #video autoplay></video>
           <button mat-icon-button color="warn" class="close-camera-btn" (click)="closeCamera()">❌</button>
@@ -81,16 +77,31 @@
         </div>
       </div>
 
-      <!-- Submit Button -->
+    
       <button mat-raised-button color="primary" type="submit">
         Autentificare
       </button>
+      
 
-      <!-- Forgot password link -->
+ 
       <div class="forgot-password">
         <a href="http://localhost:8000/accounts/password/reset/">Ai uitat parola?</a>
       </div>
       
     </form>
+    <div class="social-login">
+
+      <button mat-raised-button class="google-btn" color="primary" (click)="loginWithGoogle()">
+        <i class="fab fa-google"></i> Google
+      </button>
+      
+      <button mat-raised-button class="facebook-btn" color="primary" (click)="loginWithFacebook()">
+        <mat-icon>facebook</mat-icon> Facebook
+      </button>
+  
+      <div *ngIf="isLoading" class="loading-spinner">
+        <div class="ball"></div>
+        <p>Redirecționare în curs...</p>
+      </div>
   </div>
 </div>

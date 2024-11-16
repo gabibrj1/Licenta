@@ -1,76 +1,180 @@
 <div class="home-container">
-  <!-- Navbar Section -->
-  <nav class="navbar">
-    <button (click)="navigateTo('auth')" class="nav-button" [disabled]="loading.signup">
-      <mat-progress-spinner *ngIf="loading.signup" diameter="20" mode="indeterminate"></mat-progress-spinner>
-      <span *ngIf="!loading.signup"><fa-icon [icon]="['fas', 'user']"></fa-icon></span>
-      <span *ngIf="loading.signup">Loading...</span>
-      <span *ngIf="!loading.signup">SignUp</span>
-    </button>
-    
-    <button (click)="navigateTo('')" class="nav-button" [disabled]="loading.home">
-      <mat-progress-spinner *ngIf="loading.home" diameter="20" mode="indeterminate"></mat-progress-spinner>
-      <span *ngIf="!loading.home"><fa-icon [icon]="['fas', 'home']"></fa-icon></span>
-      <span *ngIf="loading.home">Loading...</span>
-      <span *ngIf="!loading.home">Home</span>
-    </button>
-    
-  </nav>
 
-  <!-- Header Section -->
-  <header>
-    <h1>Bun venit la Aplicația de Vot Online cu Inteligență Artificială!</h1>
-    <p>Votează cu încredere, rapid și sigur, utilizând tehnologie de ultimă oră.</p>
+  <header class="header" (mouseenter)="resetMenuTimeout()" (mouseleave)="startMenuTimeout()">
+    <div class="header-content">
+      <div class="logo">VotAI</div>
+      <button class="burger-menu" *ngIf="!isMenuOpen" (click)="toggleMenu()">☰</button>
+      <button class="close-menu" *ngIf="isMenuOpen" (click)="toggleMenu()">✕</button>
+    </div>
+    <nav class="navigation" [class.open]="isMenuOpen">
+      <a href="#home" (click)="navigateTo('')">
+        Acasă
+        <mat-spinner *ngIf="loading.home" diameter="20"></mat-spinner>
+      </a>
+      <a href="#about" (click)="navigateTo('about')">Despre</a>
+      <a href="#features" (click)="navigateTo('features')">Avantaje</a>
+      <a href="#signup" (click)="navigateTo('auth')">
+        Sign Up
+        <mat-spinner *ngIf="loading.signup" diameter="20"></mat-spinner>
+      </a>
+      <a (click)="scrollToContact()">Contact</a>
+    </nav>
   </header>
 
-  <!-- Main Image Section -->
-  <section class="main-content">
-    <img src="assets/icons/background.jpeg" alt="Ilustrare Vot AI" class="hero-image" />
-    <div class="intro-text">
-      <h2>Transformăm modul în care votezi</h2>
-      <p>Aplicația noastră utilizează inteligență artificială pentru a asigura corectitudinea și transparența voturilor.</p>
+  <section class="hero-section" id="home">
+    <div class="content-box">
+      <h1>Transformăm procesul de vot cu Inteligența Artificială</h1>
+      <p>Explorează noua modalitate de votare digitală, rapidă și sigură, ghidată de AI.</p>
+      <button class="hero-button" (click)="navigateTo('auth')">Începe acum</button>
     </div>
   </section>
 
-  <!-- About Us Section -->
-  <section class="about">
-    <h3>Despre Noi</h3>
-    <p>Folosim algoritmi avansați și AI pentru a crea o experiență de vot sigură și intuitivă, protejând confidențialitatea utilizatorilor și asigurând rezultate precise.</p>
+  <section class="about-section" id="about">
+    <div class="content-box">
+      <h2>Despre VotAI</h2>
+      <p>VotAI oferă o platformă de votare asistată de inteligența artificială, care asigură acuratețe, securitate și transparență.</p>
+    </div>
   </section>
 
-  <!-- Features Section -->
-  <section class="features">
-    <h3>Funcționalități Cheie</h3>
-    <ul>
-      <li>🔒 Securitate de top pentru toate voturile</li>
-      <li>📊 Analiză în timp real a rezultatelor</li>
-      <li>🤖 Detecție a comportamentului fraudulos cu ajutorul AI</li>
-      <li>📱 Accesibilitate multiplatformă</li>
-      <li>🕐 Votare rapidă și ușoară, oriunde te afli</li>
-    </ul>
-  </section>
 
-  <!-- Testimonials Section -->
-  <section class="testimonials">
-    <h3>Ce spun utilizatorii noștri</h3>
-    <div class="testimonial-card">
-      <div class="testimonial-icon">
-        <fa-icon [icon]="['fas', 'user-circle']"></fa-icon>
+  <section class="features-section" id="features">
+    <div class="content-box">
+      <h2>Avantajele Votării cu AI <span class="emoji">⬇️</span></h2>
+    </div>
+    <div class="feature-cards">
+      <div class="feature-card">
+        <h3>🔒 Securitate Avansată</h3>
+        <p>Algoritmii AI protejează datele și asigură confidențialitatea votului.</p>
       </div>
-      <p>„O aplicație revoluționară! M-a făcut să am încredere în votul online.”</p>
-      <span>- Maria Popescu</span>
-    </div>
-    <div class="testimonial-card">
-      <div class="testimonial-icon">
-        <fa-icon [icon]="['fas', 'user-circle']"></fa-icon>
+      <div class="feature-card">
+        <h3>⚡ Viteză și Eficiență</h3>
+        <p>Procesul de votare este optimizat pentru rapiditate și accesibilitate.</p>
       </div>
-      <p>„Rapid, sigur și foarte ușor de folosit. Recomand cu încredere!”</p>
-      <span>- Ion Ionescu</span>
+      <div class="feature-card">
+        <h3>📈 Transparență și Acuratețe</h3>
+        <p>Rezultatele sunt precise și pot fi validate în timp real.</p>
+      </div>
     </div>
   </section>
 
-  <!-- Footer Section -->
-  <footer class="footer">
-    <p>&copy; 2024 Aplicația de Vot Online. Toate drepturile rezervate.</p>
+  <section class="contact-section" id="contact">
+    <div class="contact-wrapper">
+      <div class="map-container">
+        <iframe
+          src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2788.87991390865!2d25.580504876115686!3d45.6532332710776!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x40b35bc0e15df997%3A0xfdbbb010711c57e9!2sCaminul%203!5e0!3m2!1sro!2sro!4v1730902597932!5m2!1sro!2sro"
+          allowfullscreen=""
+          loading="lazy"
+          referrerpolicy="no-referrer-when-downgrade"
+        ></iframe>
+      </div>
+      
+      <div class="form-container">
+        <div class="form-content">
+          <h2>Contact</h2>
+          <p>
+            <a href="mailto:gabriel.danciu@unitbv.ro">Întrebări/comentarii/sugestii</a>
+          </p>
+          
+          <div class="contact-details">
+            <p>CONTACT</p>
+            <p>Tel: +40 723 452 871</p>
+            <p>Tel: +40 729 562 975</p>
+            <p>E-mail: gabriel.brujbeanu&#64;unitbv.ro</p>
+            <p>E-mail: g.brujbeanu18&#64;.com</p>
+          </div>
+          
+          <h3>Feedback</h3>
+          <form (ngSubmit)="onSubmitContactForm()" #contactForm="ngForm">
+            <input 
+              type="text" 
+              placeholder="Your Name" 
+              name="name" 
+              [(ngModel)]="feedback.name" 
+              required 
+              #name="ngModel"
+            />
+            <div *ngIf="name.invalid && name.touched" class="error">Numele este obligatoriu</div>
+          
+            <input 
+              type="tel" 
+              placeholder="Phone" 
+              name="phone" 
+              [(ngModel)]="feedback.phone" 
+              required 
+              #phone="ngModel"
+            />
+            <div *ngIf="phone.invalid && phone.touched" class="error">Telefonul este obligatoriu</div>
+          
+            <input 
+              type="email" 
+              placeholder="Email" 
+              name="email" 
+              [(ngModel)]="feedback.email" 
+              required 
+              email 
+              #email="ngModel"
+            />
+            <div *ngIf="email.invalid && email.touched" class="error">Email-ul este obligatoriu și trebuie să fie valid</div>
+          
+            <textarea 
+              placeholder="Message" 
+              name="message" 
+              [(ngModel)]="feedback.message" 
+              required 
+              #message="ngModel"
+            ></textarea>
+            <div *ngIf="message.invalid && message.touched" class="error">Mesajul este obligatoriu</div>
+          
+            <button type="submit" [disabled]="contactForm.invalid || loading.feedback">
+              <mat-spinner *ngIf="loading.feedback" diameter="20"></mat-spinner>
+              Trimite
+            </button>
+          </form>
+          
+        </div>
+      </div>
+    </div>
+  </section>
+
+  
+  <section class="reviews-section" id="reviews">
+    <div class="content-box">
+      <h2>Ce spun utilizatorii noștri</h2>
+      <p>Nu trebuie să ne crezi pe cuvânt, iată ce spun clienții noștri:</p>
+    </div>
+
+    <div class="reviews-cards">
+      <div class="review-card" *ngFor="let review of reviews | slice:0:3">
+        <p>"{{ review.feedback }}"</p>
+        <p><strong>{{ review.name }}</strong>, {{ review.position }}</p>
+        <div class="stars">
+          <span *ngFor="let star of [].constructor(review.rating)">★</span>
+        </div>
+      </div>
+    </div>
+
+    <button class="read-more-btn" (click)="navigateTo('reviews')">Vezi mai multe recenzii</button>
+  </section>
+  
+  
+
+  <footer class="footer" #footer>
+    <p>&copy; 2024 VotAI. Toate drepturile rezervate.</p>
+    <button 
+      class="scroll-to-top" 
+      *ngIf="!isTop" 
+      (click)="scrollToTop()" 
+      aria-label="Scroll to top"
+    >
+      <img 
+        [src]="isInFooter ? 'assets/icons/arrow-up-circle.svg' : 'assets/icons/arrow-up-circle-fill.svg'" 
+        alt="Scroll to top icon" 
+        class="scroll-icon"
+      />
+    </button>
   </footer>
+  
+
+  
+  
 </div>

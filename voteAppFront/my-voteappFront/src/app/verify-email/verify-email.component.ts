@@ -22,7 +22,7 @@ export class VerifyEmailComponent {
         this.isSuccess = true;
         setTimeout(() => {
           this.router.navigate(['/']);
-        }, 2000); // Redirecționează după 2 secunde
+        }, 2000); // redirectioneaza dupa 2 secunde
       },
       error => {
         this.message = 'Cod de verificare incorect!';

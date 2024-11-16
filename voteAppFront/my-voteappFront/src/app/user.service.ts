@@ -1,8 +1,9 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Observable, throwError } from 'rxjs';
-import { catchError } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 import { environment } from '../src/environments/environment';
+import { Router } from '@angular/router';
 
 @Injectable({
   providedIn: 'root'
@@ -11,20 +12,19 @@ export class UserService {
   private apiUrl =  environment.apiUrl;
 
   initCsrf(): Observable<any> {
-    return this.http.get(`${this.apiUrl}some-initial-endpoint/`); // Endpoint care returnează un răspuns simplu, de ex. status 200
+    return this.http.get(`${this.apiUrl}some-initial-endpoint/`); // Endpoint care returneaza un raspuns simplu, de ex. status 200
   }
   
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient, private router: Router) {}
 
  
-  // Register user with email and password
   register(userData: any): Observable<any> {
     return this.http.post(`${this.apiUrl}register/`, userData).pipe(
       catchError(this.handleError)
     );
   }
 
-  // Verify email with verification code
+ 
   verifyEmail(email: string, verification_code: string): Observable<any> {
     return this.http.post(`${this.apiUrl}verify-email/`, { email, verification_code }).pipe(
       catchError(this.handleError)
@@ -36,27 +36,31 @@ export class UserService {
   
   
 
-  // Register user with ID card data
   registerWithIDCard(userData: any): Observable<any> {
     return this.http.post(`${this.apiUrl}register-with-id/`, userData).pipe(
       catchError(this.handleError)
     );
   }
 
-  // Upload ID card image for processing
   uploadIDCard(formData: FormData): Observable<any> {
     return this.http.post(`${this.apiUrl}upload-id/`, formData).pipe(
       catchError(this.handleError)
     );
   }
 
-  // În user.service.ts
+
 
   uploadIDCardForAutofill(formData: FormData): Observable<any> {
     return this.http.post(`${this.apiUrl}autofill-data/`, formData).pipe(
       catchError(this.handleError)
     );
   }
+  sendFeedback(feedbackData: any): Observable<any> {
+    return this.http.post(`${this.apiUrl}send-feedback/`, feedbackData, { withCredentials: true }).pipe(
+      catchError((error) => throwError(error))
+    );
+  }
+  
 
 
   
@@ -70,9 +74,9 @@ export class UserService {
     } else {
       if (error.status === 400) {
         if (error.error.email) {
-          errorMessage = error.error.email[0];  // capturam mesajul pentru email
+          errorMessage = error.error.email[0];  
         } else if (error.error.cnp) {
-          errorMessage = error.error.cnp[0];    // capturam mesajul pentru CNP
+          errorMessage = error.error.cnp[0];    
         } else {
           errorMessage = 'Date invalide. Verificati campurile!';
         }

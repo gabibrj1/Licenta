@@ -104,12 +104,12 @@ export class VoteappFrontComponent implements OnInit {
       const userAgreed = await dialogRef.afterClosed().toPromise();
 
       if (!userAgreed) {
-        this.useIDCard = false; // deselecteaza checkbox-ul daca utilizatorul nu e de acord
+        this.useIDCard = false; 
       }
     }
   }
 
-  // Toggle dark mode and update the DOM
+
   toggleDarkMode() {
     this.darkMode = !this.darkMode;
     localStorage.setItem('darkMode', JSON.stringify(this.darkMode));
@@ -128,8 +128,7 @@ export class VoteappFrontComponent implements OnInit {
     this.validateConfirmPassword();
   }
 
-   // metoda pentru validarea parolei la fiecare modificare
-  // Validarea parolei
+   
   
   validatePassword() {
     const password = this.registrationForm.get('password')?.value;
@@ -153,11 +152,11 @@ export class VoteappFrontComponent implements OnInit {
     const password = this.registrationForm.get('password')?.value;
     const confirmPassword = this.registrationForm.get('confirmPassword')?.value;
 
-    // setam eroarea mismatch imediat ce parolele nu se potrivesc
+    
     if (password && confirmPassword && password !== confirmPassword) {
       this.registrationForm.get('confirmPassword')?.setErrors({ mismatch: true });
     } else {
-      this.registrationForm.get('confirmPassword')?.setErrors(null); // Eliminăm eroarea când parolele se potrivesc
+      this.registrationForm.get('confirmPassword')?.setErrors(null); 
     }
   }
   
@@ -201,15 +200,14 @@ export class VoteappFrontComponent implements OnInit {
   }
 
   register() {
-    // Eliminăm erorile pentru câmpurile opționale în funcție de metoda de înregistrare
+    
     if (this.useIDCard) {
       if (this.idCardForm.valid) {
-        // Procesul de înregistrare cu buletinul
         this.registerWithIDCard();
       }
     } else {
       if (this.registrationForm.valid) {
-        // Procesul de înregistrare standard
+
         const { email, password } = this.registrationForm.value;
         this.userService.register({ email, password }).subscribe(
           (response: any) => {
@@ -225,7 +223,7 @@ export class VoteappFrontComponent implements OnInit {
     }
   
 
-    // Înregistrare dacă nu există erori
+  
     this.userService.register({ email: this.email, password: this.password }).subscribe(
       (response: any) => {
         alert('Verifică-ți emailul pentru codul de verificare. Nu răspunde la acel email.');
@@ -245,7 +243,7 @@ export class VoteappFrontComponent implements OnInit {
     this.minExpiryDate = new Date(issueDate);
     this.minExpiryDate.setDate(this.minExpiryDate.getDate() + 1);
     
-    // Reset the expiry date if it's now invalid
+    
     const currentExpiryDate = this.idCardForm.get('date_of_expiry')?.value;
     if (currentExpiryDate && new Date(currentExpiryDate) <= issueDate) {
       this.idCardForm.patchValue({
@@ -253,7 +251,7 @@ export class VoteappFrontComponent implements OnInit {
       });
     }
   }
-  // Method to register user with ID card details
+  
   registerWithIDCard() {
     if (this.idCardForm.valid) {
       const userData = this.idCardForm.value;
@@ -271,11 +269,11 @@ export class VoteappFrontComponent implements OnInit {
   
 
 
-  // Handle file upload
+  
   onFileUpload(event: any): void {
     const file = event.target.files[0];
-    this.uploadedImageName = file.name; // Salvăm numele fișierului încărcat
-    this.showAutoFillButton = true; // Activăm butonul de Autofill
+    this.uploadedImageName = file.name; 
+    this.showAutoFillButton = true; 
   
     const formData = new FormData();
     formData.append('id_card_image', file);
@@ -320,7 +318,7 @@ export class VoteappFrontComponent implements OnInit {
   }
 
 
-  // Open camera to capture photo
+ 
   openCamera() {
     this.isCameraOpen = true;
     navigator.mediaDevices.getUserMedia({ video: true }).then((stream) => {
@@ -330,13 +328,12 @@ export class VoteappFrontComponent implements OnInit {
     });
   }
 
-  // Close the camera
   closeCamera() {
     this.isCameraOpen = false;
     this.videoStream.getTracks().forEach(track => track.stop());
   }
 
-  // Capture photo from camera
+
   capturePhoto() {
     const canvas = document.createElement('canvas');
     canvas.width = this.videoElement.nativeElement.videoWidth;
@@ -344,43 +341,43 @@ export class VoteappFrontComponent implements OnInit {
     const ctx = canvas.getContext('2d');
     if (ctx) {
       ctx.drawImage(this.videoElement.nativeElement, 0, 0, canvas.width, canvas.height);
-      this.capturedImage = canvas.toDataURL('image/png'); // Save captured image
-      this.uploadedImageName = null; // Clear any uploaded image when capturing
+      this.capturedImage = canvas.toDataURL('image/png'); 
+      this.uploadedImageName = null; 
       this.closeCamera();
     }
   }
 
-  // Method to clear or delete uploaded/captured image
+ 
   deleteImage(): void {
-    this.uploadedImageName = null;       // Șterge numele fișierului încărcat
-    this.capturedImage = null;           // Șterge imaginea capturată
-    this.showAutoFillButton = false;     // Ascunde butonul de Autofill
-    this.autoFillMessage = '';           // Resetează mesajul de Autofill
+    this.uploadedImageName = null;       
+    this.capturedImage = null;           
+    this.showAutoFillButton = false;     
+    this.autoFillMessage = '';           
   }
 
 
-  // Submit vote with animation
+ 
   submitVote() {
     this.isSubmittingVote = true;
     setTimeout(() => {
       this.isSubmittingVote = false;
-    }, 2000); // Reset vote animation after 2 seconds
+    }, 2000); 
   }
 
 
-  // Funcția pentru autentificarea cu Google
+ 
   loginWithGoogle() {
     this.isLoading = true;
     setTimeout(() => {
-      window.location.href = 'http://localhost:8000/accounts/google/login/';
-    }, 1000); // Mică întârziere pentru a afișa spinnerul
+      window.location.href = 'http://localhost:8000/accounts/google/login/?process=signup';
+    }, 1000); 
   }
 
-  // Funcția pentru autentificarea cu Facebook
+ 
   loginWithFacebook() {
     this.isLoading = true;
     setTimeout(() => {
-      window.location.href = 'http://localhost:8000/accounts/facebook/login/';
+      window.location.href = 'http://localhost:8000/accounts/facebook/login/?process=signup';
     }, 1000);
   }
 }
