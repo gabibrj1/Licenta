@@ -161,6 +161,15 @@ html, body {
     justify-content: space-between;
     gap: 20px;
   }
+  button:disabled,
+  button.disabled-button {
+    background: #ccc;
+    color: #666;
+    cursor: not-allowed;
+  }
+  
+
+  
 
   .feature-card {
     background-color: #333;

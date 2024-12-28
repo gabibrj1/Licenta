@@ -35,6 +35,16 @@ export class VoteappFrontComponent implements OnInit {
   maxIssueDate = new Date();
   showAutoFillButton = false;
   autoFillMessage = '';
+  uploadedImagePath: string | null = null;
+  isUploadMethod: boolean = false;
+  isScanMethod: boolean = false;
+  showRedLine: boolean = false;
+  guidanceTimerId: any; // ID-ul pentru setTimeout
+  isCameraExpanded: boolean = false;
+
+
+
+
 
 
   @ViewChild('video') videoElement!: ElementRef;
@@ -272,16 +282,23 @@ export class VoteappFrontComponent implements OnInit {
   
   onFileUpload(event: any): void {
     const file = event.target.files[0];
-    this.uploadedImageName = file.name; 
-    this.showAutoFillButton = true; 
+    if (!file) return;
+
+    this.isUploadMethod = true;
+    this.isScanMethod = false;
+  
+    this.uploadedImageName = file.name;
+    this.showAutoFillButton = true;
   
     const formData = new FormData();
     formData.append('id_card_image', file);
   
+    // Trimite imaginea către backend
     this.userService.uploadIDCardForAutofill(formData).subscribe(
       (response: any) => {
-        if (response.data) {
-          this.autoFillMessage = 'Datele au fost extrase. Apasă pe Autofill pentru completare!';
+        if (response.file_path) {
+          this.autoFillMessage = 'Imaginea a fost procesată. Apasă pe Autofill pentru completare!';
+          this.uploadedImagePath = response.file_path; // Salvează calea în backend
         } else {
           this.autoFillMessage = 'Nu s-au putut extrage datele din imagine.';
         }
@@ -292,67 +309,247 @@ export class VoteappFrontComponent implements OnInit {
       }
     );
   }
+
+  
+  
   autoFillData(): void {
-    this.userService.autoFillFromImage().subscribe(
+    if (!this.uploadedImagePath) {
+      this.autoFillMessage = 'Încarcă sau capturează o imagine, te rog!';
+      return;
+    }
+
+    this.isLoading = true;
+    this.userService.autoFillFromImage(this.uploadedImagePath).subscribe(
       (data: any) => {
-        this.idCardForm.patchValue({
-          cnp: data.cnp,
-          series: data.series,
-          number: data.number,
-          last_name: data.last_name,
-          first_name: data.first_name,
-          place_of_birth: data.place_of_birth,
-          address: data.address,
-          issuing_authority: data.issuing_authority,
-          sex: data.sex,
-          date_of_issue: data.date_of_issue,
-          date_of_expiry: data.date_of_expiry
-        });
-        this.autoFillMessage = 'Date completate automat!';
+        const extracted = data.extracted_info;
+        if (extracted) {
+          const cnpDetails = extracted.CNP || {};
+          const cnpValue = cnpDetails.value || '';
+          const cnpErrors = cnpDetails.errors || [];
+          const cnpStatus = cnpDetails.status || '';
+
+          if (cnpErrors.length > 0) {
+            this.autoFillMessage = `CNP extras: ${cnpValue}. Erori: ${cnpErrors.join(', ')}`;
+          } else {
+            this.autoFillMessage = `CNP extras: ${cnpValue}. Status: ${cnpStatus}`;
+          }
+
+          this.idCardForm.patchValue({
+            cnp: cnpValue,
+            series: extracted.SERIA || '',
+            number: extracted.NR || '',
+            last_name: extracted.Nume || '',
+            first_name: extracted.Prenume || '',
+            place_of_birth: extracted.LocNastere || '',
+            address: extracted.Domiciliu || '',
+            issuing_authority: extracted.EmisaDe || '',
+            sex: extracted.Sex || '',
+            date_of_issue: this.parseRomanianDate(extracted.Valabilitate?.split(' ')[0]) || '',
+            date_of_expiry: this.parseRomanianDate(extracted.Valabilitate?.split(' ')[1]) || ''
+          });
+        } else {
+          this.autoFillMessage = 'Datele nu au putut fi extrase!';
+        }
+        this.isLoading = false;
       },
       (error: any) => {
-        console.error('Eroare la completarea automată:', error);
-        this.autoFillMessage = 'Nu s-au putut completa automat datele.';
+        console.error('Eroare la completarea datelor:', error);
+        this.autoFillMessage = 'A apărut o eroare!';
+        this.isLoading = false;
       }
     );
   }
-
-
+  
+  // Utility function to parse Romanian date format (dd.mm.yy or dd.mm.yyyy) into a Date object
+  parseRomanianDate(dateString: string): Date | null {
+    if (!dateString) return null;
+    const parts = dateString.split('.'); // Split by "."
+    if (parts.length !== 3) return null;
+  
+    const day = parseInt(parts[0], 10);
+    const month = parseInt(parts[1], 10) - 1; // Month is zero-indexed in JS Date
+    let year = parseInt(parts[2], 10);
+  
+    // If year is two digits (e.g., 21), assume it's 2000+21 = 2021
+    if (year < 100) {
+      year += 2000;
+    }
+  
+    return new Date(year, month, day);
+  }
+  
+  
  
   openCamera() {
+    this.isScanMethod = true;
+    this.isUploadMethod = false;
+
     this.isCameraOpen = true;
     navigator.mediaDevices.getUserMedia({ video: true }).then((stream) => {
       this.videoStream = stream;
       this.videoElement.nativeElement.srcObject = stream;
       this.videoElement.nativeElement.play();
+
+      setTimeout(() => {
+        this.showRedLine = true; // Variabilă pentru controlul afișării liniei
+      }, 500);
+
+      this.updateGuidance();
     });
   }
 
   closeCamera() {
     this.isCameraOpen = false;
-    this.videoStream.getTracks().forEach(track => track.stop());
+    this.isCameraExpanded = false;
+    if (this.videoStream) {
+      this.videoStream.getTracks().forEach(track => track.stop());
+    }
+  
+    // Oprește actualizarea mesajelor de guidance
+    if (this.guidanceTimerId) {
+      clearTimeout(this.guidanceTimerId); // Oprește timer-ul
+      this.guidanceTimerId = null; // Resetează ID-ul timerului
+    }
+  
+    // Resetează mesajele de guidance și alte variabile asociate
+    this.autoFillMessage = '';
   }
+  toggleExpandCamera() {
+    this.isCameraExpanded = !this.isCameraExpanded;
+  }
+  
+  
 
 
   capturePhoto() {
     const canvas = document.createElement('canvas');
-    canvas.width = this.videoElement.nativeElement.videoWidth;
-    canvas.height = this.videoElement.nativeElement.videoHeight;
+    const targetWidth = 640; // Dimensiunea imaginii pentru YOLO
+    const targetHeight = 480;
+  
+    canvas.width = targetWidth;
+    canvas.height = targetHeight;
+  
     const ctx = canvas.getContext('2d');
     if (ctx) {
-      ctx.drawImage(this.videoElement.nativeElement, 0, 0, canvas.width, canvas.height);
-      this.capturedImage = canvas.toDataURL('image/png'); 
-      this.uploadedImageName = null; 
+      ctx.drawImage(this.videoElement.nativeElement, 0, 0, targetWidth, targetHeight);
+      this.capturedImage = canvas.toDataURL('image/png');
+      this.uploadedImageName = null;
       this.closeCamera();
+  
+      // Pregătește imaginea pentru backend
+      const blob = this.dataURItoBlob(this.capturedImage);
+      const formData = new FormData();
+      formData.append('camera_image', blob, 'capture.png');
+  
+      // Trimite imaginea către backend pentru salvare
+      this.userService.scanIDCardForAutofill(formData).subscribe(
+        (response: any) => {
+          if (response.file_path) {
+            this.autoFillMessage = 'Imaginea a fost capturată cu succes!';
+            this.uploadedImagePath = response.file_path; // Salvează calea pentru Autofill
+            this.showAutoFillButton = true; // Activează butonul Autofill
+          } else {
+            this.autoFillMessage = 'Nu s-a putut salva imaginea.';
+            this.showAutoFillButton = false;
+          }
+        },
+        (error) => {
+          console.error('Eroare la salvarea imaginii:', error);
+          this.autoFillMessage = 'A apărut o eroare la salvarea imaginii.';
+          this.showAutoFillButton = false;
+        }
+      );
     }
   }
+  
+  
+  dataURItoBlob(dataURI: string): Blob {
+    const byteString = atob(dataURI.split(',')[1]);
+    const mimeString = dataURI.split(',')[0].split(':')[1].split(';')[0];
+    const ab = new ArrayBuffer(byteString.length);
+    const ia = new Uint8Array(ab);
+    for (let i = 0; i < byteString.length; i++) {
+      ia[i] = byteString.charCodeAt(i);
+    }
+    return new Blob([ab], { type: mimeString });
+  }
+
+  autoFillDataFromScan(): void {
+    if (!this.uploadedImagePath) {
+      this.autoFillMessage = 'Nu există o imagine validă pentru completare.';
+      return;
+    }
+  
+    this.isLoading = true;
+    this.userService.autoFillFromScan(this.uploadedImagePath).subscribe(
+      (data: any) => {
+        const extracted = data.extracted_info;
+        if (extracted) {
+          const valabilitate = extracted.Valabilitate || '';
+          const dates = valabilitate.split(' ');
+          const dateOfIssue = this.parseRomanianDate(dates[0]);
+          const dateOfExpiry = this.parseRomanianDate(dates[1]);
+  
+          this.idCardForm.patchValue({
+            cnp: extracted.CNP || '',
+            series: extracted.SERIA || '',
+            number: extracted.NR || '',
+            last_name: extracted.Nume || '',
+            first_name: extracted.Prenume || '',
+            place_of_birth: extracted.LocNastere || '',
+            address: extracted.Domiciliu || '',
+            issuing_authority: extracted.EmisaDe || '',
+            sex: extracted.Sex || '',
+            date_of_issue: dateOfIssue,
+            date_of_expiry: dateOfExpiry,
+          });
+          this.autoFillMessage = 'Date completate automat din imaginea capturată! Verifică dacă sunt valide!';
+        } else {
+          this.autoFillMessage = 'Datele nu au putut fi extrase din imagine.';
+        }
+        this.isLoading = false;
+      },
+      (error) => {
+        console.error('Eroare la completarea automată din scanare:', error);
+        this.autoFillMessage = 'A apărut o eroare la completarea automată din scanare.';
+        this.isLoading = false;
+      }
+    );
+  }
+  updateGuidance(): void {
+    if (!this.isCameraOpen) return;
+   
+    const guidanceMessages = [
+      'Îndepărtează documentul!',
+      'Apropie documentul!',
+      'Asigură-te că documentul este vizibil complet!',
+      'Evită umbrele sau strălucirea!'
+    ];
+   
+    const randomIndex = Math.floor(Math.random() * guidanceMessages.length);
+    this.autoFillMessage = guidanceMessages[randomIndex];
+   
+    // Salvăm ID-ul pentru a putea opri acest setTimeout
+    this.guidanceTimerId = setTimeout(() => this.updateGuidance(), 2000);
+  }
+  
+  validateRomanianID(imageData: string): boolean {
+    const idRegex = /ROMANIA|CNP|ROU|SERIA|NR/; // Text specific cărților de identitate
+    return idRegex.test(imageData);
+  }
+  
+  
 
  
   deleteImage(): void {
     this.uploadedImageName = null;       
     this.capturedImage = null;           
     this.showAutoFillButton = false;     
-    this.autoFillMessage = '';           
+    this.autoFillMessage = '';  
+    this.uploadedImagePath = null;  
+    this.showAutoFillButton = false;
+    this.autoFillMessage = '';
+    this.idCardForm.reset();  
   }
 
 
@@ -380,4 +577,4 @@ export class VoteappFrontComponent implements OnInit {
       window.location.href = 'http://localhost:8000/accounts/facebook/login/?process=signup';
     }, 1000);
   }
-}
+} 

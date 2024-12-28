@@ -1,6 +1,7 @@
 from django import forms
 from .models import User
 
+
 #formular pentru inregistrarea utilizatorilor
 class RegistrationForm(forms.ModelForm):
     password = forms.CharField(widget=forms.PasswordInput)

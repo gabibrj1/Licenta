@@ -9,7 +9,7 @@ from .forms import RegistrationForm, IDCardForm
 from .models import User
 from .serializers import UserSerializer
 from django.views.decorators.csrf import csrf_exempt
-from .utils import extract_text_from_image, is_valid_id_card, parse_id_card
+#from .utils import extract_text_from_image, is_valid_id_card, parse_id_card
 import random, jwt, datetime, json
 from rest_framework.permissions import AllowAny
 from django.template.loader import render_to_string
@@ -21,6 +21,123 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import authenticate
+from transformers import pipeline
+import re
+import os
+from rest_framework.parsers import MultiPartParser, FormParser
+from django.conf import settings
+from .utils import IDCardProcessor
+from PIL import Image
+import pytesseract
+from .utils import IDCardDetector
+import cv2
+
+
+# Model AI pentru detecția limbajului nepotrivit
+toxic_classifier = pipeline("text-classification", model="unitary/toxic-bert")
+
+def contains_profanity_with_ai(message):
+    """
+    Detectează limbaj nepotrivit în mesaj folosind AI.
+    """
+    sentences = re.split(r'[.!?]', message)  # Împărțim mesajul în propoziții
+    for sentence in sentences:
+        if sentence.strip():  # Ignorăm propozițiile goale
+            result = toxic_classifier(sentence)
+            for label in result:
+                if label["label"] == "LABEL_1" and label["score"] > 0.5:
+                    return True
+    return False
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def check_profanity(request):
+    """
+    Endpoint pentru verificarea limbajului nepotrivit.
+    """
+    message = request.data.get('message', '')
+    if contains_profanity_with_ai(message):
+        return Response({'containsProfanity': True}, status=200)
+    return Response({'containsProfanity': False}, status=200)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def send_feedback(request):
+    feedback_data = {
+        'name': request.data.get('name', '').strip(),
+        'phone': request.data.get('phone', '').strip(),
+        'email': request.user.email,
+        'message': request.data.get('message', '').strip()
+    }
+
+    # Validare mesaj pentru injurii
+    if contains_profanity_with_ai(feedback_data['message']):
+        return Response({'error': 'Mesajul conține limbaj nepotrivit și nu poate fi trimis.'}, status=400)
+
+    # Alte validări și trimiterea mesajului
+    feedback_template = render_to_string('feedback_email.html', feedback_data)
+    email = EmailMessage(
+        subject='Feedback de la utilizator',
+        body=feedback_template,
+        from_email=config('DEFAULT_FROM_EMAIL'),
+        to=[config('ADMIN_EMAIL')],
+        reply_to=[feedback_data['email']],
+    )
+    email.content_subtype = 'html'
+    email.send()
+
+    return Response({'message': 'Feedback-ul a fost trimis cu succes!'}, status=200)
+
+
+# Funcție pentru validarea numelui
+def validate_name(name):
+    return name.isalpha() and len(name) > 1
+
+# Funcție pentru validarea telefonului
+def validate_phone(phone, prefix):
+    return phone.startswith(prefix) and phone.replace(prefix, '').isdigit()
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def send_feedback(request):
+    feedback_data = {
+        'name': request.data.get('name', '').strip(),
+        'phone': request.data.get('phone', '').strip(),
+        'email': request.user.email,
+        'message': request.data.get('message', '').strip()
+    }
+
+    # Validare: numele trebuie să fie valid
+    if not validate_name(feedback_data['name']):
+        return Response({'error': 'Nume invalid. Verificați introducerea.'}, status=400)
+
+    # Validare: numărul de telefon trebuie să fie valid
+    if not validate_phone(feedback_data['phone'], "RO"):
+        return Response({'error': 'Număr de telefon invalid. Verificați prefixul și numărul.'}, status=400)
+
+    # Validare: mesajul să nu conțină injurii
+    if contains_profanity_with_ai(feedback_data['message']):
+        return Response({'error': 'Mesajul conține limbaj nepotrivit și nu a fost trimis.'}, status=400)
+
+    # Validare: mesajul trebuie să aibă cel puțin 20 de cuvinte
+    if len(feedback_data['message'].split()) < 20:
+        return Response({'error': 'Mesajul trebuie să conțină cel puțin 20 de cuvinte.'}, status=400)
+
+    # Trimiterea feedback-ului dacă toate condițiile sunt satisfăcute
+    feedback_template = render_to_string('feedback_email.html', feedback_data)
+    email = EmailMessage(
+        subject='Feedback de la utilizator',
+        body=feedback_template,
+        from_email=config('DEFAULT_FROM_EMAIL'),
+        to=[config('ADMIN_EMAIL')],
+        reply_to=[feedback_data['email']],
+    )
+    email.content_subtype = 'html'
+    email.send()
+
+    return Response({'message': 'Feedback-ul a fost trimis cu succes!'}, status=200)
+
 
 
 def privacy_policy(request):
@@ -40,19 +157,136 @@ def social_login_redirect(request, provider):
 
 #view pt incarcarea unei imagini cu buletinul
 class UploadIdView(APIView):
-    permission_classes = [AllowAny]
+    """
+    Endpoint pentru încărcarea imaginii.
+    """
+    parser_classes = (MultiPartParser, FormParser)
+    permission_classes = [AllowAny]  # Permite acces public (opțional)
 
     def post(self, request):
         image = request.FILES.get('id_card_image')
         if not image:
             return Response({'error': 'Niciun fișier nu a fost încărcat'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Salvează imaginea în media/uploads
+        upload_dir = os.path.join(settings.MEDIA_ROOT, 'uploads')
+        os.makedirs(upload_dir, exist_ok=True)
+        file_path = os.path.join(upload_dir, image.name)
+
+        with open(file_path, 'wb+') as destination:
+            for chunk in image.chunks():
+                destination.write(chunk)
+
+        return Response({
+            'message': 'Imaginea a fost încărcată cu succes.',
+            'file_path': file_path  # Trimite calea fișierului pentru procesare ulterioară
+        }, status=status.HTTP_200_OK)
+    
+class ScanIdView(APIView):
+    """
+    Endpoint pentru scanarea imaginii de pe camera și extragerea informațiilor.
+    """
+    parser_classes = (MultiPartParser, FormParser)
+    permission_classes = [AllowAny]  # Permite acces public (opțional)
+
+    def post(self, request):
+        image = request.FILES.get('camera_image')
+        if not image:
+            return Response({'error': 'Niciun fișier nu a fost încărcat'}, status=status.HTTP_400_BAD_REQUEST)
         
-        if not is_valid_id_card(image):
-            return Response({'error': 'Buletin invalid'}, status=status.HTTP_400_BAD_REQUEST)
+        # Salvează imaginea în media/camera
+        upload_dir = os.path.join(settings.MEDIA_ROOT, 'camera')
+        os.makedirs(upload_dir, exist_ok=True)
+        file_path = os.path.join(upload_dir, image.name)
+
+        with open(file_path, 'wb+') as destination:
+            for chunk in image.chunks():
+                destination.write(chunk)
+
+        # Procesăm imaginea pentru extragerea datelor
+        #processor = IDCardProcessor()
+        #extracted_info = processor.process_id_card(file_path)
+
+        return Response({
+            
+            'message': 'Imaginea a fost scanată cu succes.',
+            'file_path': os.path.join('media/camera', image.name)
+           # 'extracted_info': extracted_info
+        }, status=status.HTTP_200_OK)
+    
+class AutofillScanDataView(APIView):
+    permission_classes = [AllowAny]
+    def post(self, request):
+        file_path = request.data.get('file_path')
+        if not file_path:
+            return Response({'error': 'Calea fișierului este necesară.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Construim calea completă către fișier
+        if not file_path.startswith(settings.MEDIA_ROOT):
+            file_path = os.path.join(settings.MEDIA_ROOT, file_path.replace('media/', ''))
         
-        extracted_data = extract_text_from_image(image)
-        print("Date extrase:", extracted_data)
-        return Response({'data': extracted_data}, status=status.HTTP_200_OK)
+        if not os.path.exists(file_path):
+            return Response({'error': 'Fișierul nu a fost găsit.'}, status=status.HTTP_404_NOT_FOUND)
+
+        # Procesăm imaginea
+        processor = IDCardProcessor()
+        extracted_info = processor.process_id_card(file_path)
+
+        return Response({
+            'message': 'Datele au fost extrase cu succes.',
+            'extracted_info': extracted_info
+        }, status=status.HTTP_200_OK)
+
+class ValidateRomanianID(APIView):
+    def post(self, request):
+        image = request.FILES.get('camera_image')
+        if not image:
+            return Response({'error': 'Niciun fișier nu a fost încărcat'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Salvează imaginea
+        upload_dir = os.path.join(settings.MEDIA_ROOT, 'camera')
+        os.makedirs(upload_dir, exist_ok=True)
+        file_path = os.path.join(upload_dir, image.name)
+
+        with open(file_path, 'wb+') as destination:
+            for chunk in image.chunks():
+                destination.write(chunk)
+
+        # Validăm textul pentru "ROMANIA"
+        extracted_text = pytesseract.image_to_string(Image.open(file_path))
+        if "ROMANIA" not in extracted_text and "ROU" not in extracted_text:
+            return Response({'error': 'Se acceptă doar cărți de identitate românești.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response({'message': 'Validarea a fost realizată cu succes.', 'file_path': file_path}, status=status.HTTP_200_OK)
+
+class DetectIDCardView(APIView):
+    """
+    Endpoint pentru detectarea și decuparea cărților de identitate.
+    """
+    permission_classes=[AllowAny]
+    def post(self, request):
+        file = request.FILES.get('image')
+        if not file:
+            return Response({"error": "Niciun fișier încărcat"}, status=400)
+
+        file_path = os.path.join(settings.MEDIA_ROOT, 'uploads', file.name)
+        os.makedirs(os.path.dirname(file_path), exist_ok=True)
+
+        with open(file_path, 'wb+') as f:
+            for chunk in file.chunks():
+                f.write(chunk)
+
+        detector = IDCardDetector()
+        cropped_image = detector.detect_id_card(file_path)
+        if cropped_image is None:
+            return Response({"error": "Carte de identitate nedetectată"}, status=400)
+
+        # Salvăm imaginea decupată
+        cropped_path = file_path.replace('.png', '_cropped.png')
+        cv2.imwrite(cropped_path, cropped_image)
+
+        return Response({"cropped_image_path": cropped_path.replace(settings.MEDIA_ROOT, '/media/')}, status=200)
+
 
 class RegisterView(APIView):
     permission_classes = [AllowAny]
@@ -197,24 +431,32 @@ class VerifyEmailView(APIView):
 
 
 class AutofillDataView(APIView):
-    permission_classes = [AllowAny]
+    """
+    Endpoint pentru procesarea imaginii încărcate și extragerea informațiilor.
+    """
+    permission_classes = [AllowAny]  # Permite acces public (opțional)
 
     def post(self, request):
-        image = request.FILES.get('id_card_image')
-        if not image:
-            return Response({'error': 'Niciun fișier nu a fost încărcat'}, status=status.HTTP_400_BAD_REQUEST)
+        file_path = request.data.get('file_path')
+        if not file_path:
+            return Response({'error': 'Calea fișierului este necesară.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        # verfifica validitatea buletinului
-        if not is_valid_id_card(image):
-            return Response({'error': 'Buletin invalid'}, status=status.HTTP_400_BAD_REQUEST)
+        # Construim calea completă către fișier
+        absolute_path = os.path.join(settings.MEDIA_ROOT, file_path)
+        if not os.path.exists(absolute_path):
+            return Response({'error': 'File not found.'}, status=status.HTTP_404_NOT_FOUND)
 
-        extracted_text = extract_text_from_image(image)
-        extracted_data = parse_id_card(extracted_text)
-        
-        if extracted_data:
-            return Response({'data': extracted_data}, status=status.HTTP_200_OK)
-        else:
-            return Response({'error': 'Nu s-au putut extrage datele din imagine'}, status=status.HTTP_400_BAD_REQUEST)
+        # Procesăm imaginea
+        processor = IDCardProcessor()
+        extracted_info = processor.process_id_card(absolute_path)
+
+        return Response({
+            'message': 'Datele au fost extrase cu succes.',
+            'extracted_info': extracted_info
+        }, status=status.HTTP_200_OK)
+
+
+
 
 #view pt inregistrarea utilizatorilor prin date din buletin
 @csrf_exempt
@@ -230,17 +472,6 @@ def register_with_id_card(request):
         form = IDCardForm()
     return render(request, 'users/register_with_id.html', {'form': form})
 
-#view pentru incarcarea unei imagini a unei carti de identitate si extragerea informatiilor
-@csrf_exempt
-def upload_id_card(request):
-    if request.method == 'POST':
-        image = request.FILES.get('id_card_image')
-        if is_valid_id_card(image):
-            extracted_data = extract_text_from_image(image)
-            return JsonResponse({'data': extracted_data}, status=200)
-        else:
-            return JsonResponse({'error': 'Buletin invalid'}, status=400)
-    return JsonResponse({'error': 'Invalid request'}, status=400)
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
@@ -271,4 +502,4 @@ def send_feedback(request):
     email.content_subtype = 'html'
     email.send()
 
-    return Response({'message': 'Feedback-ul a fost trimis cu succes!'}, status=status.HTTP_200_OK)
+    return Response({'message': 'Feedback-ul a fost trimis cu succes!'}, status=status.HTTP_200_OK) 

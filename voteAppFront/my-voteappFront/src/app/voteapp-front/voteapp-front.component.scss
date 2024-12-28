@@ -51,6 +51,7 @@
       }
     }
   }
+  
   mat-checkbox {
     color: #333;
     margin-top: 10px;
@@ -176,6 +177,197 @@
     }
   }
 }
+
+.auto-fill-message {
+  text-align: center; /* Centrare text */
+  font-size: 16px; /* Dimensiune text */
+  color: #007bff; /* Culoare text */
+  margin-top: 0px; /* Spațiu față de alte elemente */
+  line-height: 1.5; /* Îmbunătățește lizibilitatea */
+  word-wrap: break-word; /* Permite textului să fie împărțit pe linii */
+  white-space: pre-wrap; /* Asigură afișarea corectă a spațiilor și liniilor noi */
+}
+
+
+.camera-upload-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.camera-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 20px;
+  position: relative;
+
+
+
+  video {
+    max-width: 100%;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    position: relative;
+  }
+  &.expanded {
+    width: 70vw;
+    height: 50vh;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1000;
+    padding: 15px;
+    border: 2px solid #007bff;
+    background: #fff;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+
+    /* Fundal blur */
+    &::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(5px);
+      z-index: -1;
+    }
+  }
+  /* Linie rosie în miscare */
+  .red-line {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%; /* Acoperă toată lățimea video */
+    height: 2px;
+    background-color: red;
+    animation: move-line 2s infinite;
+    z-index: 2; /* Deasupra video-ului */
+  }
+  
+  
+
+  .cnp-validation-feedback {
+    margin-top: 10px;
+    color: #ff5722; /* Orange-red color for errors */
+    font-size: 14px;
+  
+    p {
+      font-weight: bold;
+    }
+  
+    ul {
+      list-style-type: disc;
+      margin-left: 20px;
+      color: #d32f2f; /* Red color for the bullet points */
+    }
+  }
+  
+
+  .close-camera-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background-color: rgba(255, 0, 0, 0.7);
+    color: white;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+
+    &:hover {
+      background-color: rgba(255, 0, 0, 0.9);
+    }
+      /* Mesaje de ghidare */
+      .guidance-message {
+        position: absolute;
+        bottom: 10%;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(0, 0, 255, 0.8); /* Fundal albastru */
+        color: #fff; /* Text alb */
+        padding: 5px 15px;
+        border-radius: 5px;
+        font-size: 14px;
+        animation: fade-in-out 3s infinite;
+        z-index: 2; /* Deasupra video-ului */
+        text-align: center;
+      }
+      
+      
+  }
+
+  @keyframes move-line {
+    0% {
+      top: 10%; /* Începutul mișcării */
+    }
+    50% {
+      top: 50%; /* Linie la mijloc */
+    }
+    100% {
+      top: 85%; /* Finalul mișcării */
+    }
+  }
+  .expand-camera-btn {
+    position: absolute;
+    top: 10px;
+    right: 60px;
+    background-color: rgba(0, 0, 255, 0.7);
+    color: white;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+
+    &:hover {
+      background-color: rgba(0, 0, 255, 0.9);
+    }
+  }
+
+  video {
+    width: 100%; /* Asigurăm că video-ul se extinde pe întreaga lățime a containerului */
+    height: 100%; /* Asigurăm proporții corecte */
+  }
+
+  
+
+  button {
+    margin-top: 10px;
+    background-color: #4caf50;
+    color: white;
+    font-size: 14px;
+    padding: 8px 15px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+
+    &:hover {
+      background-color: #388e3c;
+    }
+  }
+}
+.image-info img {
+  max-width: 100%; /* Asigura ca imaginea nu depaseste latimea containerului */
+  max-height: 300px; /* Seteaza o inaltime maxima pentru imagine */
+  object-fit: contain; /* Pastreaza proportiile imaginii */
+  border-radius: 10px; /* Colturi rotunjite */
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Adauga o umbra estetica */
+  margin-top: 10px; /* Adauga spatiu intre imagine si alte elemente */
+}
+
+
   .upload-btn {
     margin-top: 20px;
     display: inline-block;

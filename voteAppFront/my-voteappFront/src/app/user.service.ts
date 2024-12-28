@@ -42,31 +42,48 @@ export class UserService {
     );
   }
 
-  uploadIDCard(formData: FormData): Observable<any> {
+
+
+  uploadIDCardForAutofill(formData: FormData): Observable<any> {
     return this.http.post(`${this.apiUrl}upload-id/`, formData).pipe(
       catchError(this.handleError)
     );
   }
 
 
+scanIDCardForAutofill(formData: FormData): Observable<any> {
+  return this.http.post(`${this.apiUrl}scan-id/`, formData).pipe(
+    catchError(this.handleError)
+  );
+}
 
-  uploadIDCardForAutofill(formData: FormData): Observable<any> {
-    return this.http.post(`${this.apiUrl}autofill-data/`, formData).pipe(
-      catchError(this.handleError)
-    );
-  }
+autoFillFromScan(filePath: string): Observable<any> {
+  return this.http.post(`${this.apiUrl}autofill_scan_data/`, { file_path: filePath }).pipe(
+    catchError(this.handleError)
+  );
+}
+
+
+
+
+  
+  
   sendFeedback(feedbackData: any): Observable<any> {
     return this.http.post(`${this.apiUrl}send-feedback/`, feedbackData, { withCredentials: true }).pipe(
       catchError((error) => throwError(error))
     );
   }
-  
-
-
-  
-  autoFillFromImage(): Observable<any> {
-    return this.http.get(`${this.apiUrl}autofill-data/`);
+  checkProfanity(message: string): Observable<any> {
+    return this.http.post(`${this.apiUrl}check-profanity/`, { message }).pipe(
+      catchError(this.handleError)
+    );
+  }  
+  autoFillFromImage(filePath: string): Observable<any> {
+    return this.http.post(`${this.apiUrl}autofill_data/`, { file_path: filePath }).pipe(
+      catchError(this.handleError)
+    );
   }
+  
   private handleError(error: HttpErrorResponse){
     let errorMessage = 'A aparut o eroare neasteptata. Incercati din nou';
     if (error.error instanceof ErrorEvent){

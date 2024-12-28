@@ -72,7 +72,7 @@
         <div class="form-content">
           <h2>Contact</h2>
           <p>
-            <a href="mailto:gabriel.danciu@unitbv.ro">Întrebări/comentarii/sugestii</a>
+            <a href="mailto:gabriel.brujbeanu@unitbv.ro">Întrebări/comentarii/sugestii</a>
           </p>
           
           <div class="contact-details">
@@ -86,50 +86,65 @@
           <h3>Feedback</h3>
           <form (ngSubmit)="onSubmitContactForm()" #contactForm="ngForm">
             <input 
-              type="text" 
-              placeholder="Your Name" 
-              name="name" 
-              [(ngModel)]="feedback.name" 
-              required 
-              #name="ngModel"
+                type="text" 
+                placeholder="Nume" 
+                name="name" 
+                [(ngModel)]="feedback.name" 
+                (ngModelChange)="onNameChange()" 
+                required 
+                #name="ngModel"
             />
             <div *ngIf="name.invalid && name.touched" class="error">Numele este obligatoriu</div>
-          
+        
+            <select [(ngModel)]="feedback.phonePrefix" (change)="onPhonePrefixChange($event)">
+              <option *ngFor="let country of countries" [value]="country.prefix">
+                {{ country.name }} ({{ country.prefix }})
+              </option>
+            </select>
+        
             <input 
-              type="tel" 
-              placeholder="Phone" 
-              name="phone" 
-              [(ngModel)]="feedback.phone" 
-              required 
-              #phone="ngModel"
-            />
-            <div *ngIf="phone.invalid && phone.touched" class="error">Telefonul este obligatoriu</div>
-          
+  type="tel" 
+  placeholder="Telefon" 
+  name="phone" 
+  [(ngModel)]="feedback.phone" 
+  required 
+  #phone="ngModel"
+/>
+<div *ngIf="phone.invalid && phone.touched" class="error">Telefonul este obligatoriu</div>
             <input 
-              type="email" 
-              placeholder="Email" 
-              name="email" 
-              [(ngModel)]="feedback.email" 
-              required 
-              email 
-              #email="ngModel"
+                type="email" 
+                placeholder="Email" 
+                name="email" 
+                [(ngModel)]="feedback.email" 
+                required 
+                email 
+                #email="ngModel"
             />
-            <div *ngIf="email.invalid && email.touched" class="error">Email-ul este obligatoriu și trebuie să fie valid</div>
-          
+            <div *ngIf="email.invalid && email.touched" class="error">Email-ul este obligatoriu</div>
+        
             <textarea 
-              placeholder="Message" 
-              name="message" 
-              [(ngModel)]="feedback.message" 
-              required 
-              #message="ngModel"
-            ></textarea>
-            <div *ngIf="message.invalid && message.touched" class="error">Mesajul este obligatoriu</div>
+            placeholder="Mesaj" 
+            name="message" 
+            [(ngModel)]="feedback.message" 
+            (input)="onMessageChange($event)" 
+            required 
+            #message="ngModel"
+          ></textarea>
+          <div *ngIf="isProfaneMessage" class="error">
+            Mesajul conține limbaj nepotrivit.
+          </div>
+
           
-            <button type="submit" [disabled]="contactForm.invalid || loading.feedback">
-              <mat-spinner *ngIf="loading.feedback" diameter="20"></mat-spinner>
-              Trimite
-            </button>
-          </form>
+          <button 
+          type="submit" 
+          [disabled]="isProfaneMessage || loading.feedback"
+          [ngClass]="{ 'disabled-button': isProfaneMessage }"
+        >
+          Trimite
+        </button>
+          
+        </form>
+        
           
         </div>
       </div>

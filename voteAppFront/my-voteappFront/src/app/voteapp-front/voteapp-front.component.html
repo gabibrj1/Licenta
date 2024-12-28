@@ -65,9 +65,6 @@
   </form>
 
   
-
-
-  
   <mat-checkbox [(ngModel)]="useIDCard" name="useIDCard" (change)="onIdCardChange()" class="voteapp-checkbox">
     <span [ngClass]="{'dark-mode-text': darkMode}" class="custom-checkbox-text">Înregistrare cu buletin 💳</span>
   </mat-checkbox>
@@ -79,6 +76,9 @@
       <mat-form-field appearance="fill">
         <mat-label>CNP</mat-label>
         <input matInput type="text" formControlName="cnp" required />
+        <mat-error *ngIf="autoFillMessage && autoFillMessage.includes('CNP')">
+          {{ autoFillMessage }}
+        </mat-error>
       </mat-form-field>
 
       <mat-form-field appearance="fill">
@@ -140,32 +140,63 @@
         <mat-datepicker-toggle matSuffix [for]="picker2"></mat-datepicker-toggle>
         <mat-datepicker #picker2></mat-datepicker>
       </mat-form-field>
+      
+      <div *ngIf="autoFillMessage && autoFillMessage.includes('Erori')" class="cnp-validation-feedback">
+        <p>CNP extras: {{ idCardForm.get('cnp')?.value }}</p>
+        <ul>
+          <li *ngFor="let error of autoFillMessage.split('Erori: ')[1]?.split(', ')">
+            {{ error }}
+          </li>
+        </ul>
+      </div>
 
     
       <div class="camera-upload-buttons">
-        <button mat-raised-button color="accent" (click)="openCamera()">📸 Deschide Camera</button>
-        <label class="upload-btn">
+        <button mat-raised-button color="accent" class="unified-btn" (click)="openCamera()">📸 Deschide Camera</button>
+        <label class="unified-btn upload-btn">
           <input type="file" (change)="onFileUpload($event)" />
           📁 Upload Imagine
         </label>
       </div>
-
-
       <div class="image-info">
-        <span *ngIf="uploadedImageName">Fișier încărcat: {{ uploadedImageName }}</span>
-        <span *ngIf="capturedImage">C.I.</span>
-        <button *ngIf="uploadedImageName || capturedImage" mat-raised-button color="warn" (click) = "deleteImage()">
-          🗑️ Șterge Imagine
+        <!-- Imagine încărcată sau scanată -->
+        <img 
+          *ngIf="uploadedImagePath || capturedImage" 
+          [src]="capturedImage || ('http://127.0.0.1:8000/media/' + uploadedImagePath)" 
+          alt="Preview Imagine" 
+          class="image-preview" 
+        />
+      
+      
+        <!-- Butonul Autofill pentru Upload -->
+        <button *ngIf="isUploadMethod && showAutoFillButton" mat-raised-button color="accent" (click)="autoFillData()">
+          📝 Autofill (Upload)
         </button>
-        <button *ngIf="showAutoFillButton" mat-raised-button color="accent" (click)="autoFillData()">
-          📝 Autofill
+      
+        <!-- Butonul Autofill pentru Scan -->
+        <button *ngIf="isScanMethod && showAutoFillButton" mat-raised-button color="accent" (click)="autoFillDataFromScan()">
+          📝 Autofill (Scan)
         </button>
-        <p class="auto-fill-message">{{ autoFillMessage }}</p>
+      
+        <button *ngIf="uploadedImageName || capturedImage" mat-raised-button color="warn" (click)="deleteImage()">
+          🗑️ Șterge Imaginea
+        </button>
       </div>
+      <div class="auto-fill-message">
+        {{ autoFillMessage }}
+      </div>
+      
+      
+      
+      
+      
 
-      <div *ngIf="isCameraOpen" class="camera-container">
+      <div *ngIf="isCameraOpen" class="camera-container" [ngClass]="{'expanded': isCameraExpanded}">
         <video #video autoplay></video>
+        <div class="red-line" *ngIf="showRedLine && isCameraOpen"></div>
         <button mat-icon-button color="warn" class="close-camera-btn" (click)="closeCamera()">❌</button>
+        <!-- Buton pentru expand -->
+        <button mat-icon-button color="primary" class="expand-camera-btn" (click)="toggleExpandCamera()">🔍</button>
         <button mat-raised-button color="primary" (click)="capturePhoto()">Capturează Imagine</button>
       </div>
 
@@ -182,4 +213,3 @@
   </div>
 </div>
 </div>
-
