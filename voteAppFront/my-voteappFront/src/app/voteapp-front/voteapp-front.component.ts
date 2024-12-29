@@ -5,6 +5,7 @@ import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { AbstractControl, ValidationErrors } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
 import { GdprDialogComponent } from '../gdpr-dialog/gdpr-dialog.component';
+import { DeleteConfirmDialogComponent } from "../delete-confirm.dialog/delete-confirm.dialog.component";
 
 
 
@@ -284,6 +285,13 @@ export class VoteappFrontComponent implements OnInit {
   onFileUpload(event: any): void {
     const file = event.target.files[0];
     if (!file) return;
+
+    if (this.isCameraOpen) {
+      this.closeCamera();
+    }
+    if (this.uploadedImagePath) {
+      this.deleteImageSilently();
+    }
   
     this.isUploadMethod = true;
     this.isScanMethod = false;
@@ -293,9 +301,12 @@ export class VoteappFrontComponent implements OnInit {
   
     const formData = new FormData();
     formData.append('id_card_image', file);
+
+    this.isLoading = true;
   
     this.userService.uploadIDCardForAutofill(formData).subscribe(
       (response: any) => {
+        this.isLoading = false;
         if (response.cropped_image_path) {
           this.autoFillMessage = 'Imaginea a fost procesată. Apasă pe Autofill pentru completare!';
           this.uploadedImagePath = `http://127.0.0.1:8000${response.cropped_image_path}`;
@@ -388,6 +399,10 @@ export class VoteappFrontComponent implements OnInit {
   
  
   openCamera() {
+
+    if (this.uploadedImagePath) {
+      this.deleteImageSilently();
+    }
     this.isScanMethod = true;
     this.isUploadMethod = false;
 
@@ -463,7 +478,7 @@ export class VoteappFrontComponent implements OnInit {
         },
         error: (error) => {
           console.error('Eroare la procesarea imaginii capturate:', error);
-          this.autoFillMessage = 'A apărut o eroare la procesarea imaginii.';
+          this.autoFillMessage = 'Imaginea încărcată nu corespunde unui act de identitate!';
           this.showAutoFillButton = false;
           this.isLoading = false;
         }
@@ -564,15 +579,37 @@ autoFillDataFromScan(): void {
 
  
   deleteImage(): void {
-    this.uploadedImageName = null;       
-    this.capturedImage = null;           
-    this.showAutoFillButton = false;     
-    this.autoFillMessage = '';  
-    this.uploadedImagePath = null;  
+    const dialogRef = this.dialog.open(DeleteConfirmDialogComponent,{
+      width:'300px',
+      
+    })
+    dialogRef.afterClosed().subscribe((result) => {
+      if (result) {
+        // Utilizatorul a confirmat ștergerea
+        this.uploadedImageName = null;
+        this.capturedImage = null;
+        this.showAutoFillButton = false;
+        this.autoFillMessage = '';
+        this.uploadedImagePath = null;
+        this.isLoading = false;
+        this.idCardForm.reset();
+      } else {
+        // Utilizatorul a anulat ștergerea
+        console.log('Ștergerea imaginii a fost anulată.');
+      }
+    });
+  }
+
+  deleteImageSilently(): void {
+    this.uploadedImageName = null;
+    this.capturedImage = null;
     this.showAutoFillButton = false;
     this.autoFillMessage = '';
-    this.idCardForm.reset();  
+    this.uploadedImagePath = null;
+    this.isLoading = false; // Opreste spinner-ul daca era activ
+    this.idCardForm.reset(); // Reseteaza campurile din formular
   }
+  
 
 
  

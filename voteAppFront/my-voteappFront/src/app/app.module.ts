@@ -30,6 +30,7 @@ import { MenuComponent } from './menu/menu.component';
 import { CsrfInterceptor } from './interceptors/csrf.interceptor';
 import { AuthInterceptor } from './interceptors/auth.interceptor';
 import { ReviewsComponent } from './reviews/reviews.component';
+import { DeleteConfirmDialogComponent } from './delete-confirm.dialog/delete-confirm.dialog.component';
 
 @NgModule({
   declarations: [
@@ -42,7 +43,8 @@ import { ReviewsComponent } from './reviews/reviews.component';
     HeaderComponent,
     GdprDialogComponent,
     MenuComponent,
-    ReviewsComponent
+    ReviewsComponent,
+    DeleteConfirmDialogComponent
   ],
   imports: [
     BrowserModule,

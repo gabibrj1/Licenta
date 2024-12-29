@@ -158,6 +158,13 @@
           📁 Upload Imagine
         </label>
       </div>
+      <!--Spinner pentru incarcare-->
+      <div *ngIf="isLoading" class="loading-spinner">
+        <div class="spinner"></div>
+        <p>Se procesează imaginea...</p>
+      </div>
+
+
       <div class="image-info">
         <!-- Imagine încărcată sau scanată -->
         <img 
@@ -170,18 +177,26 @@
       
       
         <!-- Butonul Autofill pentru Upload -->
-        <button *ngIf="isUploadMethod && showAutoFillButton" mat-raised-button color="accent" (click)="autoFillData()">
-          📝 Autofill (Upload)
-        </button>
+        <button 
+        *ngIf="!isLoading && uploadedImagePath && isUploadMethod && showAutoFillButton" 
+        mat-raised-button 
+        color="accent" 
+        (click)="autoFillData()">
+        📝 Autofill (Upload)
+      </button>
       
         <!-- Butonul Autofill pentru Scan -->
         <button *ngIf="isScanMethod && showAutoFillButton" mat-raised-button color="accent" (click)="autoFillDataFromScan()">
           📝 Autofill (Scan)
         </button>
       
-        <button *ngIf="uploadedImageName || capturedImage" mat-raised-button color="warn" (click)="deleteImage()">
-          🗑️ Șterge Imaginea
-        </button>
+        <button 
+        *ngIf="!isLoading && uploadedImagePath" 
+        mat-raised-button 
+        color="warn" 
+        (click)="deleteImage()">
+        🗑️ Șterge Imaginea
+      </button>
       </div>
       <div class="auto-fill-message">
         {{ autoFillMessage }}

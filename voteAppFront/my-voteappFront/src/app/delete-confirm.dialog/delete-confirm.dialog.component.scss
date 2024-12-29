@@ -1,0 +1,51 @@
+.dialog-header {
+    overflow: hidden;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  
+    .close-button {
+      color: #333;
+      transition: all 0.3s ease;
+  
+      &:hover {
+        color: #d32f2f;
+      }
+    }
+  }
+  
+.mat-dialog-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+  
+    button {
+      padding: 10px 20px;
+      border-radius: 20px;
+      font-weight: bold;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+  
+      &.mat-button {
+        background-color: #f0f0f0;
+        color: #333;
+        border: 1px solid #ccc;
+  
+        &:hover {
+          background-color: #e0e0e0;
+          color: #000;
+        }
+      }
+  
+      &.mat-raised-button {
+        background-color: #d32f2f;
+        color: #fff;
+  
+        &:hover {
+          background-color: #b71c1c;
+        }
+      }
+    }
+  }
+  
