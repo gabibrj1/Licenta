@@ -177,24 +177,32 @@ class UploadIdView(APIView):
             for chunk in image.chunks():
                 destination.write(chunk)
 
+        #Aplica detectarea cartii de identitate
+        detector = IDCardDetector()
+        cropped_image = detector.detect_id_card(file_path)
+
+        if cropped_image is None:
+            return Response({'error': 'Nu s-a putut detecta cartea de identitate'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        cropped_file_path = file_path.replace('.jpg', '_cropped.jpg')
+        cv2.imwrite(cropped_file_path, cropped_image)
+
         return Response({
-            'message': 'Imaginea a fost încărcată cu succes.',
-            'file_path': file_path  # Trimite calea fișierului pentru procesare ulterioară
+        'message': 'Imaginea a fost încărcată și procesată cu succes.',
+        'cropped_image_path': os.path.join(settings.MEDIA_URL, 'uploads', os.path.basename(cropped_file_path))
         }, status=status.HTTP_200_OK)
+
     
 class ScanIdView(APIView):
-    """
-    Endpoint pentru scanarea imaginii de pe camera și extragerea informațiilor.
-    """
     parser_classes = (MultiPartParser, FormParser)
-    permission_classes = [AllowAny]  # Permite acces public (opțional)
+    permission_classes = [AllowAny]
 
     def post(self, request):
         image = request.FILES.get('camera_image')
         if not image:
             return Response({'error': 'Niciun fișier nu a fost încărcat'}, status=status.HTTP_400_BAD_REQUEST)
-        
-        # Salvează imaginea în media/camera
+
+        # Salvează imaginea originală
         upload_dir = os.path.join(settings.MEDIA_ROOT, 'camera')
         os.makedirs(upload_dir, exist_ok=True)
         file_path = os.path.join(upload_dir, image.name)
@@ -203,40 +211,45 @@ class ScanIdView(APIView):
             for chunk in image.chunks():
                 destination.write(chunk)
 
-        # Procesăm imaginea pentru extragerea datelor
-        #processor = IDCardProcessor()
-        #extracted_info = processor.process_id_card(file_path)
+        # Aplică detectarea cărții de identitate
+        detector = IDCardDetector()
+        cropped_image = detector.detect_id_card(file_path)
+
+        if cropped_image is None:
+            return Response({'error': 'Nu s-a putut detecta cartea de identitate.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Salvează imaginea decupată
+        cropped_file_path = file_path.replace('.jpg', '_cropped.jpg')  # Sau .png
+        cv2.imwrite(cropped_file_path, cropped_image)
 
         return Response({
-            
-            'message': 'Imaginea a fost scanată cu succes.',
-            'file_path': os.path.join('media/camera', image.name)
-           # 'extracted_info': extracted_info
+        'message': 'Imaginea a fost încărcată și procesată cu succes.',
+        'cropped_image_path': os.path.join(settings.MEDIA_URL, 'camera', os.path.basename(cropped_file_path))
         }, status=status.HTTP_200_OK)
     
 class AutofillScanDataView(APIView):
     permission_classes = [AllowAny]
+
     def post(self, request):
-        file_path = request.data.get('file_path')
-        if not file_path:
+        # Obține calea imaginii decupate din cerere
+        cropped_file_path = request.data.get('cropped_file_path')
+        if not cropped_file_path:
             return Response({'error': 'Calea fișierului este necesară.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Construim calea completă către fișier
-        if not file_path.startswith(settings.MEDIA_ROOT):
-            file_path = os.path.join(settings.MEDIA_ROOT, file_path.replace('media/', ''))
-        
-        if not os.path.exists(file_path):
+        # Construiește calea completă către fișierul din backend
+        absolute_path = os.path.join(settings.MEDIA_ROOT, cropped_file_path.lstrip('/'))
+
+        if not os.path.exists(absolute_path):
             return Response({'error': 'Fișierul nu a fost găsit.'}, status=status.HTTP_404_NOT_FOUND)
 
-        # Procesăm imaginea
+        # Procesează imaginea cu modelul IDCardProcessor
         processor = IDCardProcessor()
-        extracted_info = processor.process_id_card(file_path)
+        extracted_info = processor.process_id_card(absolute_path)
 
         return Response({
             'message': 'Datele au fost extrase cu succes.',
             'extracted_info': extracted_info
         }, status=status.HTTP_200_OK)
-
 class ValidateRomanianID(APIView):
     def post(self, request):
         image = request.FILES.get('camera_image')
@@ -437,12 +450,12 @@ class AutofillDataView(APIView):
     permission_classes = [AllowAny]  # Permite acces public (opțional)
 
     def post(self, request):
-        file_path = request.data.get('file_path')
-        if not file_path:
+        cropped_file_path = request.data.get('cropped_file_path')
+        if not cropped_file_path:
             return Response({'error': 'Calea fișierului este necesară.'}, status=status.HTTP_400_BAD_REQUEST)
 
         # Construim calea completă către fișier
-        absolute_path = os.path.join(settings.MEDIA_ROOT, file_path)
+        absolute_path = os.path.join(settings.MEDIA_ROOT, cropped_file_path)
         if not os.path.exists(absolute_path):
             return Response({'error': 'File not found.'}, status=status.HTTP_404_NOT_FOUND)
 

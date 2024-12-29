@@ -47,6 +47,7 @@ export class VoteappFrontComponent implements OnInit {
 
 
 
+
   @ViewChild('video') videoElement!: ElementRef;
   videoStream!: MediaStream;
   @ViewChild('passwordInput') passwordInput!: ElementRef;
@@ -283,7 +284,7 @@ export class VoteappFrontComponent implements OnInit {
   onFileUpload(event: any): void {
     const file = event.target.files[0];
     if (!file) return;
-
+  
     this.isUploadMethod = true;
     this.isScanMethod = false;
   
@@ -293,12 +294,11 @@ export class VoteappFrontComponent implements OnInit {
     const formData = new FormData();
     formData.append('id_card_image', file);
   
-    // Trimite imaginea către backend
     this.userService.uploadIDCardForAutofill(formData).subscribe(
       (response: any) => {
-        if (response.file_path) {
+        if (response.cropped_image_path) {
           this.autoFillMessage = 'Imaginea a fost procesată. Apasă pe Autofill pentru completare!';
-          this.uploadedImagePath = response.file_path; // Salvează calea în backend
+          this.uploadedImagePath = `http://127.0.0.1:8000${response.cropped_image_path}`;
         } else {
           this.autoFillMessage = 'Nu s-au putut extrage datele din imagine.';
         }
@@ -309,6 +309,7 @@ export class VoteappFrontComponent implements OnInit {
       }
     );
   }
+  
 
   
   
@@ -317,9 +318,14 @@ export class VoteappFrontComponent implements OnInit {
       this.autoFillMessage = 'Încarcă sau capturează o imagine, te rog!';
       return;
     }
-
+  
+    // Transformăm calea completă în calea relativă necesară pentru backend
+        const croppedPath = this.uploadedImagePath
+        .replace('http://127.0.0.1:8000/media/', '')
+        .replace(/^\//, '');
+  
     this.isLoading = true;
-    this.userService.autoFillFromImage(this.uploadedImagePath).subscribe(
+    this.userService.autoFillFromImage(croppedPath).subscribe(
       (data: any) => {
         const extracted = data.extracted_info;
         if (extracted) {
@@ -327,13 +333,13 @@ export class VoteappFrontComponent implements OnInit {
           const cnpValue = cnpDetails.value || '';
           const cnpErrors = cnpDetails.errors || [];
           const cnpStatus = cnpDetails.status || '';
-
+  
           if (cnpErrors.length > 0) {
             this.autoFillMessage = `CNP extras: ${cnpValue}. Erori: ${cnpErrors.join(', ')}`;
           } else {
             this.autoFillMessage = `CNP extras: ${cnpValue}. Status: ${cnpStatus}`;
           }
-
+  
           this.idCardForm.patchValue({
             cnp: cnpValue,
             series: extracted.SERIA || '',
@@ -359,6 +365,7 @@ export class VoteappFrontComponent implements OnInit {
       }
     );
   }
+  
   
   // Utility function to parse Romanian date format (dd.mm.yy or dd.mm.yyyy) into a Date object
   parseRomanianDate(dateString: string): Date | null {
@@ -421,49 +428,50 @@ export class VoteappFrontComponent implements OnInit {
   
 
 
-  capturePhoto() {
+  capturePhoto(): void { 
     const canvas = document.createElement('canvas');
-    const targetWidth = 640; // Dimensiunea imaginii pentru YOLO
+    const targetWidth = 640;
     const targetHeight = 480;
   
     canvas.width = targetWidth;
     canvas.height = targetHeight;
   
     const ctx = canvas.getContext('2d');
-    if (ctx) {
+    if (ctx && this.videoElement?.nativeElement) {
       ctx.drawImage(this.videoElement.nativeElement, 0, 0, targetWidth, targetHeight);
-      this.capturedImage = canvas.toDataURL('image/png');
+      this.capturedImage = canvas.toDataURL('image/jpg', 0.9);
       this.uploadedImageName = null;
       this.closeCamera();
   
-      // Pregătește imaginea pentru backend
       const blob = this.dataURItoBlob(this.capturedImage);
       const formData = new FormData();
-      formData.append('camera_image', blob, 'capture.png');
+      formData.append('camera_image', blob, 'capture.jpg');
   
-      // Trimite imaginea către backend pentru salvare
-      this.userService.scanIDCardForAutofill(formData).subscribe(
-        (response: any) => {
-          if (response.file_path) {
-            this.autoFillMessage = 'Imaginea a fost capturată cu succes!';
-            this.uploadedImagePath = response.file_path; // Salvează calea pentru Autofill
-            this.showAutoFillButton = true; // Activează butonul Autofill
+      this.isLoading = true;
+      this.userService.scanIDCardForAutofill(formData).subscribe({
+        next: (response: any) => {
+          if (response.cropped_image_path) {
+            this.autoFillMessage = 'Imaginea a fost capturată și procesată cu succes!';
+            // Store both the relative and full paths
+            this.uploadedImagePath = `http://127.0.0.1:8000${response.cropped_image_path}`;
+            this.showAutoFillButton = true;
           } else {
-            this.autoFillMessage = 'Nu s-a putut salva imaginea.';
+            this.autoFillMessage = 'Nu s-a putut detecta cartea de identitate.';
             this.showAutoFillButton = false;
           }
+          this.isLoading = false;
         },
-        (error) => {
-          console.error('Eroare la salvarea imaginii:', error);
-          this.autoFillMessage = 'A apărut o eroare la salvarea imaginii.';
+        error: (error) => {
+          console.error('Eroare la procesarea imaginii capturate:', error);
+          this.autoFillMessage = 'A apărut o eroare la procesarea imaginii.';
           this.showAutoFillButton = false;
+          this.isLoading = false;
         }
-      );
+      });
     }
-  }
+}
   
-  
-  dataURItoBlob(dataURI: string): Blob {
+dataURItoBlob(dataURI: string): Blob {
     const byteString = atob(dataURI.split(',')[1]);
     const mimeString = dataURI.split(',')[0].split(':')[1].split(';')[0];
     const ab = new ArrayBuffer(byteString.length);
@@ -472,50 +480,64 @@ export class VoteappFrontComponent implements OnInit {
       ia[i] = byteString.charCodeAt(i);
     }
     return new Blob([ab], { type: mimeString });
+}
+  
+
+autoFillDataFromScan(): void {
+  if (!this.uploadedImagePath) {
+    this.autoFillMessage = 'Încarcă sau capturează o imagine, te rog!';
+    return;
   }
 
-  autoFillDataFromScan(): void {
-    if (!this.uploadedImagePath) {
-      this.autoFillMessage = 'Nu există o imagine validă pentru completare.';
-      return;
-    }
-  
-    this.isLoading = true;
-    this.userService.autoFillFromScan(this.uploadedImagePath).subscribe(
-      (data: any) => {
-        const extracted = data.extracted_info;
-        if (extracted) {
-          const valabilitate = extracted.Valabilitate || '';
-          const dates = valabilitate.split(' ');
-          const dateOfIssue = this.parseRomanianDate(dates[0]);
-          const dateOfExpiry = this.parseRomanianDate(dates[1]);
-  
-          this.idCardForm.patchValue({
-            cnp: extracted.CNP || '',
-            series: extracted.SERIA || '',
-            number: extracted.NR || '',
-            last_name: extracted.Nume || '',
-            first_name: extracted.Prenume || '',
-            place_of_birth: extracted.LocNastere || '',
-            address: extracted.Domiciliu || '',
-            issuing_authority: extracted.EmisaDe || '',
-            sex: extracted.Sex || '',
-            date_of_issue: dateOfIssue,
-            date_of_expiry: dateOfExpiry,
-          });
-          this.autoFillMessage = 'Date completate automat din imaginea capturată! Verifică dacă sunt valide!';
+  // Transformăm calea completă în calea relativă necesară pentru backend
+      const croppedPath = this.uploadedImagePath
+      .replace('http://127.0.0.1:8000/media/', '')
+      .replace(/^\//, '');
+
+  this.isLoading = true;
+  this.userService.autoFillFromScan(croppedPath).subscribe(
+    (data: any) => {
+      const extracted = data.extracted_info;
+      if (extracted) {
+        const cnpDetails = extracted.CNP || {};
+        const cnpValue = cnpDetails.value || '';
+        const cnpErrors = cnpDetails.errors || [];
+        const cnpStatus = cnpDetails.status || '';
+
+        if (cnpErrors.length > 0) {
+          this.autoFillMessage = `CNP extras: ${cnpValue}. Erori: ${cnpErrors.join(', ')}`;
         } else {
-          this.autoFillMessage = 'Datele nu au putut fi extrase din imagine.';
+          this.autoFillMessage = `CNP extras: ${cnpValue}. Status: ${cnpStatus}`;
         }
-        this.isLoading = false;
-      },
-      (error) => {
-        console.error('Eroare la completarea automată din scanare:', error);
-        this.autoFillMessage = 'A apărut o eroare la completarea automată din scanare.';
-        this.isLoading = false;
+
+        this.idCardForm.patchValue({
+          cnp: cnpValue,
+          series: extracted.SERIA || '',
+          number: extracted.NR || '',
+          last_name: extracted.Nume || '',
+          first_name: extracted.Prenume || '',
+          place_of_birth: extracted.LocNastere || '',
+          address: extracted.Domiciliu || '',
+          issuing_authority: extracted.EmisaDe || '',
+          sex: extracted.Sex || '',
+          date_of_issue: this.parseRomanianDate(extracted.Valabilitate?.split(' ')[0]) || '',
+          date_of_expiry: this.parseRomanianDate(extracted.Valabilitate?.split(' ')[1]) || ''
+        });
+      } else {
+        this.autoFillMessage = 'Datele nu au putut fi extrase!';
       }
-    );
-  }
+      this.isLoading = false;
+    },
+    (error: any) => {
+      console.error('Eroare la completarea datelor:', error);
+      this.autoFillMessage = 'A apărut o eroare!';
+      this.isLoading = false;
+    }
+  );
+}
+
+
+  
   updateGuidance(): void {
     if (!this.isCameraOpen) return;
    

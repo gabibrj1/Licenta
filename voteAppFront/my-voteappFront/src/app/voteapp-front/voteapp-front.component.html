@@ -161,11 +161,12 @@
       <div class="image-info">
         <!-- Imagine încărcată sau scanată -->
         <img 
-          *ngIf="uploadedImagePath || capturedImage" 
-          [src]="capturedImage || ('http://127.0.0.1:8000/media/' + uploadedImagePath)" 
-          alt="Preview Imagine" 
-          class="image-preview" 
-        />
+        *ngIf="uploadedImagePath" 
+        [src]="uploadedImagePath" 
+        alt="Preview Imagine" 
+        class="image-preview" 
+      />
+      
       
       
         <!-- Butonul Autofill pentru Upload -->

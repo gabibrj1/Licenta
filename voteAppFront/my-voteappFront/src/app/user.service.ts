@@ -51,17 +51,21 @@ export class UserService {
   }
 
 
-scanIDCardForAutofill(formData: FormData): Observable<any> {
-  return this.http.post(`${this.apiUrl}scan-id/`, formData).pipe(
-    catchError(this.handleError)
-  );
+  scanIDCardForAutofill(formData: FormData): Observable<any> {
+    return this.http.post(`${this.apiUrl}scan-id/`, formData).pipe(
+      catchError(this.handleError)
+    );
+  }
+  
+  autoFillFromScan(cropped_file_path: string): Observable<any> {
+    const url = `${this.apiUrl}autofill-scan-data/`;  // Asigurați-vă că URL-ul este corect
+    return this.http.post(url, { cropped_file_path }).pipe(
+        catchError(this.handleError)
+    );
 }
+  
 
-autoFillFromScan(filePath: string): Observable<any> {
-  return this.http.post(`${this.apiUrl}autofill_scan_data/`, { file_path: filePath }).pipe(
-    catchError(this.handleError)
-  );
-}
+  
 
 
 
@@ -78,11 +82,13 @@ autoFillFromScan(filePath: string): Observable<any> {
       catchError(this.handleError)
     );
   }  
-  autoFillFromImage(filePath: string): Observable<any> {
-    return this.http.post(`${this.apiUrl}autofill_data/`, { file_path: filePath }).pipe(
-      catchError(this.handleError)
+autoFillFromImage(cropped_file_path: string): Observable<any> {
+    const url = `${this.apiUrl}autofill_data/`;  // Asigurați-vă că URL-ul este corect
+    return this.http.post(url, { cropped_file_path }).pipe(
+        catchError(this.handleError)
     );
-  }
+}
+  
   
   private handleError(error: HttpErrorResponse){
     let errorMessage = 'A aparut o eroare neasteptata. Incercati din nou';
