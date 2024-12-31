@@ -50,6 +50,26 @@ export class UserService {
     );
   }
 
+  rotateImage(imagePath: string, angle: number): Observable<any> {
+    const cleanPath = imagePath.replace(/^https?:\/\/[^\/]+\/media\//, '');
+    const payload = {
+      image_path: cleanPath,
+      action: 'rotate',
+      angle: angle,
+    };
+    return this.http.post(`${this.apiUrl}manipulate-image/`, payload);
+  }
+  
+  flipImage(imagePath: string): Observable<any> {
+    const cleanPath = imagePath.replace(/^https?:\/\/[^\/]+\/media\//, '');
+    const payload = {
+      image_path: cleanPath,
+      action: 'flip',
+    };
+    return this.http.post(`${this.apiUrl}manipulate-image/`, payload);
+  }
+  
+
 
   scanIDCardForAutofill(formData: FormData): Observable<any> {
     return this.http.post(`${this.apiUrl}scan-id/`, formData).pipe(
@@ -58,20 +78,11 @@ export class UserService {
   }
   
   autoFillFromScan(cropped_file_path: string): Observable<any> {
-    const url = `${this.apiUrl}autofill-scan-data/`;  // Asigurați-vă că URL-ul este corect
+    const url = `${this.apiUrl}autofill-scan-data/`; 
     return this.http.post(url, { cropped_file_path }).pipe(
         catchError(this.handleError)
     );
-}
-  
-
-  
-
-
-
-
-  
-  
+}  
   sendFeedback(feedbackData: any): Observable<any> {
     return this.http.post(`${this.apiUrl}send-feedback/`, feedbackData, { withCredentials: true }).pipe(
       catchError((error) => throwError(error))
@@ -83,7 +94,7 @@ export class UserService {
     );
   }  
 autoFillFromImage(cropped_file_path: string): Observable<any> {
-    const url = `${this.apiUrl}autofill_data/`;  // Asigurați-vă că URL-ul este corect
+    const url = `${this.apiUrl}autofill_data/`;  
     return this.http.post(url, { cropped_file_path }).pipe(
         catchError(this.handleError)
     );

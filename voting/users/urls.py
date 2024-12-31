@@ -8,6 +8,7 @@ from .views import SocialLoginCallbackView
 from .views import LoginView
 from .views import ScanIdView
 from .views import DetectIDCardView
+from .views import ManipulateImageView
 
 
 urlpatterns = [
@@ -26,5 +27,6 @@ urlpatterns = [
     path('scan-id/', ScanIdView.as_view(), name='scan_id'),
     path('autofill-scan-data/', AutofillScanDataView.as_view(), name='autofill-scan-data'),
     path('detect-id-card/', DetectIDCardView.as_view(), name='detect_id_card'),
+    path('manipulate-image/', ManipulateImageView.as_view(), name='manipulate-image'),
 
 ]

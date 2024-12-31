@@ -153,11 +153,13 @@
     
       <div class="camera-upload-buttons">
         <button mat-raised-button color="accent" class="unified-btn" (click)="openCamera()">📸 Deschide Camera</button>
-        <label class="unified-btn upload-btn">
+        <!-- Ascundem butonul de upload daca exista o imagine incarcata -->
+        <label class="unified-btn upload-btn" *ngIf="!uploadedImagePath">
           <input type="file" (change)="onFileUpload($event)" />
           📁 Upload Imagine
         </label>
       </div>
+      
       <!--Spinner pentru incarcare-->
       <div *ngIf="isLoading" class="loading-spinner">
         <div class="spinner"></div>
@@ -173,6 +175,22 @@
         alt="Preview Imagine" 
         class="image-preview" 
       />
+
+      <div class="manipulation-buttons" *ngIf="uploadedImagePath">
+        <button 
+          mat-raised-button 
+          color="primary" 
+          (click)="rotateImage(90)" 
+          [disabled]="isLoading" 
+          data-tooltip="Rotire">↻</button>
+        <button 
+          mat-raised-button 
+          color="primary" 
+          (click)="flipImage()" 
+          [disabled]="isLoading" 
+          data-tooltip="Oglindire">⇋</button>
+      </div>
+      
       
       
       

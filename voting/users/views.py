@@ -31,6 +31,7 @@ from PIL import Image
 import pytesseract
 from .utils import IDCardDetector
 import cv2
+from .utils import ImageManipulator
 
 
 # Model AI pentru detecția limbajului nepotrivit
@@ -157,18 +158,14 @@ def social_login_redirect(request, provider):
 
 #view pt incarcarea unei imagini cu buletinul
 class UploadIdView(APIView):
-    """
-    Endpoint pentru încărcarea imaginii.
-    """
     parser_classes = (MultiPartParser, FormParser)
-    permission_classes = [AllowAny]  # Permite acces public (opțional)
+    permission_classes = [AllowAny]
 
     def post(self, request):
         image = request.FILES.get('id_card_image')
         if not image:
             return Response({'error': 'Niciun fișier nu a fost încărcat'}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Salvează imaginea în media/uploads
         upload_dir = os.path.join(settings.MEDIA_ROOT, 'uploads')
         os.makedirs(upload_dir, exist_ok=True)
         file_path = os.path.join(upload_dir, image.name)
@@ -177,7 +174,6 @@ class UploadIdView(APIView):
             for chunk in image.chunks():
                 destination.write(chunk)
 
-        #Aplica detectarea cartii de identitate
         detector = IDCardDetector()
         cropped_image = detector.detect_id_card(file_path)
 
@@ -188,9 +184,76 @@ class UploadIdView(APIView):
         cv2.imwrite(cropped_file_path, cropped_image)
 
         return Response({
-        'message': 'Imaginea a fost încărcată și procesată cu succes.',
-        'cropped_image_path': os.path.join(settings.MEDIA_URL, 'uploads', os.path.basename(cropped_file_path))
+            'message': 'Imaginea a fost încărcată și procesată cu succes.',
+            'cropped_image_path': os.path.join(settings.MEDIA_URL, 'uploads', os.path.basename(cropped_file_path))
         }, status=status.HTTP_200_OK)
+
+class ManipulateImageView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        try:
+            image_path = request.data.get('image_path')
+            action = request.data.get('action')
+            angle = int(request.data.get('angle', 0)) if action == 'rotate' else None
+
+            if not image_path or not action:
+                return Response({'error': 'Parametrii lipsă'}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Curăță calea imaginii
+            if image_path.startswith(settings.MEDIA_URL):
+                image_path = image_path.replace(settings.MEDIA_URL, '')
+            if image_path.startswith('http://') or image_path.startswith('https://'):
+                image_path = image_path.split('/media/')[-1]
+            
+            # Elimină parametrii query
+            image_path = image_path.split('?')[0]
+            
+            image_full_path = os.path.join(settings.MEDIA_ROOT, image_path)
+
+            if not os.path.exists(image_full_path):
+                return Response({'error': f'Imaginea nu există la calea: {image_full_path}'}, 
+                              status=status.HTTP_404_NOT_FOUND)
+
+            # Determină numele fișierului și extensia
+            directory = os.path.dirname(image_full_path)
+            filename = os.path.basename(image_full_path)
+            base_name, ext = os.path.splitext(filename)
+
+            # Generează un nou nume de fișier bazat pe acțiune
+            if action == 'rotate':
+                new_base_name = f"{base_name}_rotated_{angle}"
+            else:  # flip
+                if '_flipped' in base_name:
+                    # Dacă imaginea este deja oglindită, revenim la versiunea neoglindită
+                    new_base_name = base_name.replace('_flipped', '')
+                else:
+                    new_base_name = f"{base_name}_flipped"
+
+            new_file_path = os.path.join(directory, f"{new_base_name}{ext}")
+
+            # Efectuează manipularea imaginii
+            if action == 'rotate':
+                manipulated_image = ImageManipulator.rotate_image(image_full_path, angle)
+            elif action == 'flip':
+                manipulated_image = ImageManipulator.flip_image(image_full_path)
+            else:
+                return Response({'error': 'Acțiune invalidă'}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Salvează noua imagine
+            cv2.imwrite(new_file_path, manipulated_image)
+
+            # Creează calea relativă pentru URL
+            relative_path = os.path.relpath(new_file_path, settings.MEDIA_ROOT).replace('\\', '/')
+
+            return Response({
+                'message': f'Imaginea a fost manipulată cu succes ({action}).',
+                'manipulated_image_path': f"{settings.MEDIA_URL}{relative_path}"
+            }, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
     
 class ScanIdView(APIView):

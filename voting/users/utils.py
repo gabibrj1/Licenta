@@ -13,6 +13,31 @@ pytesseract.pytesseract.cmd = config('TESSERACT_CMD_PATH')
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 MODEL_PATH = os.path.join(BASE_DIR, 'media', 'models', 'best.pt')
 
+class ImageManipulator:
+    @staticmethod
+    def rotate_image(image_path, angle):
+        image = cv2.imread(image_path)
+        if image is None:
+            raise ValueError("Nu s-a putut încărca imaginea")
+            
+        # Normalizează unghiul la 0-360
+        angle = angle % 360
+        
+        if angle == 90:
+            return cv2.rotate(image, cv2.ROTATE_90_CLOCKWISE)
+        elif angle == 180:
+            return cv2.rotate(image, cv2.ROTATE_180)
+        elif angle == 270:
+            return cv2.rotate(image, cv2.ROTATE_90_COUNTERCLOCKWISE)
+        return image
+
+    @staticmethod
+    def flip_image(image_path):
+        image = cv2.imread(image_path)
+        if image is None:
+            raise ValueError("Nu s-a putut încărca imaginea")
+        return cv2.flip(image, 1)  # 1 pentru oglindire orizontală
+
 class IDCardDetector:
     def __init__(self):
         self.model_path = os.path.join('media', 'models', 'id-card-detector', 'frozen_inference_graph.pb')

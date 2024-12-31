@@ -6,7 +6,7 @@ import { AbstractControl, ValidationErrors } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
 import { GdprDialogComponent } from '../gdpr-dialog/gdpr-dialog.component';
 import { DeleteConfirmDialogComponent } from "../delete-confirm.dialog/delete-confirm.dialog.component";
-
+import { MatSnackBar } from '@angular/material/snack-bar';
 
 
 @Component({
@@ -42,6 +42,8 @@ export class VoteappFrontComponent implements OnInit {
   showRedLine: boolean = false;
   guidanceTimerId: any; // ID-ul pentru setTimeout
   isCameraExpanded: boolean = false;
+  currentRotation: number = 0;
+  isFlipped: boolean = false;
 
 
 
@@ -60,6 +62,7 @@ export class VoteappFrontComponent implements OnInit {
     private fb: FormBuilder,
     private renderer: Renderer2,
     private dialog: MatDialog,
+    private snackBar:MatSnackBar
   ) {
 
     this.registrationForm = this.fb.group({
@@ -320,6 +323,70 @@ export class VoteappFrontComponent implements OnInit {
       }
     );
   }
+  rotateImage(angle: number): void {
+    if (this.uploadedImagePath) {
+      this.isLoading = true;
+      this.userService.rotateImage(this.uploadedImagePath, angle).subscribe({
+        next: (response) => {
+          // Update the image path for preview, similar to upload logic
+          if (response.manipulated_image_path) {
+            this.uploadedImagePath = `http://127.0.0.1:8000${response.manipulated_image_path}?t=${new Date().getTime()}`;
+            this.autoFillMessage = 'Imaginea a fost rotită cu succes!';
+          } else {
+            this.autoFillMessage = 'Eroare la actualizarea imaginii rotite.';
+          }
+          this.isLoading = false;
+        },
+        error: (error) => {
+          this.autoFillMessage = 'Eroare la rotirea imaginii.';
+          this.isLoading = false;
+        },
+      });
+    }
+  }
+  
+  flipImage(): void {
+    if (this.uploadedImagePath) {
+      this.isLoading = true;
+      this.userService.flipImage(this.uploadedImagePath).subscribe({
+        next: (response) => {
+          // Update the image path for preview, similar to upload logic
+          if (response.manipulated_image_path) {
+            this.uploadedImagePath = `http://127.0.0.1:8000${response.manipulated_image_path}?t=${new Date().getTime()}`;
+            this.autoFillMessage = 'Imaginea a fost oglindită cu succes!';
+          } else {
+            this.autoFillMessage = 'Eroare la actualizarea imaginii oglindite.';
+          }
+          this.isLoading = false;
+        },
+        error: (error) => {
+          this.autoFillMessage = 'Eroare la oglindirea imaginii.';
+          this.isLoading = false;
+        },
+      });
+    }
+  }
+  
+
+  showSuccessMessage(message: string): void {
+    this.snackBar.open(message, 'Închide', {
+      duration: 3000,
+      horizontalPosition: 'center',
+      verticalPosition: 'top',
+      panelClass: ['success-snackbar'],
+    });
+  }
+
+  showErrorMessage(message: string): void {
+    this.snackBar.open(message, 'Închide', {
+      duration: 3000,
+      horizontalPosition: 'center',
+      verticalPosition: 'top',
+      panelClass: ['error-snackbar'],
+    });
+  }
+
+
   
 
   
