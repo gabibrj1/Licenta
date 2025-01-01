@@ -31,6 +31,7 @@ import { CsrfInterceptor } from './interceptors/csrf.interceptor';
 import { AuthInterceptor } from './interceptors/auth.interceptor';
 import { ReviewsComponent } from './reviews/reviews.component';
 import { DeleteConfirmDialogComponent } from './delete-confirm.dialog/delete-confirm.dialog.component';
+import { WarningDialogComponent } from './warning-dialog/warning-dialog.component';
 
 @NgModule({
   declarations: [
@@ -44,7 +45,8 @@ import { DeleteConfirmDialogComponent } from './delete-confirm.dialog/delete-con
     GdprDialogComponent,
     MenuComponent,
     ReviewsComponent,
-    DeleteConfirmDialogComponent
+    DeleteConfirmDialogComponent,
+    WarningDialogComponent
   ],
   imports: [
     BrowserModule,
@@ -66,7 +68,8 @@ import { DeleteConfirmDialogComponent } from './delete-confirm.dialog/delete-con
     MatSnackBarModule,
     FontAwesomeModule,
     SpinnerModule,
-    MatDialogModule
+    MatDialogModule,
+    MatButtonModule
   ],
   providers: [
     { provide: HTTP_INTERCEPTORS, useClass: CsrfInterceptor, multi: true },

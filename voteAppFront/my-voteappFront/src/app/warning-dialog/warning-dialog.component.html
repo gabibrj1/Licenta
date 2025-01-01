@@ -1,0 +1,60 @@
+<div class="dialog-container">
+  <button mat-icon-button (click)="onClose()" class="close-button" aria-label="Închide">
+    <mat-icon class="close-icon">close</mat-icon>
+  </button>
+
+  <h2 class="animated-title">⚠️ Atenție</h2>
+
+  <ul class="info-list animated-list">
+    <li>
+      <div class="icon-text-container">
+        <mat-icon color="primary" class="bouncing-icon">info</mat-icon>
+        <span>
+          <span class="highlight">Claritatea imaginilor</span> trebuie să fie bună și cu o luminozitate avantajoasă pentru ca procesul de autofill să meargă corect.
+        </span>
+      </div>
+    </li>
+    <li>
+      <div class="icon-text-container">
+        <mat-icon color="primary" class="bouncing-icon">photo</mat-icon>
+        <span>
+          Asigură-te că <span class="highlight">buletinul este încadrat complet</span> cu întreaga dimensiune.
+        </span>
+      </div>
+    </li>
+    <li>
+      <div class="icon-text-container">
+        <mat-icon color="warn" class="bouncing-icon">warning</mat-icon>
+        <span>
+          <span class="highlight">Pozele cu luminozitate sau claritate scăzută</span> nu vor produce extragerea corectă a datelor.
+        </span>
+      </div>
+    </li>
+    <li>
+      <div class="icon-text-container">
+        <mat-icon color="accent" class="bouncing-icon">check_circle</mat-icon>
+        <span>
+          Verifică dacă <span class="highlight">datele completate automat coincid</span> cu cele originale după autofill.
+        </span>
+      </div>
+    </li>
+  </ul>
+
+  <div class="checkbox-container">
+    <mat-checkbox [(ngModel)]="conditionsAccepted">
+      Am citit și înțeles condițiile
+    </mat-checkbox>
+  </div>
+
+  <div class="error-message" *ngIf="showErrorMessage">
+    Trebuie să bifezi că ai citit și înțeles condițiile pentru a continua.
+  </div>
+
+  <div class="dialog-actions">
+    <button mat-raised-button color="primary" 
+            [disabled]="!conditionsAccepted"
+            (click)="onContinue()">
+      Continuă
+    </button>
+  </div>
+</div>

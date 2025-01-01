@@ -7,6 +7,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { GdprDialogComponent } from '../gdpr-dialog/gdpr-dialog.component';
 import { DeleteConfirmDialogComponent } from "../delete-confirm.dialog/delete-confirm.dialog.component";
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { WarningDialogComponent } from '../warning-dialog/warning-dialog.component';
 
 
 @Component({
@@ -92,6 +93,7 @@ export class VoteappFrontComponent implements OnInit {
     });
     
   }
+  
 
   
   ngOnInit() {
@@ -281,13 +283,29 @@ export class VoteappFrontComponent implements OnInit {
       );
     }
   }
+
+  
+  openWarningDialog(): void {
+    this.dialog.open(WarningDialogComponent, {
+      width: '400px',
+      disableClose: false, // Permite utilizatorului să închidă dialogul
+    });
+  }
   
 
 
   
   onFileUpload(event: any): void {
+    const dialogRef = this.dialog.open(WarningDialogComponent, { width: '400px' });
+    dialogRef.afterClosed().subscribe(() => {
+      // Actioneaza dupa inchiderea dialogului
+      this.proceedWithFileUpload(event);
+    });
+  }
+  private proceedWithFileUpload(event: any): void {
     const file = event.target.files[0];
     if (!file) return;
+   
 
     if (this.isCameraOpen) {
       this.closeCamera();
@@ -397,10 +415,10 @@ export class VoteappFrontComponent implements OnInit {
       return;
     }
   
-    // Transformăm calea completă în calea relativă necesară pentru backend
+    // Transformam calea completa in calea relativa necesara pentru backend
         const croppedPath = this.uploadedImagePath
         .replace('http://127.0.0.1:8000/media/', '')
-        .replace(/^\//, '');
+        .split('?')[0];
   
     this.isLoading = true;
     this.userService.autoFillFromImage(croppedPath).subscribe(
@@ -464,11 +482,19 @@ export class VoteappFrontComponent implements OnInit {
   }
   
   
- 
+  
   openCamera() {
+    const dialogRef = this.dialog.open(WarningDialogComponent, { width: '400px' });
+    dialogRef.afterClosed().subscribe(() => {
+      // Actioneaza dupa inchiderea dialogului
+      this.proceedWithCamera();
+    });
+  }
+  private proceedWithCamera(): void {
 
     if (this.uploadedImagePath) {
       this.deleteImageSilently();
+     
     }
     this.isScanMethod = true;
     this.isUploadMethod = false;
