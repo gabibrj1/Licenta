@@ -303,6 +303,7 @@ export class VoteappFrontComponent implements OnInit {
     });
   }
   private proceedWithFileUpload(event: any): void {
+    this.autoFillMessage = ''; //reseteaza mesajele de eroare
     const file = event.target.files[0];
     if (!file) return;
    
@@ -336,8 +337,17 @@ export class VoteappFrontComponent implements OnInit {
         }
       },
       (error: any) => {
+        this.isLoading = false;
         console.error('Eroare la încărcarea imaginii:', error);
-        this.autoFillMessage = 'A apărut o eroare la procesarea imaginii.';
+        if(error.error && error.error.error){
+          //afisam mesajul de eroare primit de la backend
+          this.autoFillMessage = error.error.error;
+        }else{
+          this.autoFillMessage = 'Imaginea încărcată nu corespunde unui act de identitate!';
+        }
+        this.showAutoFillButton = false;
+        this.uploadedImagePath = null;
+        event.target.value = '';
       }
     );
   }
@@ -506,7 +516,7 @@ export class VoteappFrontComponent implements OnInit {
       this.videoElement.nativeElement.play();
 
       setTimeout(() => {
-        this.showRedLine = true; // Variabilă pentru controlul afișării liniei
+        this.showRedLine = true; // Variabila pentru controlul afisarii liniei rosii 
       }, 500);
 
       this.updateGuidance();
@@ -537,6 +547,7 @@ export class VoteappFrontComponent implements OnInit {
 
 
   capturePhoto(): void { 
+    this.autoFillMessage=''
     const canvas = document.createElement('canvas');
     const targetWidth = 640;
     const targetHeight = 480;

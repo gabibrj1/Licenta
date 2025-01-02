@@ -84,6 +84,18 @@ class IDCardDetector:
                 return cropped_image
 
         return None  # Returnăm None dacă nu s-a detectat niciun ID
+    
+def extract_text(image_path):
+    """
+    Extrage textul dintr-o imagine folosind Tesseract OCR.
+    """
+    try:
+        image = Image.open(image_path)
+        text = pytesseract.image_to_string(image, lang='ron')
+        return text
+    except Exception as e:
+        print(f"Eroare la extragerea textului: {e}")
+        return ""
 
 class IDCardProcessor:
     def __init__(self):

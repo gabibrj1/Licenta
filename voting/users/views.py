@@ -32,6 +32,7 @@ import pytesseract
 from .utils import IDCardDetector
 import cv2
 from .utils import ImageManipulator
+from .utils import extract_text
 
 
 # Model AI pentru detecția limbajului nepotrivit
@@ -164,7 +165,8 @@ class UploadIdView(APIView):
     def post(self, request):
         image = request.FILES.get('id_card_image')
         if not image:
-            return Response({'error': 'Niciun fișier nu a fost încărcat'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': 'Niciun fișier nu a fost încărcat'}, 
+                          status=status.HTTP_400_BAD_REQUEST)
 
         upload_dir = os.path.join(settings.MEDIA_ROOT, 'uploads')
         os.makedirs(upload_dir, exist_ok=True)
@@ -178,14 +180,31 @@ class UploadIdView(APIView):
         cropped_image = detector.detect_id_card(file_path)
 
         if cropped_image is None:
-            return Response({'error': 'Nu s-a putut detecta cartea de identitate'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': 'Nu s-a putut detecta cartea de identitate'}, 
+                          status=status.HTTP_400_BAD_REQUEST)
         
         cropped_file_path = file_path.replace('.jpg', '_cropped.jpg')
         cv2.imwrite(cropped_file_path, cropped_image)
 
+        # Aplicăm OCR pentru extragerea textului
+        extracted_text = extract_text(cropped_file_path)
+
+        # Validăm dacă textul conține informații specifice buletinelor românești
+        valid_keywords = ['ROMANIA', 'CNP', 'SERIA', 'NR']
+        is_valid_id = any(keyword in extracted_text.upper() for keyword in valid_keywords)
+
+        if not is_valid_id:
+            # Ștergem fișierele încărcate dacă nu este valid
+            os.remove(file_path)
+            if os.path.exists(cropped_file_path):
+                os.remove(cropped_file_path)
+            return Response({'error': 'Imaginea încărcată nu corespunde unui act de identitate'}, 
+                          status=status.HTTP_400_BAD_REQUEST)
+
         return Response({
             'message': 'Imaginea a fost încărcată și procesată cu succes.',
-            'cropped_image_path': os.path.join(settings.MEDIA_URL, 'uploads', os.path.basename(cropped_file_path))
+            'cropped_image_path': os.path.join(settings.MEDIA_URL, 'uploads', 
+                                             os.path.basename(cropped_file_path))
         }, status=status.HTTP_200_OK)
 
 class ManipulateImageView(APIView):
@@ -200,13 +219,13 @@ class ManipulateImageView(APIView):
             if not image_path or not action:
                 return Response({'error': 'Parametrii lipsă'}, status=status.HTTP_400_BAD_REQUEST)
 
-            # Curăță calea imaginii
+            # Curata calea imaginii
             if image_path.startswith(settings.MEDIA_URL):
                 image_path = image_path.replace(settings.MEDIA_URL, '')
             if image_path.startswith('http://') or image_path.startswith('https://'):
                 image_path = image_path.split('/media/')[-1]
             
-            # Elimină parametrii query
+            # Elimina parametrii query
             image_path = image_path.split('?')[0]
             
             image_full_path = os.path.join(settings.MEDIA_ROOT, image_path)
@@ -215,24 +234,24 @@ class ManipulateImageView(APIView):
                 return Response({'error': f'Imaginea nu există la calea: {image_full_path}'}, 
                               status=status.HTTP_404_NOT_FOUND)
 
-            # Determină numele fișierului și extensia
+            # Determina numele fisierului si extensia
             directory = os.path.dirname(image_full_path)
             filename = os.path.basename(image_full_path)
             base_name, ext = os.path.splitext(filename)
 
-            # Generează un nou nume de fișier bazat pe acțiune
+            # Genereaza un nou nume de fisier bazat pe actiune
             if action == 'rotate':
                 new_base_name = f"{base_name}_rotated_{angle}"
             else:  # flip
                 if '_flipped' in base_name:
-                    # Dacă imaginea este deja oglindită, revenim la versiunea neoglindită
+                    # Daca imaginea este deja oglindita, revenim la versiunea neoglindita
                     new_base_name = base_name.replace('_flipped', '')
                 else:
                     new_base_name = f"{base_name}_flipped"
 
             new_file_path = os.path.join(directory, f"{new_base_name}{ext}")
 
-            # Efectuează manipularea imaginii
+            # Efectueaza manipularea imaginii
             if action == 'rotate':
                 manipulated_image = ImageManipulator.rotate_image(image_full_path, angle)
             elif action == 'flip':
@@ -240,10 +259,10 @@ class ManipulateImageView(APIView):
             else:
                 return Response({'error': 'Acțiune invalidă'}, status=status.HTTP_400_BAD_REQUEST)
 
-            # Salvează noua imagine
+            # Salveaza noua imagine
             cv2.imwrite(new_file_path, manipulated_image)
 
-            # Creează calea relativă pentru URL
+            # Creeaza calea relativa pentru URL
             relative_path = os.path.relpath(new_file_path, settings.MEDIA_ROOT).replace('\\', '/')
 
             return Response({
