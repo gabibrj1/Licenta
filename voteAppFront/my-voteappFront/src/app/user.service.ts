@@ -99,6 +99,11 @@ autoFillFromImage(cropped_file_path: string): Observable<any> {
         catchError(this.handleError)
     );
 }
+
+validateLocality(locality: string): Observable<any> {
+  return this.http.post(`${this.apiUrl}validate-locality/`, { locality });
+}
+
   
   
   private handleError(error: HttpErrorResponse){

@@ -8,6 +8,123 @@
   animation: gradient-animation 10s ease infinite;
   position: relative;
 }
+.location-field-container {
+  position: relative;
+}
+
+mat-form-field {
+  width: 300px;
+  overflow: visible !important;
+}
+
+mat-form-field button[mat-icon-button] {
+  position: relative;
+  overflow: visible;
+  
+  &::after {
+    top: -17px;
+    content: 'Validarea Locului de Naștere';
+    position: absolute;
+    left: -100%;
+    transform: translateX(-50%);
+    background-color: #6a1b9a;
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    white-space: nowrap;
+    box-shadow: 0 2px 8px rgba(106, 27, 154, 0.2);
+    opacity: 0;
+    pointer-events: none;
+    z-index: 1000;
+    transition: opacity 0.3s ease;
+  }
+  
+  &:hover::after {
+    opacity: 1;
+  }
+}
+
+.suggestions-list {
+  position: absolute;
+  left: calc(100% + 15px);
+  top: 0;
+  min-width: 200px;
+  background-color: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 2px 12px rgba(106, 27, 154, 0.15);
+  padding: 8px;
+  z-index: 1000;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    left: -15px;
+    top: 20px;
+    width: 15px;
+    height: 2px;
+    background-color: #6a1b9a;
+  }
+}
+
+.suggestions-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.suggestion-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background-color: rgba(106, 27, 154, 0.05);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: 1px solid transparent;
+
+  span {
+    margin-right: 8px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: #6a1b9a;
+  }
+
+  mat-icon {
+    font-size: 20px;
+    color: #6a1b9a;
+  }
+
+  &:hover {
+    background-color: #36c7d0;
+    transform: translateX(4px);
+    border-color: transparent;
+    
+    span, mat-icon {
+      color: #6a1b9a;
+    }
+  }
+}
+
+.suggestions-grid::-webkit-scrollbar {
+  width: 4px;
+}
+
+.suggestions-grid::-webkit-scrollbar-track {
+  background: rgba(106, 27, 154, 0.05);
+}
+
+.suggestions-grid::-webkit-scrollbar-thumb {
+  background: #6a1b9a;
+  border-radius: 4px;
+  
+  &:hover {
+    background: #36c7d0;
+  }
+}
+
 
 
 @keyframes gradient-animation {

@@ -101,10 +101,37 @@
         <input matInput type="text" formControlName="first_name" required />
       </mat-form-field>
 
-      <mat-form-field appearance="fill">
-        <mat-label>Locul nașterii</mat-label>
-        <input matInput type="text" formControlName="place_of_birth" required />
-      </mat-form-field>
+      <div class="location-field-container">
+        <mat-form-field appearance="fill">
+          <mat-label>Locul nașterii</mat-label>
+          <input matInput type="text" formControlName="place_of_birth" required />
+          <button
+            mat-icon-button
+            matSuffix
+            color="accent"
+            (click)="validateLocality()"
+            aria-label="Validează Localitatea"
+            *ngIf="showValidateLocalityButton"
+          >
+            <mat-icon>search</mat-icon>
+          </button>
+        </mat-form-field>
+      
+        <!-- Suggestions List -->
+        <div *ngIf="suggestions.length > 0" class="suggestions-list">
+          <div class="suggestions-grid">
+            <div 
+              *ngFor="let suggestion of suggestions" 
+              class="suggestion-item"
+              (click)="selectSuggestion(suggestion)"
+            >
+              <span>{{ suggestion }}</span>
+              <mat-icon>add_circle_outline</mat-icon>
+            </div>
+          </div>
+        </div>
+      </div>
+      
 
       <mat-form-field appearance="fill">
         <mat-label>Domiciliu</mat-label>
@@ -159,6 +186,10 @@
           📁 încarcă Imagine
         </label>
       </div>
+
+    
+
+      
      
 
       

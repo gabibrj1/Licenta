@@ -10,6 +10,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { WarningDialogComponent } from '../warning-dialog/warning-dialog.component';
 
 
+
 @Component({
   selector: 'app-voteapp-front',
   templateUrl: './voteapp-front.component.html',
@@ -45,6 +46,10 @@ export class VoteappFrontComponent implements OnInit {
   isCameraExpanded: boolean = false;
   currentRotation: number = 0;
   isFlipped: boolean = false;
+  suggestions: string[] = [];
+  showValidateLocalityButton: boolean = false;
+
+
 
 
 
@@ -343,7 +348,7 @@ export class VoteappFrontComponent implements OnInit {
           //afisam mesajul de eroare primit de la backend
           this.autoFillMessage = error.error.error;
         }else{
-          this.autoFillMessage = 'Imaginea încărcată nu corespunde unui act de identitate!';
+          this.autoFillMessage = 'Imaginea încărcată nu corespunde unui act de identitate sau calitatea imaginii este prea slabă!';
         }
         this.showAutoFillButton = false;
         this.uploadedImagePath = null;
@@ -413,15 +418,11 @@ export class VoteappFrontComponent implements OnInit {
       panelClass: ['error-snackbar'],
     });
   }
-
-
-  
-
-  
   
   autoFillData(): void {
     if (!this.uploadedImagePath) {
       this.autoFillMessage = 'Încarcă sau capturează o imagine, te rog!';
+      this.showValidateLocalityButton = false;
       return;
     }
   
@@ -459,14 +460,19 @@ export class VoteappFrontComponent implements OnInit {
             date_of_issue: this.parseRomanianDate(extracted.Valabilitate?.split(' ')[0]) || '',
             date_of_expiry: this.parseRomanianDate(extracted.Valabilitate?.split(' ')[1]) || ''
           });
+          this.autoFillMessage = 'Datele au fost completate cu succes!';
+          this.showValidateLocalityButton = true;
         } else {
           this.autoFillMessage = 'Datele nu au putut fi extrase!';
+          this.showValidateLocalityButton = false; 
+
         }
         this.isLoading = false;
       },
       (error: any) => {
         console.error('Eroare la completarea datelor:', error);
         this.autoFillMessage = 'A apărut o eroare!';
+        this.showValidateLocalityButton = false; 
         this.isLoading = false;
       }
     );
@@ -605,6 +611,7 @@ dataURItoBlob(dataURI: string): Blob {
 autoFillDataFromScan(): void {
   if (!this.uploadedImagePath) {
     this.autoFillMessage = 'Încarcă sau capturează o imagine, te rog!';
+    this.showValidateLocalityButton = false;
     return;
   }
 
@@ -642,14 +649,18 @@ autoFillDataFromScan(): void {
           date_of_issue: this.parseRomanianDate(extracted.Valabilitate?.split(' ')[0]) || '',
           date_of_expiry: this.parseRomanianDate(extracted.Valabilitate?.split(' ')[1]) || ''
         });
+        this.autoFillMessage = 'Datele au fost completate cu succes!';
+        this.showValidateLocalityButton = true;
       } else {
         this.autoFillMessage = 'Datele nu au putut fi extrase!';
+        this.showValidateLocalityButton = false;
       }
       this.isLoading = false;
     },
     (error: any) => {
       console.error('Eroare la completarea datelor:', error);
       this.autoFillMessage = 'A apărut o eroare!';
+      this.showValidateLocalityButton = false;
       this.isLoading = false;
     }
   );
@@ -678,6 +689,8 @@ autoFillDataFromScan(): void {
     const idRegex = /ROMANIA|CNP|ROU|SERIA|NR/; // Text specific cărților de identitate
     return idRegex.test(imageData);
   }
+
+  
   
   
 
@@ -693,6 +706,7 @@ autoFillDataFromScan(): void {
         this.uploadedImageName = null;
         this.capturedImage = null;
         this.showAutoFillButton = false;
+        this.showValidateLocalityButton = false;
         this.autoFillMessage = '';
         this.uploadedImagePath = null;
         this.isLoading = false;
@@ -714,7 +728,40 @@ autoFillDataFromScan(): void {
     this.idCardForm.reset(); // Reseteaza campurile din formular
   }
   
+  validateLocality() {
+    const locality = this.idCardForm.get('place_of_birth')?.value || '';
+    this.userService.validateLocality(locality).subscribe(
+      (response: any) => {
+        if (response.matches && response.matches.length > 0) {
+          // Map backend response to suggestions for display
+          const suggestions = response.matches.map(
+            (match: any) =>
+              `${match.localitate.nume} (${match.localitate.judet}) (încredere: ${(match.similarity * 100).toFixed(2)}%)`
+          );
+          this.autoFillMessage = `Sugestii pentru localitatea specificată:`;
+          this.suggestions = suggestions;
+        } else {
+          this.autoFillMessage = 'Nicio potrivire exactă găsită pentru localitatea specificată.';
+          this.suggestions = [];
+        }
+      },
+      (error: any) => {
+        this.autoFillMessage = 'A apărut o eroare la validarea localității.';
+        this.suggestions = [];
+      }
+    );
+  }
+  
+  selectSuggestion(suggestion: string): void {
+    // Extrage doar numele localității din sugestie (prima parte a textului)
+    const localityName = suggestion.split('(')[0].trim();
+    this.idCardForm.patchValue({ place_of_birth: localityName });
+    this.suggestions = []; // Resetează sugestiile după selectare
+    this.autoFillMessage = `Ai selectat: ${localityName}`;
+  }
 
+    
+  
 
  
   submitVote() {

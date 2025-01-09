@@ -9,6 +9,7 @@ from .views import LoginView
 from .views import ScanIdView
 from .views import DetectIDCardView
 from .views import ManipulateImageView
+from .views import ValidateLocalityView
 
 
 urlpatterns = [
@@ -28,5 +29,7 @@ urlpatterns = [
     path('autofill-scan-data/', AutofillScanDataView.as_view(), name='autofill-scan-data'),
     path('detect-id-card/', DetectIDCardView.as_view(), name='detect_id_card'),
     path('manipulate-image/', ManipulateImageView.as_view(), name='manipulate-image'),
+    path('validate-locality/', ValidateLocalityView.as_view(), name='validate-locality'),
+
 
 ]

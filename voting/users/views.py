@@ -32,8 +32,11 @@ import pytesseract
 from .utils import IDCardDetector
 import cv2
 from .utils import ImageManipulator
-from .utils import extract_text
+from .utils import extract_text, load_valid_keywords
+from .utils import LocalityMatcher
+import logging
 
+logger = logging.getLogger(__name__)
 
 # Model AI pentru detecția limbajului nepotrivit
 toxic_classifier = pipeline("text-classification", model="unitary/toxic-bert")
@@ -162,12 +165,18 @@ class UploadIdView(APIView):
     parser_classes = (MultiPartParser, FormParser)
     permission_classes = [AllowAny]
 
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        # Citim cuvintele cheie din fisierul CSV
+        self.valid_keywords = load_valid_keywords(settings.VALID_KEYWORDS_CSV)
+    
+
     def post(self, request):
         image = request.FILES.get('id_card_image')
         if not image:
-            return Response({'error': 'Niciun fișier nu a fost încărcat'}, 
-                          status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': 'Niciun fișier nu a fost încărcat'}, status=status.HTTP_400_BAD_REQUEST)
 
+        # Salvam imaginea pe disc
         upload_dir = os.path.join(settings.MEDIA_ROOT, 'uploads')
         os.makedirs(upload_dir, exist_ok=True)
         file_path = os.path.join(upload_dir, image.name)
@@ -176,36 +185,112 @@ class UploadIdView(APIView):
             for chunk in image.chunks():
                 destination.write(chunk)
 
+        # Detectam cartea de identitate
         detector = IDCardDetector()
         cropped_image = detector.detect_id_card(file_path)
 
         if cropped_image is None:
-            return Response({'error': 'Nu s-a putut detecta cartea de identitate'}, 
-                          status=status.HTTP_400_BAD_REQUEST)
-        
+            return Response({'error': 'Nu s-a putut detecta cartea de identitate'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Salvăm imaginea decupată
         cropped_file_path = file_path.replace('.jpg', '_cropped.jpg')
         cv2.imwrite(cropped_file_path, cropped_image)
 
-        # Aplicăm OCR pentru extragerea textului
+        # Aplicăm OCR pentru a extrage textul
         extracted_text = extract_text(cropped_file_path)
 
-        # Validăm dacă textul conține informații specifice buletinelor românești
-        valid_keywords = ['ROMANIA', 'CNP', 'SERIA', 'NR']
-        is_valid_id = any(keyword in extracted_text.upper() for keyword in valid_keywords)
+        # Dacă textul nu este detectat, încercăm cu imaginea oglindită
+
+        is_valid_id = any(keyword in extracted_text.upper() for keyword in self.valid_keywords)
 
         if not is_valid_id:
-            # Ștergem fișierele încărcate dacă nu este valid
-            os.remove(file_path)
-            if os.path.exists(cropped_file_path):
-                os.remove(cropped_file_path)
+            # Oglindim imaginea și rulăm OCR din nou
+            flipped_image = cv2.flip(cropped_image, 1)  # 1 pentru oglindire orizontală
+            flipped_file_path = cropped_file_path.replace('.jpg', '_flipped.jpg')
+            cv2.imwrite(flipped_file_path, flipped_image)
+            extracted_text_flipped = extract_text(flipped_file_path)
+
+            # Verificăm dacă imaginea oglindită conține text valid
+            is_valid_id = any(keyword in extracted_text_flipped.upper() for keyword in self.valid_keywords)
+
+        if not is_valid_id:
             return Response({'error': 'Imaginea încărcată nu corespunde unui act de identitate'}, 
-                          status=status.HTTP_400_BAD_REQUEST)
+                            status=status.HTTP_400_BAD_REQUEST)
 
         return Response({
             'message': 'Imaginea a fost încărcată și procesată cu succes.',
-            'cropped_image_path': os.path.join(settings.MEDIA_URL, 'uploads', 
-                                             os.path.basename(cropped_file_path))
+            'cropped_image_path': os.path.join(settings.MEDIA_URL, 'uploads', os.path.basename(cropped_file_path))
         }, status=status.HTTP_200_OK)
+    
+
+class ValidateLocalityView(APIView):
+    """
+    View îmbunătățit pentru validarea și sugerarea localităților.
+    """
+    permission_classes = []
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        try:
+            self.matcher = LocalityMatcher(settings.LOCALITATI_CSV_PATH)
+        except Exception as e:
+            logger.error(f"Eroare la inițializarea LocalityMatcher: {str(e)}")
+            self.matcher = None
+
+    def post(self, request):
+        if self.matcher is None:
+            return Response(
+                {'error': 'Serviciul de validare a localităților nu este disponibil'},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE
+            )
+
+        locality = request.data.get('locality', '').strip()
+        if not locality:
+            return Response(
+                {'error': 'Localitatea nu a fost specificată'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            # Configurăm parametrii de căutare
+            top_n = request.data.get('top_n', 5)
+            min_similarity = request.data.get('min_similarity', 0.1)
+            
+            # Validăm parametrii
+            try:
+                top_n = int(top_n)
+                min_similarity = float(min_similarity)
+                if top_n < 1 or min_similarity < 0 or min_similarity > 1:
+                    raise ValueError
+            except (ValueError, TypeError):
+                return Response(
+                    {'error': 'Parametri invalizi pentru căutare'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            matches = self.matcher.find_best_matches(
+                locality,
+                top_n=top_n,
+                min_similarity=min_similarity
+            )
+
+            if matches:
+                return Response({
+                    'matches': matches,
+                    'input_processed': self.matcher.preprocess_locality(locality)
+                }, status=status.HTTP_200_OK)
+            else:
+                return Response({
+                    'message': 'Nicio potrivire găsită',
+                    'input_processed': self.matcher.preprocess_locality(locality)
+                }, status=status.HTTP_404_NOT_FOUND)
+
+        except Exception as e:
+            logger.error(f"Eroare la procesarea localității '{locality}': {str(e)}")
+            return Response(
+                {'error': 'Eroare la procesarea cererii'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 class ManipulateImageView(APIView):
     permission_classes = [AllowAny]
@@ -529,7 +614,7 @@ class AutofillDataView(APIView):
     """
     Endpoint pentru procesarea imaginii încărcate și extragerea informațiilor.
     """
-    permission_classes = [AllowAny]  # Permite acces public (opțional)
+    permission_classes = [AllowAny]  
 
     def post(self, request):
         cropped_file_path = request.data.get('cropped_file_path')
