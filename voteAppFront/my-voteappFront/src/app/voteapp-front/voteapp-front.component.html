@@ -101,7 +101,7 @@
         <input matInput type="text" formControlName="first_name" required />
       </mat-form-field>
 
-      <div class="location-field-container">
+      <div #locationFieldContainer class="location-field-container">
         <mat-form-field appearance="fill">
           <mat-label>Locul nașterii</mat-label>
           <input matInput type="text" formControlName="place_of_birth" required />
@@ -109,7 +109,7 @@
             mat-icon-button
             matSuffix
             color="accent"
-            (click)="validateLocality()"
+            (click)="toggleLocalityValidation()"
             aria-label="Validează Localitatea"
             *ngIf="showValidateLocalityButton"
           >
@@ -117,12 +117,26 @@
           </button>
         </mat-form-field>
       
-        <!-- Suggestions List -->
-        <div *ngIf="suggestions.length > 0" class="suggestions-list">
+        <div 
+          *ngIf="showSuggestions && suggestions.length > 0" 
+          class="suggestions-list"
+          [@slideInOut]
+        >
+          <div class="suggestions-header">
+            <span>Sugestii</span>
+            <button 
+              mat-icon-button 
+              class="close-button" 
+              (click)="closeSuggestions()"
+            >
+              <mat-icon>close</mat-icon>
+            </button>
+          </div>
           <div class="suggestions-grid">
-            <div 
-              *ngFor="let suggestion of suggestions" 
+            <div
+              *ngFor="let suggestion of suggestions"
               class="suggestion-item"
+              [class.selected]="isSuggestionSelected(suggestion)"
               (click)="selectSuggestion(suggestion)"
             >
               <span>{{ suggestion }}</span>
@@ -131,6 +145,10 @@
           </div>
         </div>
       </div>
+      
+      
+      
+      
       
 
       <mat-form-field appearance="fill">
@@ -175,6 +193,14 @@
             {{ error }}
           </li>
         </ul>
+      </div>
+      <div *ngIf="isCameraOpen" class="camera-container" [ngClass]="{'expanded': isCameraExpanded}">
+        <video #videoElement autoplay></video>
+        <div class="red-line" *ngIf="showRedLine && isCameraOpen"></div>
+        <button mat-icon-button color="warn" class="close-camera-btn" (click)="closeCamera()">❌</button>
+        <!-- Buton pentru expand -->
+        <button mat-icon-button color="primary" class="expand-camera-btn" (click)="toggleExpandCamera()">🔍</button>
+        <button mat-raised-button color="primary" (click)="capturePhoto()">Capturează Imagine</button>
       </div>
 
     
@@ -252,23 +278,36 @@
       <div class="auto-fill-message">
         {{ autoFillMessage }}
       </div>
-      
-      
-      
-      
-      
 
-      <div *ngIf="isCameraOpen" class="camera-container" [ngClass]="{'expanded': isCameraExpanded}">
-        <video #video autoplay></video>
-        <div class="red-line" *ngIf="showRedLine && isCameraOpen"></div>
-        <button mat-icon-button color="warn" class="close-camera-btn" (click)="closeCamera()">❌</button>
-        <!-- Buton pentru expand -->
-        <button mat-icon-button color="primary" class="expand-camera-btn" (click)="toggleExpandCamera()">🔍</button>
-        <button mat-raised-button color="primary" (click)="capturePhoto()">Capturează Imagine</button>
-      </div>
+      <button mat-raised-button color="primary" type="button" (click)="startFaceRecognition()">
+        💳 Înregistrează-te cu buletinul
+      </button>
 
- 
-      <button mat-raised-button color="primary" type="submit">💳 Înregistrează-te cu buletinul</button>
+
+<!-- Cameră pentru recunoaștere facială -->
+<div *ngIf="isFaceRecognitionActive" class="camera-container" [ngClass]="{'expanded': isCameraExpanded}">
+  <video #videoElement autoplay></video>
+
+  <button mat-icon-button color="warn" class="close-camera-btn" (click)="stopCamera()">❌</button>
+  <button mat-icon-button color="primary" class="expand-camera-btn" (click)="toggleExpandCamera()">🔍</button>
+
+  <!-- Cadran dinamic pentru recunoaștere -->
+  <div *ngIf="faceDetected" 
+       class="face-frame" 
+       [ngStyle]="{ 
+         'top.px': faceBox.top, 
+         'left.px': faceBox.left, 
+         'width.px': faceBox.width, 
+         'height.px': faceBox.height 
+       }">
+  </div>
+
+  <div class="face-status">
+    {{ faceMatchMessage }}
+  </div>
+</div>
+
+
     </form>
   </div>
 

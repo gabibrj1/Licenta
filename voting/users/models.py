@@ -61,6 +61,9 @@ class User(AbstractBaseUser, PermissionsMixin):
     is_verified_by_id = models.BooleanField(default=False)
     verification_code = models.CharField(max_length=6, blank=True, null=True)
     
+    #adaugam camp pentru imaginea fetei utilizatorului
+    face_image = models.ImageField(upload_to='faces/', blank=True, null=True)
+
     username = None
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = []

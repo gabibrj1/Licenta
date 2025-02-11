@@ -1,4 +1,4 @@
-import { Component, ElementRef, ViewChild, OnInit, Renderer2 } from '@angular/core';
+import { Component, ElementRef, ViewChild, OnInit, Renderer2, AfterViewInit, OnDestroy, ChangeDetectorRef} from '@angular/core';
 import { UserService } from '../user.service';
 import { Router } from '@angular/router';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
@@ -8,15 +8,30 @@ import { GdprDialogComponent } from '../gdpr-dialog/gdpr-dialog.component';
 import { DeleteConfirmDialogComponent } from "../delete-confirm.dialog/delete-confirm.dialog.component";
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { WarningDialogComponent } from '../warning-dialog/warning-dialog.component';
+import { animate, style, transition, trigger } from '@angular/animations';
+import * as faceapi from 'face-api.js';
 
 
 
 @Component({
   selector: 'app-voteapp-front',
   templateUrl: './voteapp-front.component.html',
-  styleUrls: ['./voteapp-front.component.scss']
+  styleUrls: ['./voteapp-front.component.scss'],
+  animations: [
+    trigger('slideInOut', [
+      transition(':enter', [
+        style({ transform: 'translateX(-100%)' }),
+        animate('300ms ease-out', style({ transform: 'translateX(0)' }))
+      ]),
+      transition(':leave', [
+        animate('300ms ease-in', style({ transform: 'translateX(-100%)' }))
+      ])
+    ])
+  ]
+
+
 })
-export class VoteappFrontComponent implements OnInit {
+export class VoteappFrontComponent implements OnInit, AfterViewInit {
   idCardForm: FormGroup;
   registrationForm: FormGroup;
   email: string = '';
@@ -48,17 +63,21 @@ export class VoteappFrontComponent implements OnInit {
   isFlipped: boolean = false;
   suggestions: string[] = [];
   showValidateLocalityButton: boolean = false;
+  showSuggestions: boolean = false; 
+  isFaceRecognitionActive: boolean = false;
+  capturedFaceImage: string | null = null;
+  private currentStream: MediaStream | null = null;
+  private videoStream: MediaStream | null = null;
+  faceMatched: boolean = false;
+  faceMatchMessage: string = 'Analizăm imaginea...';
+  videoCaptureInterval: any;
+  faceDetected: boolean = false;
 
+  @ViewChild('locationFieldContainer') locationFieldContainer!: ElementRef;
+  selectedSuggestion: string | null = null;
 
-
-
-
-
-
-
-
-  @ViewChild('video') videoElement!: ElementRef;
-  videoStream!: MediaStream;
+  
+  @ViewChild('videoElement', { static: false }) videoElement!: ElementRef<HTMLVideoElement>;
   @ViewChild('passwordInput') passwordInput!: ElementRef;
 
 
@@ -68,7 +87,8 @@ export class VoteappFrontComponent implements OnInit {
     private fb: FormBuilder,
     private renderer: Renderer2,
     private dialog: MatDialog,
-    private snackBar:MatSnackBar
+    private snackBar:MatSnackBar,
+    private cdr: ChangeDetectorRef
   ) {
 
     this.registrationForm = this.fb.group({
@@ -101,7 +121,12 @@ export class VoteappFrontComponent implements OnInit {
   
 
   
-  ngOnInit() {
+ async ngOnInit() {
+    console.log('Initializare componenta:...');
+
+    //Incarcam modelele Face API inainte de a initia orice proces
+    await this.loadFaceDetectionModels();
+
     this.registrationForm.get('password')?.valueChanges.subscribe(() => {
       this.validatePassword();
       this.validateConfirmPassword();
@@ -120,6 +145,17 @@ export class VoteappFrontComponent implements OnInit {
       this.validatePassword();
     });
   }
+  async loadFaceDetectionModels(): Promise<void> {
+    try {
+      console.log("Încărcăm modelele Face API...");
+      await faceapi.nets.tinyFaceDetector.loadFromUri('/assets/models/face-api.js-models');
+      await faceapi.nets.ssdMobilenetv1.loadFromUri('/assets/models/face-api.js-models');
+      console.log("Modelele Face API au fost încărcate cu succes!");
+    } catch (error) {
+      console.error("Eroare la încărcarea modelelor Face API:", error);
+    }
+  }
+
   async onIdCardChange() {
     if (this.useIDCard) {
       const dialogRef = this.dialog.open(GdprDialogComponent, { width: '400px' });
@@ -322,6 +358,7 @@ export class VoteappFrontComponent implements OnInit {
   
     this.isUploadMethod = true;
     this.isScanMethod = false;
+    this.stopCamera();
   
     this.uploadedImageName = file.name;
     this.showAutoFillButton = true;
@@ -498,34 +535,50 @@ export class VoteappFrontComponent implements OnInit {
   }
   
   
-  
+  private stopCameraIfActive(): void {
+    if (this.videoStream) {
+      this.videoStream.getTracks().forEach(track => track.stop());
+      this.videoStream = null;
+    }
+    if (this.videoElement?.nativeElement?.srcObject) {
+      this.videoElement.nativeElement.srcObject = null;
+    }
+  }
   openCamera() {
     const dialogRef = this.dialog.open(WarningDialogComponent, { width: '400px' });
     dialogRef.afterClosed().subscribe(() => {
-      // Actioneaza dupa inchiderea dialogului
       this.proceedWithCamera();
     });
   }
+  
   private proceedWithCamera(): void {
-
     if (this.uploadedImagePath) {
       this.deleteImageSilently();
-     
     }
+    //Inchide orice camera este deschisa inainte
+    this.stopCamera();
+
     this.isScanMethod = true;
     this.isUploadMethod = false;
-
+    this.isFaceRecognitionActive = false; // Se asigura cu ui-ul camerei pentru face recognition este inchis
+  
+    // Oprește camera dacă este deja deschisă
+    this.stopCameraIfActive();
+  
     this.isCameraOpen = true;
     navigator.mediaDevices.getUserMedia({ video: true }).then((stream) => {
       this.videoStream = stream;
       this.videoElement.nativeElement.srcObject = stream;
       this.videoElement.nativeElement.play();
-
+  
       setTimeout(() => {
-        this.showRedLine = true; // Variabila pentru controlul afisarii liniei rosii 
+        this.showRedLine = true; // Afișează linia roșie
       }, 500);
-
+  
       this.updateGuidance();
+    }).catch((error) => {
+      console.error('Eroare la accesarea camerei:', error);
+      this.showErrorMessage('Nu s-a putut accesa camera.');
     });
   }
 
@@ -549,9 +602,6 @@ export class VoteappFrontComponent implements OnInit {
     this.isCameraExpanded = !this.isCameraExpanded;
   }
   
-  
-
-
   capturePhoto(): void { 
     this.autoFillMessage=''
     const canvas = document.createElement('canvas');
@@ -686,14 +736,9 @@ autoFillDataFromScan(): void {
   }
   
   validateRomanianID(imageData: string): boolean {
-    const idRegex = /ROMANIA|CNP|ROU|SERIA|NR/; // Text specific cărților de identitate
+    const idRegex = /ROMANIA|CNP|ROU|SERIA|NR/; // Text specific cartilor de identitate
     return idRegex.test(imageData);
   }
-
-  
-  
-  
-
  
   deleteImage(): void {
     const dialogRef = this.dialog.open(DeleteConfirmDialogComponent,{
@@ -711,6 +756,7 @@ autoFillDataFromScan(): void {
         this.uploadedImagePath = null;
         this.isLoading = false;
         this.idCardForm.reset();
+        this.stopCamera();
       } else {
         // Utilizatorul a anulat ștergerea
         console.log('Ștergerea imaginii a fost anulată.');
@@ -726,39 +772,84 @@ autoFillDataFromScan(): void {
     this.uploadedImagePath = null;
     this.isLoading = false; // Opreste spinner-ul daca era activ
     this.idCardForm.reset(); // Reseteaza campurile din formular
+    this.stopCamera(); // Inchide camera daca era deschisa
+  }
+  toggleLocalityValidation(): void {
+    if (this.showSuggestions) {
+      // If suggestions are currently visible, hide them
+      this.showSuggestions = false;
+      //this.suggestions = [];
+    } else {
+      // Otherwise, fetch suggestions and display them
+      this.validateLocality();
+    }
+  }
+  ngAfterViewInit(): void {
+    if (this.videoElement) {
+      console.log('Elementul video este disponibil:', this.videoElement.nativeElement);
+    } else {
+      console.error('Elementul video nu este disponibil în ngAfterViewInit');
+    }
+    // Listen to the scroll event
+    this.renderer.listen(window, 'scroll', () => {
+      this.handleScroll();
+      this.cdr.detectChanges();
+    });
+  }
+  handleScroll(): void {
+    if (!this.showSuggestions) return; // Exit early if suggestions are not shown
+
+    const locationFieldPosition = this.locationFieldContainer.nativeElement.getBoundingClientRect();
+    const viewportHeight = window.innerHeight;
+
+    // Check if the location field is scrolled out of view
+    if (locationFieldPosition.bottom < 0 || locationFieldPosition.top > viewportHeight) {
+      this.showSuggestions = false; // Hide the suggestions list
+    }
   }
   
-  validateLocality() {
+  validateLocality(): void {
     const locality = this.idCardForm.get('place_of_birth')?.value || '';
+    if (!locality) {
+      this.showSuggestions = false;
+      return;
+    }
+
     this.userService.validateLocality(locality).subscribe(
       (response: any) => {
         if (response.matches && response.matches.length > 0) {
-          // Map backend response to suggestions for display
-          const suggestions = response.matches.map(
+          this.suggestions = response.matches.map(
             (match: any) =>
               `${match.localitate.nume} (${match.localitate.judet}) (încredere: ${(match.similarity * 100).toFixed(2)}%)`
           );
-          this.autoFillMessage = `Sugestii pentru localitatea specificată:`;
-          this.suggestions = suggestions;
+          this.showSuggestions = true;
         } else {
-          this.autoFillMessage = 'Nicio potrivire exactă găsită pentru localitatea specificată.';
           this.suggestions = [];
+          this.showSuggestions = false;
         }
       },
-      (error: any) => {
-        this.autoFillMessage = 'A apărut o eroare la validarea localității.';
+      () => {
         this.suggestions = [];
+        this.showSuggestions = false;
       }
     );
   }
-  
+
   selectSuggestion(suggestion: string): void {
-    // Extrage doar numele localității din sugestie (prima parte a textului)
+    this.selectedSuggestion = suggestion;
     const localityName = suggestion.split('(')[0].trim();
     this.idCardForm.patchValue({ place_of_birth: localityName });
-    this.suggestions = []; // Resetează sugestiile după selectare
-    this.autoFillMessage = `Ai selectat: ${localityName}`;
+    this.closeSuggestions();
   }
+
+  isSuggestionSelected(suggestion: string): boolean {
+    return this.selectedSuggestion === suggestion;
+  }
+
+  closeSuggestions(): void {
+    this.showSuggestions = false;
+  }
+
 
     
   
@@ -787,4 +878,278 @@ autoFillDataFromScan(): void {
       window.location.href = 'http://localhost:8000/accounts/facebook/login/?process=signup';
     }, 1000);
   }
+
+  
+  async sendForFaceRecognition(liveImageBlob: Blob): Promise<void> {
+    if (!this.uploadedImagePath) {
+      this.showErrorMessage('Nu există o imagine a buletinului încărcată.');
+      return;
+    }
+  
+    this.isLoading = true;
+    const formData = new FormData();
+  
+    try {
+      // Așteptăm conversia URL-ului într-un fișier valid
+      const idCardFile = await this.fileFromUploadedPath(this.uploadedImagePath);
+  
+      formData.append('id_card_image', idCardFile);
+      formData.append('live_image', liveImageBlob, 'live_capture.jpg');
+  
+      this.userService.recognizeFace(formData).subscribe({
+        next: (response) => {
+          this.isLoading = false;
+          if (response.match) {
+            this.showSuccessMessage('Recunoaștere facială reușită!');
+            this.isFaceRecognitionActive = false;
+            this.registerWithIDCard();
+          } else {
+            this.showErrorMessage('Fața nu corespunde cu buletinul.');
+          }
+        },
+        error: (error) => {
+          this.isLoading = false;
+          this.showErrorMessage(error.error?.message || 'Eroare la recunoașterea feței.');
+        }
+      });
+    } catch (error) {
+      console.error("Eroare la conversia imaginii pentru FormData:", error);
+      this.showErrorMessage('Eroare la procesarea imaginii.');
+      this.isLoading = false;
+    }
+  }
+  
+  
+  
+  
+  fileFromUploadedPath(imagePath: string): Promise<File> {
+    const cleanPath = imagePath.split('?')[0];  // Elimină orice parametri extra
+  
+    return fetch(cleanPath)
+      .then(res => {
+        if (!res.ok) throw new Error("Eroare la descărcarea imaginii");
+        return res.blob();
+      })
+      .then(blob => {
+        const fileName = cleanPath.split('/').pop() || 'id_card.jpg';
+        return new File([blob], fileName, { type: blob.type });
+      })
+      .catch(error => {
+        console.error("Eroare la conversia imaginii:", error);
+        throw error;
+      });
+  }
+    
+  dataURItoBlobId(dataURI: string): Blob {
+    const byteString = atob(dataURI.split(',')[1]);
+    const mimeString = dataURI.split(',')[0].split(':')[1].split(';')[0];
+    const ab = new ArrayBuffer(byteString.length);
+    const ia = new Uint8Array(ab);
+    for (let i = 0; i < byteString.length; i++) {
+      ia[i] = byteString.charCodeAt(i);
+    }
+    return new Blob([ab], { type: mimeString });
+  }
+  
+  startFaceRecognition(): void {
+    if (!this.uploadedImagePath) {
+      this.showErrorMessage("Încarcă mai întâi imaginea buletinului.");
+      return;
+    }
+
+    this.closeCamera(); // inchide camera pentru scanaer ID
+  
+    // Oprește camera dacă este deja deschisă
+    this.stopCameraIfActive();  
+    this.isFaceRecognitionActive = true;
+    this.isCameraOpen = false; //Se asigura cu Ui-ul camerei de scanare e inchis
+    this.cdr.detectChanges();
+  
+    setTimeout(() => {
+      this.startCamera().then(() => {
+        this.startSendingFramesToBackend();  // Trimite cadre video către backend
+      });
+    }, 0);
+  }
+  startSendingFramesToBackend(): void {
+    if (this.videoCaptureInterval) {
+      clearInterval(this.videoCaptureInterval);
+    }
+  
+    this.videoCaptureInterval = setInterval(() => {
+      if (this.faceMatched) {
+        clearInterval(this.videoCaptureInterval);
+        return;
+      }
+  
+      const canvas = document.createElement('canvas');
+      const video = this.videoElement.nativeElement;
+  
+      if (!video || !video.videoWidth || !video.videoHeight) {
+        console.error("Eroare la obținerea cadrului video");
+        return;
+      }
+  
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext('2d');
+  
+      if (ctx) {
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        canvas.toBlob((blob) => {
+          if (blob) {
+            this.sendFrameForRecognition(blob);
+          }
+        }, 'image/jpeg', 0.9);
+      }
+    }, 2000); // Trimitere cadru la fiecare 2 secunde
+  }
+  
+
+  async sendFrameForRecognition(liveImageBlob: Blob): Promise<void> {
+    if (!this.uploadedImagePath) {
+      console.error("Nu există o imagine încărcată pentru buletin.");
+      this.faceMatchMessage = "Încărcați mai întâi buletinul!";
+      return;
+    }
+  
+    try {
+      const formData = new FormData();
+  
+      // Așteptăm conversia imaginii pentru a obține un `File`
+      const idCardFile = await this.fileFromUploadedPath(this.uploadedImagePath);
+      
+      // Adăugăm fișierele în FormData
+      formData.append('id_card_image', idCardFile);
+      formData.append('live_image', liveImageBlob, 'live_capture.jpg');
+  
+      // Trimiterea către backend
+      this.userService.recognizeFace(formData).subscribe({
+        next: (response) => {
+          if (response.match) {
+            this.faceMatched = true;
+            this.faceMatchMessage = "Identificare reușită!";
+          } else {
+            this.faceMatched = false;
+            this.faceMatchMessage = "Fețele nu corespund!";
+          }
+        },
+        error: () => {
+          this.faceMatched = false;
+          this.faceMatchMessage = "Eroare la recunoaștere!";
+        }
+      });
+    } catch (error) {
+      console.error("Eroare la conversia imaginii:", error);
+    }
+  }
+  
+  
+  
+  
+  faceBox = { top: 0, left: 0, width: 0, height: 0 };
+  async startCamera(): Promise<void> {
+    if (!navigator.mediaDevices?.getUserMedia) {
+      console.error("Camera nu este suportată pe acest dispozitiv.");
+      return;
+    }
+
+    try {
+      this.videoStream = await navigator.mediaDevices.getUserMedia({ video: true });
+      if (this.videoElement?.nativeElement) {
+        this.videoElement.nativeElement.srcObject = this.videoStream;
+      }
+      await this.loadFaceDetectionModel();
+      this.detectFaces();
+    } catch (error) {
+      console.error("Eroare la pornirea camerei:", error);
+    }
+  }
+
+  async loadFaceDetectionModel(): Promise<void> {
+    await faceapi.nets.tinyFaceDetector.loadFromUri('/assets/models'); // Încarcă modelul
+  }
+
+  detectFaces(): void {
+    if (this.videoCaptureInterval) {
+      clearInterval(this.videoCaptureInterval);
+    }
+
+    this.videoCaptureInterval = setInterval(async () => {
+      if (!this.videoElement?.nativeElement) return;
+
+      const detections = await faceapi.detectSingleFace(
+        this.videoElement.nativeElement, 
+        new faceapi.TinyFaceDetectorOptions()
+      );
+
+      if (detections) {
+        this.faceDetected = true;
+        const box = detections.box;
+
+        this.faceBox = {
+          top: box.top,
+          left: box.left,
+          width: box.width,
+          height: box.height
+        };
+      } else {
+        this.faceDetected = false;
+      }
+    }, 300);
+  }
+  
+  
+  stopCamera(): void {
+    clearInterval(this.videoCaptureInterval); // Oprește trimiterea cadrelor
+    this.videoCaptureInterval = null;
+  
+    if (this.videoStream) {
+      this.videoStream.getTracks().forEach(track => track.stop());
+      this.videoStream = null;
+    }
+  
+    if (this.videoElement?.nativeElement) {
+      this.videoElement.nativeElement.srcObject = null;
+    }
+  
+    this.isFaceRecognitionActive = false;
+  }
+  
+
+  
+  toggleExpandCameraId(): void {
+    this.isCameraExpanded = !this.isCameraExpanded;
+  }
+  
+  captureLiveFace(): void {
+    if (!this.videoElement?.nativeElement?.srcObject) {
+      this.showErrorMessage('Camera nu este pornită.');
+      return;
+    }
+
+    const canvas = document.createElement('canvas');
+    const video = this.videoElement.nativeElement;
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+
+    const ctx = canvas.getContext('2d');
+    if (ctx && video) {
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      this.capturedFaceImage = canvas.toDataURL('image/jpeg', 0.9);
+
+      fetch(this.capturedFaceImage)
+        .then(res => res.blob())
+        .then(blob => this.sendForFaceRecognition(blob))
+        .catch(error => {
+          console.error('Eroare la procesarea imaginii:', error);
+          this.showErrorMessage('Eroare la procesarea imaginii capturate.');
+        });
+    }
+  }
+  
+  ngOnDestroy(): void {
+    this.stopCamera();
+  }
+  
 } 

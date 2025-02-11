@@ -100,8 +100,15 @@ autoFillFromImage(cropped_file_path: string): Observable<any> {
     );
 }
 
+
 validateLocality(locality: string): Observable<any> {
   return this.http.post(`${this.apiUrl}validate-locality/`, { locality });
+}
+
+recognizeFace(formData: FormData): Observable<any> {
+  return this.http.post(`${this.apiUrl}face-recognition/`, formData).pipe(
+    catchError(this.handleError)
+  );
 }
 
   

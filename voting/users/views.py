@@ -35,19 +35,84 @@ from .utils import ImageManipulator
 from .utils import extract_text, load_valid_keywords
 from .utils import LocalityMatcher
 import logging
+from .utils import ImageScanner
+from .utils import compare_faces
 
 logger = logging.getLogger(__name__)
 
-# Model AI pentru detecția limbajului nepotrivit
+
+class FaceRecognitionView(APIView):
+    permission_classes = [AllowAny]
+    def post(self, request):
+        try:
+            id_card_image = request.FILES.get('id_card_image')
+            live_image = request.FILES.get('live_image')
+
+            if not id_card_image or not live_image:
+                return Response({'error': 'Lipsesc fișierele necesare'}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Creare director stocare temporară
+            upload_dir = os.path.join(settings.MEDIA_ROOT, 'faces')
+            os.makedirs(upload_dir, exist_ok=True)
+
+            def clean_filename(filename):
+                return re.sub(r'\?.*$', '', filename)
+
+            id_card_path = os.path.join(upload_dir, f'id_card_{clean_filename(id_card_image.name)}')
+            live_image_path = os.path.join(upload_dir, f'live_{clean_filename(live_image.name)}')
+
+            # Salvăm imaginile
+            for img_file, path in [(id_card_image, id_card_path), (live_image, live_image_path)]:
+                try:
+                    with open(path, 'wb') as f:
+                        for chunk in img_file.chunks():
+                            f.write(chunk)
+
+                    img = Image.open(path)
+                    img = img.convert("RGB")
+                    img.save(path, 'JPEG')
+
+                    if os.path.getsize(path) == 0:
+                        os.remove(path)
+                        return Response({'error': 'Fișier corupt'}, status=status.HTTP_400_BAD_REQUEST)
+                except Exception as e:
+                    return Response({'error': 'Eroare la procesarea imaginii'}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Comparăm fețele
+            try:
+                match, message = compare_faces(id_card_path, live_image_path, tolerance=0.6)  # Ajustare toleranta
+            except Exception as e:
+                logger.error(f"Eroare la compararea fețelor: {str(e)}")
+                return Response({'error': 'Eroare la compararea fețelor'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+            # Ștergem fișierele temporare
+            for path in [id_card_path, live_image_path]:
+                try:
+                    if os.path.exists(path):
+                        os.remove(path)
+                except Exception as e:
+                    logger.error(f"Eroare la ștergerea fișierului temporar {path}: {str(e)}")
+
+            return Response({'message': message, 'match': match}, status=status.HTTP_200_OK if match else status.HTTP_400_BAD_REQUEST)
+
+        except Exception as e:
+            logger.error(f"Eroare neașteptată: {str(e)}")
+            return Response({'error': 'Eroare internă server'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+
+# Model AI pentru detectia limbajului nepotrivit
 toxic_classifier = pipeline("text-classification", model="unitary/toxic-bert")
+
+
 
 def contains_profanity_with_ai(message):
     """
     Detectează limbaj nepotrivit în mesaj folosind AI.
     """
-    sentences = re.split(r'[.!?]', message)  # Împărțim mesajul în propoziții
+    sentences = re.split(r'[.!?]', message)  # impartim mesajul în propozitii
     for sentence in sentences:
-        if sentence.strip():  # Ignorăm propozițiile goale
+        if sentence.strip():  # Ignoram propozitiile goale
             result = toxic_classifier(sentence)
             for label in result:
                 if label["label"] == "LABEL_1" and label["score"] > 0.5:
@@ -80,7 +145,7 @@ def send_feedback(request):
     if contains_profanity_with_ai(feedback_data['message']):
         return Response({'error': 'Mesajul conține limbaj nepotrivit și nu poate fi trimis.'}, status=400)
 
-    # Alte validări și trimiterea mesajului
+    # Alte validari si trimiterea mesajului
     feedback_template = render_to_string('feedback_email.html', feedback_data)
     email = EmailMessage(
         subject='Feedback de la utilizator',
@@ -95,11 +160,11 @@ def send_feedback(request):
     return Response({'message': 'Feedback-ul a fost trimis cu succes!'}, status=200)
 
 
-# Funcție pentru validarea numelui
+# Functie pentru validarea numelui
 def validate_name(name):
     return name.isalpha() and len(name) > 1
 
-# Funcție pentru validarea telefonului
+# Functie pentru validarea telefonului
 def validate_phone(phone, prefix):
     return phone.startswith(prefix) and phone.replace(prefix, '').isdigit()
 
@@ -113,23 +178,23 @@ def send_feedback(request):
         'message': request.data.get('message', '').strip()
     }
 
-    # Validare: numele trebuie să fie valid
+    # Validare: numele trebuie sa fie valid
     if not validate_name(feedback_data['name']):
-        return Response({'error': 'Nume invalid. Verificați introducerea.'}, status=400)
+        return Response({'error': 'Nume invalid. Verificati introducerea.'}, status=400)
 
-    # Validare: numărul de telefon trebuie să fie valid
+    # Validare: numarul de telefon trebuie sa fie valid
     if not validate_phone(feedback_data['phone'], "RO"):
-        return Response({'error': 'Număr de telefon invalid. Verificați prefixul și numărul.'}, status=400)
+        return Response({'error': 'Numar de telefon invalid. Verificati prefixul si numărul.'}, status=400)
 
-    # Validare: mesajul să nu conțină injurii
+    # Validare: mesajul sa nu contina injurii
     if contains_profanity_with_ai(feedback_data['message']):
-        return Response({'error': 'Mesajul conține limbaj nepotrivit și nu a fost trimis.'}, status=400)
+        return Response({'error': 'Mesajul contine limbaj nepotrivit si nu a fost trimis.'}, status=400)
 
-    # Validare: mesajul trebuie să aibă cel puțin 20 de cuvinte
+    # Validare: mesajul trebuie sa aiba cel putin 20 de cuvinte
     if len(feedback_data['message'].split()) < 20:
-        return Response({'error': 'Mesajul trebuie să conțină cel puțin 20 de cuvinte.'}, status=400)
+        return Response({'error': 'Mesajul trebuie sa contina cel putin 20 de cuvinte.'}, status=400)
 
-    # Trimiterea feedback-ului dacă toate condițiile sunt satisfăcute
+    # Trimiterea feedback-ului daca toate conditiile sunt satisfăcute
     feedback_template = render_to_string('feedback_email.html', feedback_data)
     email = EmailMessage(
         subject='Feedback de la utilizator',
@@ -192,11 +257,11 @@ class UploadIdView(APIView):
         if cropped_image is None:
             return Response({'error': 'Nu s-a putut detecta cartea de identitate'}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Salvăm imaginea decupată
+        # Salvam imaginea decupata
         cropped_file_path = file_path.replace('.jpg', '_cropped.jpg')
         cv2.imwrite(cropped_file_path, cropped_image)
 
-        # Aplicăm OCR pentru a extrage textul
+        # Aplicam OCR pentru a extrage textul
         extracted_text = extract_text(cropped_file_path)
 
         # Dacă textul nu este detectat, încercăm cu imaginea oglindită
@@ -205,7 +270,7 @@ class UploadIdView(APIView):
 
         if not is_valid_id:
             # Oglindim imaginea și rulăm OCR din nou
-            flipped_image = cv2.flip(cropped_image, 1)  # 1 pentru oglindire orizontală
+            flipped_image = cv2.flip(cropped_image, 1)  # 1 pentru oglindire orizontala
             flipped_file_path = cropped_file_path.replace('.jpg', '_flipped.jpg')
             cv2.imwrite(flipped_file_path, flipped_image)
             extracted_text_flipped = extract_text(flipped_file_path)
@@ -365,9 +430,10 @@ class ScanIdView(APIView):
     permission_classes = [AllowAny]
 
     def post(self, request):
+        # Verifică dacă imaginea a fost trimisă
         image = request.FILES.get('camera_image')
         if not image:
-            return Response({'error': 'Niciun fișier nu a fost încărcat'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': 'Niciun fișier nu a fost încărcat.'}, status=status.HTTP_400_BAD_REQUEST)
 
         # Salvează imaginea originală
         upload_dir = os.path.join(settings.MEDIA_ROOT, 'camera')
@@ -386,14 +452,23 @@ class ScanIdView(APIView):
             return Response({'error': 'Nu s-a putut detecta cartea de identitate.'}, status=status.HTTP_400_BAD_REQUEST)
 
         # Salvează imaginea decupată
-        cropped_file_path = file_path.replace('.jpg', '_cropped.jpg')  # Sau .png
+        cropped_file_path = file_path.replace('.jpg', '_cropped.jpg')  # Schimbă extensia dacă imaginea nu este .jpg
         cv2.imwrite(cropped_file_path, cropped_image)
 
+        # Aplică transformarea într-o versiune "scanată"
+        enhanced_file_path = cropped_file_path.replace('_cropped.jpg', '_enhanced.jpg')  # Schimbă extensia dacă este .png
+        try:
+            ImageScanner.save_enhanced_image(cropped_file_path, enhanced_file_path)
+        except Exception as e:
+            return Response({'error': f'Eroare la procesarea imaginii: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        # Returnează răspunsul cu calea imaginii procesate
         return Response({
-        'message': 'Imaginea a fost încărcată și procesată cu succes.',
-        'cropped_image_path': os.path.join(settings.MEDIA_URL, 'camera', os.path.basename(cropped_file_path))
+            'message': 'Imaginea a fost încărcată și procesată cu succes.',
+            'cropped_image_path': os.path.join(settings.MEDIA_URL, 'camera', os.path.basename(cropped_file_path)),
+            'enhanced_image_path': os.path.join(settings.MEDIA_URL, 'camera', os.path.basename(enhanced_file_path))
         }, status=status.HTTP_200_OK)
-    
+
 class AutofillScanDataView(APIView):
     permission_classes = [AllowAny]
 

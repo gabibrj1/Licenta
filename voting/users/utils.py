@@ -1,5 +1,5 @@
 import pytesseract
-from PIL import Image
+from PIL import Image, ImageEnhance
 import re
 import cv2
 import os
@@ -18,41 +18,258 @@ from typing import List, Dict
 from fuzzywuzzy import process
 from rapidfuzz import fuzz
 from unidecode import unidecode
+from scipy import ndimage
+import face_recognition
+import logging
+logger = logging.getLogger(__name__)
+
+def load_and_encode_face(image_path):
+    """Încarcă o imagine și returnează codificarea facială"""
+    try:
+        image = face_recognition.load_image_file(image_path)
+        face_locations = face_recognition.face_locations(image)  # Detectăm fețele
+
+        if len(face_locations) == 0:
+            logger.warning(f"Nu s-a detectat nicio față în imaginea {image_path}")
+            return None
+
+        face_encodings = face_recognition.face_encodings(image, known_face_locations=face_locations)
+
+        if len(face_encodings) == 0:
+            logger.warning(f"Codificarea feței a eșuat pentru imaginea {image_path}")
+            return None
+
+        return face_encodings[0]  # Returnăm doar prima față detectată
+    except Exception as e:
+        logger.error(f"Eroare la încărcarea/codificarea imaginii {image_path}: {str(e)}")
+        return None
+
+
+def compare_faces(id_card_image_path, live_image_path, tolerance=0.7):  
+    try:
+        id_card_encoding = load_and_encode_face(id_card_image_path)
+        live_encoding = load_and_encode_face(live_image_path)
+
+        if id_card_encoding is None:
+            return False, "Nu s-a detectat fața în imaginea buletinului"
+        if live_encoding is None:
+            return False, "Nu s-a detectat fața în imaginea capturată"
+
+        face_distance = np.linalg.norm(id_card_encoding - live_encoding)
+        match = face_distance < tolerance
+
+        message = "Identificare reușită!" if match else f"Fețele nu corespund (similaritate: {1 - face_distance:.2f})"
+
+        return match, message
+    except Exception as e:
+        logger.error(f"Eroare la compararea fețelor: {str(e)}")
+        return False, f"Eroare la compararea fețelor: {str(e)}"
+
+def is_valid_image(image_path):
+    """Verifică dacă un fișier este o imagine validă."""
+    try:
+        img = Image.open(image_path)
+        img.verify()  # Verifică dacă fișierul este o imagine validă
+        return True
+    except Exception:
+        return False
 
 
 
+class ImageScanner:
+    @staticmethod
+    def enhance_image(image_path):
+        """
+Transforma o imagine intr-o versiune scanata de inalta calitate, 
+pastrand culorile si mentinand calitatea documentului similara unui scanner profesional
+        """
+        # Read the image
+        image = cv2.imread(image_path)
+        if image is None:
+            raise ValueError("Imaginea nu poate fi incarcata!")
+
+        # Step 1: Initial preprocessing
+        original = image.copy()
+        
+        # Step 2: Perspective correction
+        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        blurred = cv2.GaussianBlur(gray, (5, 5), 0)
+        
+        edges = cv2.Canny(blurred, 75, 200)
+        edges = cv2.dilate(edges, None, iterations=2)
+
+        contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        if contours:
+            max_contour = max(contours, key=cv2.contourArea)
+            peri = cv2.arcLength(max_contour, True)
+            approx = cv2.approxPolyDP(max_contour, 0.02 * peri, True)
+
+            if len(approx) == 4:
+                pts = np.float32(approx.reshape(4, 2))
+                rect = np.zeros((4, 2), dtype="float32")
+
+                s = pts.sum(axis=1)
+                rect[0] = pts[np.argmin(s)]
+                rect[2] = pts[np.argmax(s)]
+                
+                diff = np.diff(pts, axis=1)
+                rect[1] = pts[np.argmin(diff)]
+                rect[3] = pts[np.argmax(diff)]
+
+                width = int(max(
+                    np.linalg.norm(rect[1] - rect[0]),
+                    np.linalg.norm(rect[2] - rect[3])
+                ))
+                height = int(max(
+                    np.linalg.norm(rect[3] - rect[0]),
+                    np.linalg.norm(rect[2] - rect[1])
+                ))
+
+                dst = np.array([
+                    [0, 0],
+                    [width - 1, 0],
+                    [width - 1, height - 1],
+                    [0, height - 1]
+                ], dtype="float32")
+
+                matrix = cv2.getPerspectiveTransform(rect, dst)
+                warped = cv2.warpPerspective(original, matrix, (width, height))
+            else:
+                warped = original
+        else:
+            warped = original
+
+        # Pasul 3: Pastrarea si imbunatatirea culorilor
+        # Converteste in spatiul de culoare LAB pentru o procesare mai buna a culorilor
+
+        lab = cv2.cvtColor(warped, cv2.COLOR_BGR2LAB)
+        l, a, b = cv2.split(lab)
+
+        # Imbunatateste canalul de luminozitate cu CLAHE - Contrast Limited Adaptive Histogram Equalization
+        clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+        cl = clahe.apply(l)
+
+        # Combina canalele imbunatatite
+        enhanced_lab = cv2.merge((cl, a, b))
+        enhanced = cv2.cvtColor(enhanced_lab, cv2.COLOR_LAB2BGR)
+
+        # Pasul 4: Ascutire si ajustare a contrastului
+        # ascutire delicata
+
+        kernel = np.array([[-0.5,-0.5,-0.5], 
+                         [-0.5, 5.0,-0.5],
+                         [-0.5,-0.5,-0.5]])
+        sharpened = cv2.filter2D(enhanced, -1, kernel)
+
+        # Ajustarea contrastului si luminozitatii
+        alpha = 1.1  # controlul contrastului (1.0-1.3)
+        beta = 5    #  contrulul luminozitatii (0-10)
+        final = cv2.convertScaleAbs(sharpened, alpha=alpha, beta=beta)
+
+        # Pasul 4: Reducerea zgomotului
+        # # Filtrare foarte usoara a zgomotului pentru a pastra detaliile
+        final = cv2.fastNlMeansDenoisingColored(final, None, 5, 5, 7, 21)
+
+        return final
+
+    @staticmethod
+    def save_enhanced_image(image_path, output_path):
+        """
+        Salveaza imaginea imbunatatita cu setari de inalta calitate
+        """
+        enhanced_image = ImageScanner.enhance_image(image_path)
+        # Salveaza imaginea imbunatatita cu setari de calitate optimizate pentru OCR
+        cv2.imwrite(output_path, enhanced_image, [
+            cv2.IMWRITE_JPEG_QUALITY, 95,
+            cv2.IMWRITE_PNG_COMPRESSION, 1
+        ])
+
+    @staticmethod
+    def extract_text(image_path):
+        """
+        Extrage text din imaginea imbunatatita folosind OCR
+        """
+        enhanced_image = ImageScanner.enhance_image(image_path)
+        
+        # Converteste imaginea OpenCV in imagine PIL pentru Tesseract
+        pil_image = Image.fromarray(cv2.cvtColor(enhanced_image, cv2.COLOR_BGR2RGB))
+        
+        # Configurare parametri Tesseract pentru o acuratete mai buna
+        custom_config = r'--oem 3 --psm 3'
+        
+        # Executa OCR
+        text = pytesseract.image_to_string(pil_image, config=custom_config)
+        
+        return text.strip()
+    @staticmethod
+    def save_enhanced_image(image_path, output_path):
+        """
+        Salveaza imaginea imbunatatita cu setari de inalta calitate
+        """
+        enhanced_image = ImageScanner.enhance_image(image_path)
+        cv2.imwrite(output_path, enhanced_image, [
+            cv2.IMWRITE_JPEG_QUALITY, 100,
+            cv2.IMWRITE_PNG_COMPRESSION, 0
+        ])
+
+    @staticmethod
+    def extract_text(image_path):
+        """
+        Extrage text din imaginea imbunatatita folosind OCR
+        """
+        # Incarca imaginea
+        enhanced_image = ImageScanner.enhance_image(image_path)
+        
+        # Converteste imaginea OpenCV in imagine PIL pentru Tesseract
+        pil_image = Image.fromarray(enhanced_image)
+        
+        # Configurare parametri Tesseract pentru o acuratete mai buna
+        custom_config = r'--oem 3 --psm 3'
+        
+        # Executa OCR
+        text = pytesseract.image_to_string(pil_image, config=custom_config)
+        
+        return text.strip()
+
+    @staticmethod
+    def save_enhanced_image(image_path, output_path):
+        enhanced_image = ImageScanner.enhance_image(image_path)
+        cv2.imwrite(output_path, enhanced_image, [cv2.IMWRITE_JPEG_QUALITY, 95])
 
 
-# Configurare Tesseract
+
 pytesseract.pytesseract.cmd = config('TESSERACT_CMD_PATH')
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 MODEL_PATH = os.path.join(BASE_DIR, 'media', 'models', 'best.pt')
 
+
+
+
 class LocalityMatcher:
     def __init__(self, csv_path: str):
         """
-        Constructor îmbunătățit pentru încărcarea și procesarea localităților.
+        Constructor imbunatatit pentru incarcarea si procesarea localitatilor.
         """
         self.localitati_df = pd.read_csv(csv_path)
-        # Umplem valorile NaN cu un șir gol pentru a evita erori
+        # Umplem valorile NaN cu un sir gol pentru a evita erori
         self.localitati_df.fillna('', inplace=True)
 
-        # Preprocesăm toate numele de localități
+        # Preprocesam toate numele de localitati
         self.localitati_df['search_key'] = self.localitati_df['nume'].apply(self.preprocess_locality)
-        # Creăm o copie fără diacritice pentru căutare
+        # Construim o copie fara diacritice pentru cautare
         self.localitati_df['search_key_normalized'] = self.localitati_df['search_key'].apply(
             lambda x: unidecode(x.lower())
         )
 
-        # Tratăm special cazul București pentru a preveni erorile
+        # Tratam special cazul Bucuresti pentru a preveni erorile
         self.localitati_df.loc[
             self.localitati_df['nume'].str.contains(r'Bucure', na=False, case=False), 'search_key_normalized'
         ] = 'bucuresti'
 
-        # Inițializăm vectorizatorul cu parametri optimizați
+        # Initializăm vectorul cu parametri optimizati
         self.vectorizer = TfidfVectorizer(
             analyzer='char_wb',  # Folosim n-grame de caractere
-            ngram_range=(2, 4),  # Considerăm secvențe de 2-4 caractere
+            ngram_range=(2, 4),  # Consideram secvente de 2-4 caractere
             min_df=1,
             max_df=0.95
         )
@@ -60,22 +277,22 @@ class LocalityMatcher:
 
     def preprocess_locality(self, text: str) -> str:
         """
-        Preprocesare îmbunătățită pentru numele localităților.
+        Preprocesare îmbunătatita pentru numele localitatilor.
         """
         if not isinstance(text, str):
             return ''
         
-        # Convertim la lowercase și eliminăm spațiile în plus
+        # Convertim la lowercase si eliminam spatiile in plus
         text = text.lower().strip()
 
-        # Eliminăm prefixele comune și codurile de județ
+        # Eliminam prefixele comune si codurile de judet
         prefixes_pattern = r'\b(jud|mun|oras|or|com)\b\.?\s*'
         county_codes_pattern = r'\b[a-z]{1,2}\b'
 
         text = re.sub(prefixes_pattern, '', text, flags=re.IGNORECASE)
         text = re.sub(county_codes_pattern, '', text, flags=re.IGNORECASE)
 
-        # Curățăm caracterele speciale și spațiile multiple
+        # Curatam caracterele speciale si spatiile multiple
         text = re.sub(r'[^\w\s-]', '', text)
         text = re.sub(r'\s+', ' ', text)
 
@@ -83,13 +300,13 @@ class LocalityMatcher:
 
     def find_best_matches(self, input_text: str, top_n: int = 5, min_similarity: float = 0.1) -> List[Dict]:
         """
-        Găsirea potrivirilor îmbunătățită cu praguri de similaritate și procesare mai robustă.
+        Gasirea potrivirilor imbunatatita cu praguri de similaritate si procesare mai robusta.
         """
-        # Preprocesăm textul de intrare
+        # Preprocesam textul de intrare
         cleaned_input = self.preprocess_locality(input_text)
         normalized_input = unidecode(cleaned_input.lower())
 
-        # Verificăm mai întâi potriviri exacte (ignorând diacritice)
+        # Verificam mai intai potriviri exacte (ignorand diacritice)
         exact_matches = self.localitati_df[
             self.localitati_df['search_key_normalized'] == normalized_input
         ]
@@ -104,17 +321,17 @@ class LocalityMatcher:
                 for _, row in exact_matches.iterrows()
             ]
 
-        # Căutăm potriviri parțiale
+        # Cautam potriviri partiale
         input_vector = self.vectorizer.transform([normalized_input])
         similarities = cosine_similarity(input_vector, self.tfidf_matrix).flatten()
 
-        # Filtrăm rezultatele sub pragul de similaritate
+        # Filtram rezultatele sub pragul de similaritate
         valid_indices = np.where(similarities >= min_similarity)[0]
 
         if len(valid_indices) == 0:
             return []
 
-        # Sortăm rezultatele după similaritate
+        # Sortam rezultatele dupa similaritate
         best_indices = valid_indices[np.argsort(similarities[valid_indices])[-top_n:][::-1]]
 
         results = []
@@ -122,7 +339,7 @@ class LocalityMatcher:
             locality_data = self.localitati_df.iloc[idx].to_dict()
             similarity_score = float(similarities[idx])
 
-            # Adăugăm informații despre tipul de potrivire
+            # Adaugam informatii despre tipul de potrivire
             match_type = 'high' if similarity_score > 0.7 else 'partial'
 
             results.append({
@@ -134,12 +351,12 @@ class LocalityMatcher:
         return results
 def load_localitati():
     """
-    Încărcarea localităților cu tratarea erorilor îmbunătățită.
+    Incarcarea localitaiilor cu tratarea erorilor imbunatatita.
     """
     try:
         localitati = pd.read_csv(settings.LOCALITATI_CSV_PATH)
         if localitati.empty:
-            raise ValueError("Fișierul CSV cu localități este gol")
+            raise ValueError("Fisierul CSV cu localitati este gol")
         
         required_columns = ['nume', 'judet']
         missing_columns = [col for col in required_columns if col not in localitati.columns]
@@ -148,18 +365,18 @@ def load_localitati():
             
         return localitati
     except FileNotFoundError:
-        raise FileNotFoundError(f"Fișierul CSV cu localități nu a fost găsit la calea: {settings.LOCALITATI_CSV_PATH}")
+        raise FileNotFoundError(f"Fisierul CSV cu localitati nu a fost gasit la calea: {settings.LOCALITATI_CSV_PATH}")
     except Exception as e:
-        raise Exception(f"Eroare la încărcarea localităților: {str(e)}")
+        raise Exception(f"Eroare la incarcarea localitatilor: {str(e)}")
 
 class ImageManipulator:
     @staticmethod
     def rotate_image(image_path, angle):
         image = cv2.imread(image_path)
         if image is None:
-            raise ValueError("Nu s-a putut încărca imaginea")
+            raise ValueError("Nu s-a putut incarca imaginea")
             
-        # Normalizează unghiul la 0-360
+        # Normalizeaza unghiul la 0-360
         angle = angle % 360
         
         if angle == 90:
@@ -174,7 +391,7 @@ class ImageManipulator:
     def flip_image(image_path):
         image = cv2.imread(image_path)
         if image is None:
-            raise ValueError("Nu s-a putut încărca imaginea")
+            raise ValueError("Nu s-a putut incarca imaginea")
         return cv2.flip(image, 1)  # 1 pentru oglindire orizontala
         
 
@@ -183,7 +400,7 @@ class IDCardDetector:
         self.model_path = os.path.join('media', 'models', 'id-card-detector', 'frozen_inference_graph.pb')
         self.label_map_path = os.path.join('media', 'models', 'id-card-detector', 'label_map.pbtxt')
 
-        # Load the TensorFlow model
+        # Incarcam modelul de detectie a cartilor de identitate TensorFlow
         self.detection_graph = tf.Graph()
         with self.detection_graph.as_default():
             od_graph_def = tf.compat.v1.GraphDef()
@@ -195,35 +412,35 @@ class IDCardDetector:
 
     def detect_id_card(self, image_path):
         """
-        Detectează și decupează cartea de identitate folosind TensorFlow.
+        Detecteaza si decupeaza cartea de identitate folosind TensorFlow.
         """
         image = cv2.imread(image_path)
         image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         image_np = np.array(image_rgb)
 
-        # Prepare input and output tensors
+        # Definim tensorii de intrare si iesire pentru modelul de detectie
         image_tensor = self.detection_graph.get_tensor_by_name('image_tensor:0')
         boxes = self.detection_graph.get_tensor_by_name('detection_boxes:0')
         scores = self.detection_graph.get_tensor_by_name('detection_scores:0')
         classes = self.detection_graph.get_tensor_by_name('detection_classes:0')
         num_detections = self.detection_graph.get_tensor_by_name('num_detections:0')
 
-        # Run inference
+        # Rulam modelul pentru a detecta cartea de identitate
         (boxes, scores, classes, num_detections) = self.session.run(
             [boxes, scores, classes, num_detections],
             feed_dict={image_tensor: np.expand_dims(image_np, axis=0)}
         )
 
-        # Filter boxes with high confidence
+        # Decupam imaginea cartii de identitate
         height, width, _ = image.shape
         for i in range(int(num_detections[0])):
-            if scores[0][i] > 0.6:  # Threshold de încredere
+            if scores[0][i] > 0.6:  # Threshold de incredere
                 box = boxes[0][i]
                 y1, x1, y2, x2 = int(box[0] * height), int(box[1] * width), int(box[2] * height), int(box[3] * width)
                 cropped_image = image[y1:y2, x1:x2]
                 return cropped_image
 
-        return None  # Returnăm None dacă nu s-a detectat niciun ID
+        return None  # Returnam None daca nu s-a detectat niciun ID
     
 def extract_text(image_path):
     """
@@ -239,7 +456,7 @@ def extract_text(image_path):
     
 def load_valid_keywords(file_path):
     """
-    Încarcă lista de cuvinte cheie valide dintr-un fișier CSV.
+    Incarca lista de cuvinte cheie valide dintr-un fisier CSV.
     """
     keywords = []
     try:
@@ -273,7 +490,7 @@ class ProcessorCNP:
 
     def preprocesare_imagine_cnp(self, regiune: np.ndarray) -> Optional[np.ndarray]:
         """
-        Preprocesează regiunea imaginii pentru extragerea optimă a CNP-ului
+        Preproceseaza regiunea imaginii pentru extragerea optima a CNP-ului
         """
         if regiune is None:
             return None
@@ -281,14 +498,14 @@ class ProcessorCNP:
         # Conversie la grayscale
         gri = cv2.cvtColor(regiune, cv2.COLOR_BGR2GRAY)
         
-        # Îmbunătățire contrast
+        # Imbunatatire contrast
         clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(8, 8))
         imbunatatit = clahe.apply(gri)
         
         # Reducere zgomot
         denoised = cv2.bilateralFilter(imbunatatit, 9, 75, 75)
         
-        # Binarizare adaptivă
+        # Binarizare adaptiva
         binar = cv2.adaptiveThreshold(
             denoised,
             255,
@@ -298,7 +515,7 @@ class ProcessorCNP:
             2
         )
         
-        # Operații morfologice
+        # Operatii morfologice
         kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
         curatat = cv2.morphologyEx(binar, cv2.MORPH_CLOSE, kernel)
         
@@ -308,11 +525,11 @@ class ProcessorCNP:
         """
         Extrage CNP-ul din textul detectat
         """
-        # Corecție erori OCR comune
+        # Corectie erori OCR comune
         text_curatat = text.replace('O', '0').replace('I', '1').replace('l', '1')
         text_curatat = re.sub(r'[^0-9]', '', text_curatat)
         
-        # Caută secvențe de 13 cifre
+        # Cauta secvente de 13 cifre
         cnp_potentiale = re.findall(r'\d{13}', text_curatat)
         
         for cnp in cnp_potentiale:
@@ -323,7 +540,7 @@ class ProcessorCNP:
 
     def _verifica_structura(self, cnp: str) -> bool:
         """
-        Verifică dacă structura CNP-ului este validă
+        Verifica daca structura CNP-ului este valida
         """
         if len(cnp) != 13:
             return False
@@ -343,13 +560,13 @@ class ProcessorCNP:
 
     def valideaza_cnp(self, cnp: str) -> CNPValidationResult:
         """
-        Validează complet CNP-ul și returnează rezultatul
+        Valideaza complet CNP-ul si returneaza rezultatul
         """
         if not cnp or len(cnp) != 13:
             return CNPValidationResult(
                 cnp=cnp,
                 valid=False,
-                errors=["CNP-ul trebuie să aibă exact 13 cifre"],
+                errors=["CNP-ul trebuie sa aiba exact 13 cifre"],
                 componente={}
             )
 
@@ -365,36 +582,36 @@ class ProcessorCNP:
 
         erori = []
 
-        # Validare sex și secol
+        # Validare sex si secol
         sex = int(componente["sex_secol"])
         if sex not in self.CODURI_SEX:
             erori.append(f"Cod sex/secol invalid: {sex}")
 
-        # Validare lună
+        # Validare luna
         luna = int(componente["luna"])
         if not 1 <= luna <= 12:
-            erori.append(f"Lună invalidă: {luna}")
+            erori.append(f"Luna invalida: {luna}")
 
         # Validare zi
         zi = int(componente["zi"])
         if luna in self.ZILE_LUNA:
             if not 1 <= zi <= self.ZILE_LUNA[luna]:
-                erori.append(f"Zi invalidă pentru luna {luna}: {zi}")
+                erori.append(f"Zi invalida pentru luna {luna}: {zi}")
         else:
             erori.append("Nu se poate valida ziua din cauza lunii invalide")
 
         # Validare județ
         judet = int(componente["judet"])
         if judet not in self.CODURI_JUDETE:
-            erori.append(f"Cod județ invalid: {judet}")
+            erori.append(f"Cod judet invalid: {judet}")
 
         # Validare cifră de control
         cifra_control_asteptata = self._calculeaza_cifra_control(cnp)
         cifra_control_actuala = int(componente["cifra_control"])
         if cifra_control_asteptata != cifra_control_actuala:
             erori.append(
-                f"Cifră de control invalidă. Așteptată: {cifra_control_asteptata}, "
-                f"Actuală: {cifra_control_actuala}"
+                f"Cifra de control invalida. Asteptata: {cifra_control_asteptata}, "
+                f"Actuala: {cifra_control_actuala}"
             )
 
         return CNPValidationResult(
@@ -406,7 +623,7 @@ class ProcessorCNP:
 
     def _calculeaza_cifra_control(self, cnp: str) -> int:
         """
-        Calculează cifra de control pentru CNP
+        Calculeaza cifra de control pentru CNP
         """
         suma_control = sum(
             int(cnp[i]) * int(self.NUMAR_CONTROL[i])
@@ -417,7 +634,7 @@ class ProcessorCNP:
 
     def proceseaza_regiune_cnp(self, imagine: np.ndarray, box: Tuple[int, int, int, int]) -> CNPValidationResult:
         """
-        Procesează o regiune care conține un CNP folosind multiple încercări
+        Proceseaza o regiune care contine un CNP folosind multiple incercări
         """
         x1, y1, x2, y2 = map(int, box)
         regiune = imagine[y1:y2, x1:x2]
@@ -428,7 +645,7 @@ class ProcessorCNP:
             lambda r: cv2.threshold(cv2.cvtColor(r, cv2.COLOR_BGR2GRAY), 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
         ]
         
-        # Configurări OCR
+        # Configurari OCR
         configurari_ocr = [
             '--psm 7 -c tessedit_char_whitelist=0123456789',
             '--psm 6 -c tessedit_char_whitelist=0123456789',
@@ -465,11 +682,11 @@ class IDCardProcessor:
     def __init__(self):
         self.procesor_cnp = ProcessorCNP()
         try:
-            print(f"Loading YOLO model from {MODEL_PATH}")
+            print(f"Incarca modelul YOLO de la adresa {MODEL_PATH}")
             self.model = YOLO(MODEL_PATH)
-            print("YOLO model loaded successfully!")
+            print("Modelul YOLO a fost incarcat cu succes!")
         except Exception as e:
-            print(f"Error loading YOLO model: {e}")
+            print(f"Eroare la incarcarea modelului YOLO: {e}")
 
     def preprocess_black_white(self, region):
         gray = cv2.cvtColor(region, cv2.COLOR_BGR2GRAY)
@@ -486,7 +703,7 @@ class IDCardProcessor:
                 if text:
                     break
             except Exception as e:
-                print(f"Retry {attempt+1} failed with error: {e}")
+                print(f"Incercare {attempt+1} esuata cu eroarea: {e}")
         return text or "Text nedetectat"
 
     def extract_text_from_region(self, image, box, field_name=None):

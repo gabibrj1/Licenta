@@ -20,7 +20,7 @@ mat-form-field {
 mat-form-field button[mat-icon-button] {
   position: relative;
   overflow: visible;
-  
+
   &::after {
     top: -17px;
     content: 'Validarea Locului de Naștere';
@@ -39,7 +39,7 @@ mat-form-field button[mat-icon-button] {
     z-index: 1000;
     transition: opacity 0.3s ease;
   }
-  
+
   &:hover::after {
     opacity: 1;
   }
@@ -55,7 +55,7 @@ mat-form-field button[mat-icon-button] {
   box-shadow: 0 2px 12px rgba(106, 27, 154, 0.15);
   padding: 8px;
   z-index: 1000;
-  
+
   &::before {
     content: '';
     position: absolute;
@@ -64,6 +64,44 @@ mat-form-field button[mat-icon-button] {
     width: 15px;
     height: 2px;
     background-color: #6a1b9a;
+  }
+}
+
+.suggestions-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 4px 8px;
+  border-bottom: 1px solid rgba(106, 27, 154, 0.1);
+  margin-bottom: 8px;
+
+  span {
+    font-weight: 500;
+    color: #6a1b9a;
+  }
+
+  .close-button {
+    min-width: 24px;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #dc3545;
+    border-radius: 50%;
+    
+    mat-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+      line-height: 18px;
+      color: white;
+    }
+
+    &:hover {
+      background-color: darken(#dc3545, 10%);
+    }
   }
 }
 
@@ -101,27 +139,88 @@ mat-form-field button[mat-icon-button] {
     background-color: #36c7d0;
     transform: translateX(4px);
     border-color: transparent;
-    
-    span, mat-icon {
+
+    span,
+    mat-icon {
       color: #6a1b9a;
+    }
+  }
+
+  &.selected {
+    background-color: #ffeb3b;
+    color: #000;
+
+    span,
+    mat-icon {
+      color: #000;
     }
   }
 }
 
-.suggestions-grid::-webkit-scrollbar {
-  width: 4px;
-}
+/* Dark mode styles */
+.dark-mode {
+  background-color: #121212;
+  color: #e0e0e0;
 
-.suggestions-grid::-webkit-scrollbar-track {
-  background: rgba(106, 27, 154, 0.05);
-}
+  .location-field-container {
+    .suggestions-list {
+      background-color: #333;
+      color: #e0e0e0;
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.6);
 
-.suggestions-grid::-webkit-scrollbar-thumb {
-  background: #6a1b9a;
-  border-radius: 4px;
-  
-  &:hover {
-    background: #36c7d0;
+      .suggestions-header {
+        border-bottom-color: rgba(255, 255, 255, 0.1);
+
+        span {
+          color: #ffffff;
+        }
+
+        .close-button mat-icon {
+          color: #ffffff;
+        }
+
+        .close-button:hover {
+          background-color: rgba(255, 255, 255, 0.1);
+        }
+      }
+
+      .suggestion-item {
+        background-color: rgba(255, 255, 255, 0.05);
+        color: #ffffff;
+
+        span {
+          color: #ffffff;
+        }
+
+        mat-icon {
+          color: #90caf9;
+
+          &:hover {
+            color: #ffffff;
+          }
+        }
+
+        &:hover {
+          background-color: #1e88e5;
+          color: #ffffff;
+
+          span,
+          mat-icon {
+            color: #ffffff;
+          }
+        }
+
+        &.selected {
+          background-color: #ffeb3b;
+          color: #000;
+
+          span,
+          mat-icon {
+            color: #000;
+          }
+        }
+      }
+    }
   }
 }
 
@@ -402,6 +501,31 @@ mat-form-field button[mat-icon-button] {
       z-index: 1001;
     }
   }
+  .face-frame {
+    position: absolute;
+    border: 3px solid red;
+    transition: all 0.1s ease-out;
+    z-index: 2;
+  }
+  
+  .face-frame.match {
+    border-color: green;
+  }
+  
+  .face-status {
+    position: absolute;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: 5px 10px;
+    border-radius: 5px;
+    font-size: 14px;
+  }
+  
+
+
 
   .red-line {
     position: absolute;
