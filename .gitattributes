@@ -1,0 +1,2 @@
+voteAppFront/my-voteappFront/src/assets/models/proto/ssd_mobilenet_face_optimized_v2.pbtxt filter=lfs diff=lfs merge=lfs -text
+voteAppFront/my-voteappFront/src/assets/models/uncompressed/tiny_yolov2_model.weights filter=lfs diff=lfs merge=lfs -text
