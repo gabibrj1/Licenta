@@ -504,14 +504,17 @@ mat-form-field button[mat-icon-button] {
   .face-frame {
     position: absolute;
     border: 3px solid red;
-    transition: all 0.1s ease-out;
-    z-index: 2;
+    box-sizing: border-box;
+    pointer-events: none;
   }
   
   .face-frame.match {
-    border-color: green;
+    border-color: green !important;
   }
   
+  .face-frame.nomatch {
+    border-color: red;
+  }
   .face-status {
     position: absolute;
     top: 10px;

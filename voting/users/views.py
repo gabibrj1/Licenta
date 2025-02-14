@@ -37,13 +37,44 @@ from .utils import LocalityMatcher
 import logging
 from .utils import ImageScanner
 from .utils import compare_faces
+from django.core.files.uploadedfile import InMemoryUploadedFile
+import tracemalloc # pentru a monitoriza consumul de memorie
+import gc # pentru a elibera manual memoria utilizata de imaginile temporare
 
 logger = logging.getLogger(__name__)
 
 
 class FaceRecognitionView(APIView):
     permission_classes = [AllowAny]
+
+    def validate_image(self, image):
+        """ Verifică dacă fișierul este o imagine validă """
+        try:
+            img = Image.open(image)
+            img.verify()
+            return True
+        except Exception as e:
+            logger.error(f"Imagine invalidă: {str(e)}")
+            return False
+
+    def preprocess_image(self, image_path):
+        """ Redimensionează imaginea pentru TensorFlow și verifică dimensiunile """
+        try:
+            img = Image.open(image_path)
+            img = img.convert("RGB")
+
+            # Normalizăm dimensiunile pentru a evita eroarea CropAndResize
+            new_size = (224, 224)  # Dimensiune fixă pentru procesare
+            img = img.resize(new_size)
+
+            img.save(image_path, "JPEG")
+            return True
+        except Exception as e:
+            logger.error(f"Eroare la procesarea imaginii: {str(e)}")
+            return False
+
     def post(self, request):
+        tracemalloc.start()
         try:
             id_card_image = request.FILES.get('id_card_image')
             live_image = request.FILES.get('live_image')
@@ -51,7 +82,13 @@ class FaceRecognitionView(APIView):
             if not id_card_image or not live_image:
                 return Response({'error': 'Lipsesc fișierele necesare'}, status=status.HTTP_400_BAD_REQUEST)
 
-            # Creare director stocare temporară
+            max_file_size = 10 * 1024 * 1024  # 10 MB
+            if id_card_image.size > max_file_size or live_image.size > max_file_size:
+                return Response({'error': 'Fișierul este prea mare'}, status=status.HTTP_400_BAD_REQUEST)
+
+            if not self.validate_image(id_card_image) or not self.validate_image(live_image):
+                return Response({'error': 'Fișier corupt sau format invalid'}, status=status.HTTP_400_BAD_REQUEST)
+
             upload_dir = os.path.join(settings.MEDIA_ROOT, 'faces')
             os.makedirs(upload_dir, exist_ok=True)
 
@@ -61,31 +98,26 @@ class FaceRecognitionView(APIView):
             id_card_path = os.path.join(upload_dir, f'id_card_{clean_filename(id_card_image.name)}')
             live_image_path = os.path.join(upload_dir, f'live_{clean_filename(live_image.name)}')
 
-            # Salvăm imaginile
             for img_file, path in [(id_card_image, id_card_path), (live_image, live_image_path)]:
                 try:
                     with open(path, 'wb') as f:
                         for chunk in img_file.chunks():
                             f.write(chunk)
 
-                    img = Image.open(path)
-                    img = img.convert("RGB")
-                    img.save(path, 'JPEG')
+                    if not self.preprocess_image(path):
+                        return Response({'error': 'Eroare la procesarea imaginii'}, status=status.HTTP_400_BAD_REQUEST)
 
-                    if os.path.getsize(path) == 0:
-                        os.remove(path)
-                        return Response({'error': 'Fișier corupt'}, status=status.HTTP_400_BAD_REQUEST)
                 except Exception as e:
-                    return Response({'error': 'Eroare la procesarea imaginii'}, status=status.HTTP_400_BAD_REQUEST)
+                    logger.error(f"Eroare la salvarea imaginii: {str(e)}")
+                    return Response({'error': 'Eroare la salvarea imaginii'}, status=status.HTTP_400_BAD_REQUEST)
 
-            # Comparăm fețele
             try:
-                match, message = compare_faces(id_card_path, live_image_path, tolerance=0.6)  # Ajustare toleranta
+                match, message = compare_faces(id_card_path, live_image_path, tolerance=0.6)
+                gc.collect()
             except Exception as e:
                 logger.error(f"Eroare la compararea fețelor: {str(e)}")
                 return Response({'error': 'Eroare la compararea fețelor'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-            # Ștergem fișierele temporare
             for path in [id_card_path, live_image_path]:
                 try:
                     if os.path.exists(path):
@@ -93,14 +125,15 @@ class FaceRecognitionView(APIView):
                 except Exception as e:
                     logger.error(f"Eroare la ștergerea fișierului temporar {path}: {str(e)}")
 
+            snapshot = tracemalloc.take_snapshot()
+            tracemalloc.stop()
+
             return Response({'message': message, 'match': match}, status=status.HTTP_200_OK if match else status.HTTP_400_BAD_REQUEST)
 
         except Exception as e:
             logger.error(f"Eroare neașteptată: {str(e)}")
             return Response({'error': 'Eroare internă server'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-
-
+            
 # Model AI pentru detectia limbajului nepotrivit
 toxic_classifier = pipeline("text-classification", model="unitary/toxic-bert")
 
