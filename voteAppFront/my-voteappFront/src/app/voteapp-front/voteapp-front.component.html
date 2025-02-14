@@ -21,17 +21,14 @@
       <mat-error *ngIf="registrationForm.get('email')?.hasError('email')">Emailul nu este valid</mat-error>
     </mat-form-field>
 
-    <mat-form-field appearance="fill" 
-    [ngClass]="{
-      'valid-password': isPasswordValid, 
-      'mat-form-field-invalid': !isPasswordValid && registrationForm.get('password')?.touched
-    }">
-    <mat-label>Parolă</mat-label>
-    <input matInput [type]="showPassword ? 'text' : 'password'" formControlName="password" required />
-    <button mat-icon-button matSuffix (click)="togglePasswordVisibility()" type="button">
-      <mat-icon>{{ showPassword ? 'visibility_off' : 'visibility' }}</mat-icon>
-    </button>
-  </mat-form-field>
+    <mat-form-field appearance="fill">
+      <mat-label>Parolă</mat-label>
+      <input matInput [type]="showPassword ? 'text' : 'password'" formControlName="password" required />
+      <button mat-icon-button matSuffix (click)="togglePasswordVisibility()" type="button" class="password-toggle-btn"
+              [attr.data-tooltip]="showPassword ? 'Ascunde parola' : 'Afișează parola'">
+        <mat-icon>{{ showPassword ? 'visibility_off' : 'visibility' }}</mat-icon>
+      </button>
+    </mat-form-field>
 
 
   <div *ngIf="errorMessage" class="error-message">
@@ -44,16 +41,14 @@
     </div>
 
 
-<mat-form-field appearance="fill" 
-[ngClass]="{
-  'valid-password': registrationForm.get('confirmPassword')?.valid && !registrationForm.hasError('mismatch'),
-  'mat-form-field-invalid': registrationForm.hasError('mismatch') && registrationForm.get('confirmPassword')?.touched
-}">
-<mat-label>Confirmare Parolă</mat-label>
-<input matInput [type]="showConfirmPassword ? 'text' : 'password'" formControlName="confirmPassword" required (input)="validateConfirmPassword()" />
-<button mat-icon-button matSuffix (click)="toggleConfirmPasswordVisibility()" type="button">
-  <mat-icon>{{ showConfirmPassword ? 'visibility_off' : 'visibility' }}</mat-icon>
-</button>
+<!-- Câmpul pentru confirmarea parolei -->
+<mat-form-field appearance="fill">
+  <mat-label>Confirmare Parolă</mat-label>
+  <input matInput [type]="showConfirmPassword ? 'text' : 'password'" formControlName="confirmPassword" required />
+  <button mat-icon-button matSuffix (click)="toggleConfirmPasswordVisibility()" type="button" class="password-toggle-btn"
+          [attr.data-tooltip]="showConfirmPassword ? 'Ascunde parola' : 'Afișează parola'">
+    <mat-icon>{{ showConfirmPassword ? 'visibility_off' : 'visibility' }}</mat-icon>
+  </button>
 </mat-form-field>
 
     <div *ngIf="registrationForm.hasError('mismatch') && registrationForm.get('confirmPassword')?.touched" class="error-message">
@@ -109,6 +104,7 @@
             mat-icon-button
             matSuffix
             color="accent"
+            class="validate-locality-btn"
             (click)="toggleLocalityValidation()"
             aria-label="Validează Localitatea"
             *ngIf="showValidateLocalityButton"

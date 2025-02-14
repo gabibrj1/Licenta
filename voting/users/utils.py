@@ -23,47 +23,56 @@ import face_recognition
 import logging
 logger = logging.getLogger(__name__)
 
-def load_and_encode_face(image_path):
-    """Încarcă o imagine și returnează codificarea facială"""
-    try:
-        image = face_recognition.load_image_file(image_path)
-        face_locations = face_recognition.face_locations(image)  # Detectăm fețele
+# def load_and_encode_face(image_path):
+#     try:
+#         image = face_recognition.load_image_file(image_path)
+        
+#         # Verificăm dimensiunea imaginii
+#         if image.shape[0] < 100 or image.shape[1] < 100:
+#             logger.warning(f"Imagine prea mică: {image.shape}")
+#             return None
+            
+#         # Încercăm mai multe modele de detectare
+#         face_locations = face_recognition.face_locations(image, model="cnn")
+#         if len(face_locations) == 0:
+#             # Încercăm și modelul HOG dacă CNN nu găsește nimic
+#             face_locations = face_recognition.face_locations(image, model="hog")
+            
+#         if len(face_locations) == 0:
+#             logger.warning(f"Nu s-a detectat nicio față în imaginea {image_path}")
+#             return None
 
-        if len(face_locations) == 0:
-            logger.warning(f"Nu s-a detectat nicio față în imaginea {image_path}")
-            return None
-
-        face_encodings = face_recognition.face_encodings(image, known_face_locations=face_locations)
-
-        if len(face_encodings) == 0:
-            logger.warning(f"Codificarea feței a eșuat pentru imaginea {image_path}")
-            return None
-
-        return face_encodings[0]  # Returnăm doar prima față detectată
-    except Exception as e:
-        logger.error(f"Eroare la încărcarea/codificarea imaginii {image_path}: {str(e)}")
-        return None
+#         face_encodings = face_recognition.face_encodings(image, known_face_locations=face_locations)
+        
+#         if len(face_encodings) == 0:
+#             logger.warning(f"Codificarea feței a eșuat pentru imaginea {image_path}")
+#             return None
+            
+#         return face_encodings[0]
+#     except Exception as e:
+#         logger.error(f"Eroare la încărcarea/codificarea imaginii {image_path}: {str(e)}")
+#         return None
 
 
-def compare_faces(id_card_image_path, live_image_path, tolerance=0.7):  
-    try:
-        id_card_encoding = load_and_encode_face(id_card_image_path)
-        live_encoding = load_and_encode_face(live_image_path)
+# def compare_faces(id_card_image_path, live_image_path, tolerance=0.6):  
+#     try:
+#         id_card_encoding = load_and_encode_face(id_card_image_path)
+#         live_encoding = load_and_encode_face(live_image_path)
 
-        if id_card_encoding is None:
-            return False, "Nu s-a detectat fața în imaginea buletinului"
-        if live_encoding is None:
-            return False, "Nu s-a detectat fața în imaginea capturată"
+#         if id_card_encoding is None:
+#             return False, "Nu s-a detectat fața în imaginea buletinului"
+#         if live_encoding is None:
+#             return False, "Nu s-a detectat fața în imaginea capturată"
 
-        face_distance = np.linalg.norm(id_card_encoding - live_encoding)
-        match = face_distance < tolerance
+#         face_distance = np.linalg.norm(id_card_encoding - live_encoding)
+#         match = face_distance < tolerance
 
-        message = "Identificare reușită!" if match else f"Fețele nu corespund (similaritate: {1 - face_distance:.2f})"
+#         message = "Identificare reușită!" if match else f"Fețele nu corespund (similaritate: {1 - face_distance:.2f})"
 
-        return match, message
-    except Exception as e:
-        logger.error(f"Eroare la compararea fețelor: {str(e)}")
-        return False, f"Eroare la compararea fețelor: {str(e)}"
+    #     return match, message
+    # except Exception as e:
+    #     logger.error(f"Eroare la compararea fețelor: {str(e)}")
+    #     return False, f"Eroare la compararea fețelor: {str(e)}"
 
 def is_valid_image(image_path):
     """Verifică dacă un fișier este o imagine validă."""

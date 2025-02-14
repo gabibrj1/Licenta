@@ -150,16 +150,17 @@ export class VoteappFrontComponent implements OnInit, AfterViewInit {
       this.validatePassword();
     });
   }
-  async loadFaceDetectionModels(): Promise<void> { 
+  async loadFaceDetectionModels(): Promise<void> {
     try {
       console.log("Încărcăm modelele Face API...");
-      await faceapi.nets.tinyFaceDetector.loadFromUri('/assets/models');
-      await faceapi.nets.ssdMobilenetv1.loadFromUri('/assets/models');           
+      await faceapi.nets.tinyFaceDetector.loadFromUri('./assets/models/tiny_face_detector');
+      await faceapi.nets.ssdMobilenetv1.loadFromUri('./assets/models/ssd_mobilenetv1');
       console.log("Modelele Face API au fost încărcate cu succes!");
     } catch (error) {
       console.error("Eroare la încărcarea modelelor Face API:", error);
+      throw error;
     }
-}
+  }
 
   async onIdCardChange() {
     if (this.useIDCard) {
@@ -791,17 +792,17 @@ autoFillDataFromScan(): void {
   }
   
   ngAfterViewInit(): void {
-    setTimeout(() => {
-      if (!this.videoElement || !this.videoElement.nativeElement) {
-        console.error("Eroare: videoElement nu a fost inițializat!");
-        return;
-      }
-
-      console.log("✅ Elementul video este disponibil:", this.videoElement.nativeElement);
-      this.startCamera();
-    }, 1000);
-}
-  
+    if (this.isFaceRecognitionActive) {
+      setTimeout(() => {
+        if (!this.videoElement?.nativeElement) {
+          console.error("Eroare: videoElement nu a fost inițializat!");
+          return;
+        }
+        console.log("✅ Elementul video este disponibil:", this.videoElement.nativeElement);
+        this.startCamera();
+      }, 1000);
+    }
+  }
   
   handleScroll(): void {
     if (!this.showSuggestions) return; // Exit early if suggestions are not shown
@@ -1046,10 +1047,6 @@ autoFillDataFromScan(): void {
     }
   }
   
-  
-  
-  
- 
   async startCamera(): Promise<void> {
     if (!navigator.mediaDevices?.getUserMedia) {
       console.error("Camera nu este suportată pe acest dispozitiv.");
@@ -1057,87 +1054,107 @@ autoFillDataFromScan(): void {
     }
 
     if (!this.videoElement?.nativeElement) {
-      console.error("Eroare: Elementul video nu este disponibil. Asigură-te că <video #videoElement> există în HTML.");
+      console.error("Eroare: Elementul video nu este disponibil.");
       return;
     }
 
     try {
       console.log("Pornim camera...");
+      this.isFaceRecognitionActive = true;
       this.faceDetected = false;
       this.faceMatched = false;
       this.faceMatchMessage = '🔍 Se analizează imaginea...';
 
-      this.videoStream = await navigator.mediaDevices.getUserMedia({ video: true });
+      this.videoStream = await navigator.mediaDevices.getUserMedia({ 
+        video: { 
+          width: { ideal: 640 },
+          height: { ideal: 480 },
+          facingMode: 'user'
+        } 
+      });
 
       if (this.videoStream) {
-        this.videoElement.nativeElement.srcObject = this.videoStream;
+        const video = this.videoElement.nativeElement;
+        video.srcObject = this.videoStream;
+        video.onloadedmetadata = () => {
+          video.play();
+          this.detectFaces();
+        };
         console.log("Camera a fost pornită cu succes!");
-      } else {
-        console.error("Fluxul video nu a fost inițializat.");
       }
-
-      this.detectFaces();
     } catch (error) {
       console.error("Eroare la pornirea camerei:", error);
     }
-}
-
-async detectFaces(): Promise<void> {
-  if (!this.videoElement?.nativeElement) {
-    console.error("Eroare: videoElement nu este disponibil pentru detecție!");
-    return;
   }
 
-  const video = this.videoElement.nativeElement;
-  const detectionOptions = new faceapi.TinyFaceDetectorOptions();
-
-  this.faceDetectionInterval = window.setInterval(async () => {
-    try {
-      const detection = await faceapi.detectSingleFace(video, detectionOptions);
-
-      if (detection && detection.box) {
-        this.faceDetected = true;
-
-        const videoRect = video.getBoundingClientRect();
-        this.faceBox = {
-          top: detection.box.top * (videoRect.height / video.videoHeight),
-          left: detection.box.left * (videoRect.width / video.videoWidth),
-          width: detection.box.width * (videoRect.width / video.videoWidth),
-          height: detection.box.height * (videoRect.height / video.videoHeight)
-        };
-
-        console.log("Față detectată:", this.faceBox);
-      } else {
-        this.faceDetected = false;
-      }
-
-      this.cdr.detectChanges();
-    } catch (error) {
-      console.error("Eroare la detecția feței:", error);
+  async detectFaces(): Promise<void> {
+    if (!this.videoElement?.nativeElement) {
+      console.error("Eroare: videoElement nu este disponibil pentru detecție!");
+      return;
     }
-  }, 150);
-}
 
-stopCamera(): void {
+    const video = this.videoElement.nativeElement;
+    const detectionOptions = new faceapi.TinyFaceDetectorOptions({
+      inputSize: 512,
+      scoreThreshold: 0.5
+    });
+
+    this.faceDetectionInterval = window.setInterval(async () => {
+      try {
+        const detection = await faceapi.detectSingleFace(video, detectionOptions);
+
+        if (detection) {
+          this.faceDetected = true;
+          const videoRect = video.getBoundingClientRect();
+          
+          // Calculate scaling factors
+          const scaleX = videoRect.width / video.videoWidth;
+          const scaleY = videoRect.height / video.videoHeight;
+
+          this.faceBox = {
+            top: detection.box.y * scaleY,
+            left: detection.box.x * scaleX,
+            width: detection.box.width * scaleX,
+            height: detection.box.height * scaleY
+          };
+
+          this.faceMatchMessage = '✅ Față detectată';
+          console.log("Față detectată:", this.faceBox);
+        } else {
+          this.faceDetected = false;
+          this.faceMatchMessage = '🔍 Se caută fața în cadru...';
+        }
+
+        this.cdr.detectChanges();
+      } catch (error) {
+        console.error("Eroare la detecția feței:", error);
+      }
+    }, 100);
+  }
+
+  stopCamera(): void {
     console.log("Oprim camera...");
     
     if (this.faceDetectionInterval) {
-        clearInterval(this.faceDetectionInterval); // Oprește intervalul de detectare
-        this.faceDetectionInterval = null;
+      clearInterval(this.faceDetectionInterval);
+      this.faceDetectionInterval = null;
     }
 
     if (this.videoStream) {
-        this.videoStream.getTracks().forEach(track => track.stop());
-        this.videoStream = null;
+      this.videoStream.getTracks().forEach(track => track.stop());
+      this.videoStream = null;
     }
 
     if (this.videoElement?.nativeElement) {
-        this.videoElement.nativeElement.srcObject = null;
+      this.videoElement.nativeElement.srcObject = null;
     }
 
     this.isFaceRecognitionActive = false;
+    this.faceDetected = false;
+    this.faceMatchMessage = '';
     console.log("Camera oprită!");
-}
+  }
+
 
   
   toggleExpandCameraId(): void {

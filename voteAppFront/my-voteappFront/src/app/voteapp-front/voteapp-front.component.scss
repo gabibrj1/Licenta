@@ -17,7 +17,7 @@ mat-form-field {
   overflow: visible !important;
 }
 
-mat-form-field button[mat-icon-button] {
+mat-form-field .validate-locality-btn {
   position: relative;
   overflow: visible;
 
@@ -44,6 +44,33 @@ mat-form-field button[mat-icon-button] {
     opacity: 1;
   }
 }
+.password-toggle-btn {
+  position: relative;
+  overflow: visible;
+
+  &::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    top: -20px;
+    left: -10%;
+    transform: translateX(-50%);
+    background-color: #6a1b9a; /* Mov */
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    white-space: nowrap;
+    box-shadow: 0 2px 8px rgba(106, 27, 154, 0.2);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+  }
+
+  &:hover::after {
+    opacity: 1;
+  }
+}
+
 
 .suggestions-list {
   position: absolute;
