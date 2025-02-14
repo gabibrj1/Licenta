@@ -12,5 +12,9 @@ voteappFront/dist/
 voteappFront/src/environments/environment.ts
 voteappFront/src/environments/environment.prod.ts
 voting/*.png
+# Ignorare fisiere mari din modelele de recunoastere faciala
+voteAppFront/my-voteappFront/src/assets/models/*.pbtxt
+voteAppFront/my-voteappFront/src/assets/models/uncompressed/*.weights
+voteAppFront/my-voteappFront/src/assets/models/uncompressed/*.pb
 
 
