@@ -285,27 +285,22 @@
   <video #videoElement autoplay></video>
 
   <button mat-icon-button color="warn" class="close-camera-btn" (click)="stopCamera()">❌</button>
-  <button mat-icon-button color="primary" class="expand-camera-btn" (click)="toggleExpandCamera()">🔍</button>
+
   
 <!-- Cadran dinamic pentru recunoaștere -->
 <div *ngIf="faceDetected" 
-     class="face-frame" 
-     [ngClass]="{ 'match': faceMatched, 'nomatch': !faceMatched }"
-     [ngStyle]="{ 
-       'top.px': faceBox.top, 
-       'left.px': faceBox.left, 
-       'width.px': faceBox.width, 
-       'height.px': faceBox.height 
-     }">
+     [ngClass]="faceBoxClass"
+     [style.position]="'absolute'"
+     [style.top.px]="faceBox.top"
+     [style.left.px]="faceBox.left"
+     [style.width.px]="faceBox.width"
+     [style.height.px]="faceBox.height">
 </div>
-
 
   <div class="face-status">
     {{ faceMatchMessage }}
   </div>
 </div>
-
-
     </form>
   </div>
 

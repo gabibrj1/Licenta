@@ -119,7 +119,12 @@ class FaceRecognitionView(APIView):
             match = face_distance < tolerance
 
             similarity = 1 - face_distance
-            message = f"Identificare reușită! (similaritate: {similarity:.2f})" if match else f"Fețele nu corespund (similaritate: {similarity:.2f})"
+            similarity_percent = min(100, max(0, similarity * 100))  # Convert to percentage and clamp between 0-100
+            
+            if match:
+                message = f"Identificare reușită! (similaritate: {similarity_percent:.2f}%)"
+            else:
+                message = f"Fețele nu corespund (similaritate: {similarity_percent:.2f}%)"
 
             logger.info(f"Rezultat comparare: {message}")
             return match, message
@@ -180,7 +185,8 @@ class FaceRecognitionView(APIView):
                     'message': message, 
                     'match': match
                 }, 
-                status=status.HTTP_200_OK if match else status.HTTP_400_BAD_REQUEST
+                status=status.HTTP_200_OK
+
             )
 
         except Exception as e:

@@ -553,8 +553,26 @@ mat-form-field .validate-locality-btn {
     border-radius: 5px;
     font-size: 14px;
   }
+  .face-box-default {
+    border: 2px solid yellow;
+  }
   
+  .face-match-success {
+    border: 3px solid #00ff00;
+    box-shadow: 0 0 10px #00ff00;
+  }
+  
+  .face-match-failed {
+    border: 3px solid #ff0000;
+    box-shadow: 0 0 10px #ff0000;
+  }
+  
+  .face-match-error {
+    border: 3px solid #ff6600;
+    box-shadow: 0 0 10px #ff6600;
+  }
 
+  
 
 
   .red-line {
