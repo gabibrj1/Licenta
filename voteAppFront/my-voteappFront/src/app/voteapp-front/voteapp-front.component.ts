@@ -74,7 +74,10 @@ export class VoteappFrontComponent implements OnInit, AfterViewInit {
   videoCaptureInterval: any;
   faceDetected = false;
   isRecognitionFinalized: boolean = false;
-  
+  isBlurring: boolean = false;
+  showResultIcon: boolean = false;
+  resultIcon: string = ''; 
+  hideFaceBox: boolean = false;
   isProcessingFrame: boolean = false;
   recognitionComplete: boolean = false;
   faceBoxClass: string = 'face-box-default';
@@ -349,10 +352,11 @@ export class VoteappFrontComponent implements OnInit, AfterViewInit {
   
   onFileUpload(event: any): void {
     const dialogRef = this.dialog.open(WarningDialogComponent, { width: '400px' });
-    dialogRef.afterClosed().subscribe(() => {
+    dialogRef.afterClosed().subscribe((result) => {
+      if (result === true) {
       // Actioneaza dupa inchiderea dialogului
       this.proceedWithFileUpload(event);
-    });
+    }});
   }
   private proceedWithFileUpload(event: any): void {
     this.autoFillMessage = ''; //reseteaza mesajele de eroare
@@ -557,9 +561,11 @@ export class VoteappFrontComponent implements OnInit, AfterViewInit {
   }
   openCamera() {
     const dialogRef = this.dialog.open(WarningDialogComponent, { width: '400px' });
-    dialogRef.afterClosed().subscribe(() => {
+    dialogRef.afterClosed().subscribe((result) => {
+      if (result === true) {
+        // Actioneaza dupa inchiderea dialogului
       this.proceedWithCamera();
-    });
+  }});
   }
   
   private proceedWithCamera(): void {
@@ -1015,39 +1021,40 @@ autoFillDataFromScan(): void {
         next: (response) => {
           console.log("🔍 Răspuns primit de la backend:", response);
   
-          this.recognitionComplete = true;  // ✅ Marchează că verificarea s-a finalizat
+          this.recognitionComplete = true;
           this.isProcessingFrame = false;
   
           if (response.match) {
             this.faceMatched = true;
             this.faceMatchMessage = "✅ Identificare reușită!";
             this.faceBoxClass = 'face-match-success';
-  
-            setTimeout(() => {
-              this.stopCamera();
-              this.registerWithIDCard();
-            }, 3000);
+            this.resultIcon = '✅';
           } else {
             this.faceMatched = false;
             this.faceMatchMessage = "❌ Fețele nu corespund!";
             this.faceBoxClass = 'face-match-failed';
-  
-            console.log("❌ Setăm mesajul final:", this.faceMatchMessage);
-  
-            setTimeout(() => {
-              this.stopCamera();
-              this.isFaceRecognitionActive = false;
-              this.cdr.detectChanges();
-            }, 3000);
-          }
-  
-          // ✅ Oprire detectare fețe dacă procesul s-a terminat
-          if (this.faceDetectionInterval) {
-            clearInterval(this.faceDetectionInterval);
-            this.faceDetectionInterval = null;
+            this.resultIcon = '❌';
           }
   
           this.cdr.detectChanges();
+  
+          // 🔥 După 1 secundă, aplicăm blur și arătăm simbolul rezultatului
+          setTimeout(() => {
+            this.isBlurring = true;  // Activează blur pe video
+            this.showResultIcon = true;
+            this.hideFaceBox = true;
+            this.cdr.detectChanges();
+          }, 1000);
+  
+          // 🔥 După încă 2 secunde, închidem camera
+          setTimeout(() => {
+            this.stopCamera();
+            this.isFaceRecognitionActive = false;
+            this.isBlurring = false;  // Elimină blur-ul
+            this.showResultIcon = false;
+            this.hideFaceBox = false;
+            this.cdr.detectChanges();
+          }, 3000);
         },
         error: (error) => {
           console.error("⚠️ Eroare la recunoaștere:", error);
@@ -1057,8 +1064,10 @@ autoFillDataFromScan(): void {
           setTimeout(() => {
             this.stopCamera();
             this.isFaceRecognitionActive = false;
+            this.hideFaceBox = false; 
             this.cdr.detectChanges();
-          }, 2000);
+            
+          }, 3000);
   
           this.isProcessingFrame = false;
           this.cdr.detectChanges();
@@ -1071,6 +1080,7 @@ autoFillDataFromScan(): void {
       this.cdr.detectChanges();
     }
   }
+  
   
   
   

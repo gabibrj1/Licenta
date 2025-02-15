@@ -572,6 +572,49 @@ mat-form-field .validate-locality-btn {
     box-shadow: 0 0 10px #ff6600;
   }
 
+  .camera-container {
+    position: relative;
+    display: inline-block;
+    transition: filter 0.5s ease-in-out;
+  }
+  
+  /* 🔥 Blur aplicat pe video */
+  .video-wrapper {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+  }
+  
+  .video-wrapper video {
+    width: 100%;
+    height: auto;
+    transition: filter 0.5s ease-in-out;
+  }
+  
+  /* 🔥 Aplică blur când este activ */
+  .video-wrapper.blurred video {
+    filter: blur(10px);
+  }
+  
+  /* Simbol de rezultat */
+  .result-icon {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0.8);
+    font-size: 60px;
+    font-weight: bold;
+    opacity: 0;
+    transition: opacity 0.5s ease-in-out, transform 0.5s ease-in-out;
+  }
+  
+  .result-icon.show {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  
   
 
 

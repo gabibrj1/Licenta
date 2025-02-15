@@ -13,22 +13,19 @@ export class WarningDialogComponent {
   constructor(
     private dialogRef: MatDialogRef<WarningDialogComponent>
   ) {}
+
   ngOnInit() {
     // Prevent dialog from closing on backdrop click
     this.dialogRef.disableClose = true;
   }
 
   onClose(): void {
-    if (!this.conditionsAccepted) {
-      this.showErrorMessage = true;
-    } else {
-      this.dialogRef.close();
-    }
+    this.dialogRef.close(); // Nu trimite nicio valoare, doar închide dialogul
   }
 
   onContinue(): void {
     if (this.conditionsAccepted) {
-      this.dialogRef.close(true);
+      this.dialogRef.close(true); // Trimite `true` doar dacă utilizatorul a bifat checkbox-ul și a apăsat "Continuă"
     } else {
       this.showErrorMessage = true;
     }
