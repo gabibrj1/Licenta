@@ -64,7 +64,7 @@ class FaceRecognitionView(APIView):
             img = Image.open(image)
             img = img.convert("RGB")
             
-            # Dimensiune optima pentru performantă si acuratete
+            # Dimensiune optima pentru performanta si acuratete
             min_size = 640
             ratio = max(min_size/img.size[0], min_size/img.size[1])
             new_size = (int(img.size[0]*ratio), int(img.size[1]*ratio))
@@ -83,15 +83,21 @@ class FaceRecognitionView(APIView):
                 logger.warning(f"Imagine prea mică: {image_array.shape}")
                 return None
                 
-            # Incercăm intai HOG (mai rapid)
+            # Incercam intai HOG (mai rapid)
             face_locations = face_recognition.face_locations(image_array, model="hog")
             if len(face_locations) == 0:
                 logger.info("HOG nu a detectat fața, încercăm cu CNN")
                 face_locations = face_recognition.face_locations(image_array, model="cnn")
-                
+
+            # Incercam CNN daca HOG nu a detectat nimic    
             if len(face_locations) == 0:
                 logger.warning("Nu s-a detectat nicio față în imagine")
                 return None
+
+            #Verificam daca sunt fete multiple
+            if len(face_locations) > 1:
+                logger.warning(f"S-au detectat {len(face_locations)} fețe în imagine")
+                return None, f"S-au detectat {len(face_locations)} fețe în imagine. Procesul necesită o singură față."
 
             face_encodings = face_recognition.face_encodings(image_array, known_face_locations=face_locations)
             
@@ -99,28 +105,28 @@ class FaceRecognitionView(APIView):
                 logger.warning("Codificarea feței a eșuat")
                 return None
                 
-            return face_encodings[0]
+            return face_encodings[0], None
         except Exception as e:
             logger.error(f"Eroare la detectarea/codificarea feței: {str(e)}")
-            return None
+            return None, f"Eroare la detectarea/codificarea feței: {str(e)}"
 
     def compare_faces(self, id_card_array, live_array, tolerance=0.6):
         """Compară două fețe din array-uri NumPy"""
         try:
-            id_card_encoding = self.detect_and_encode_face(id_card_array)
-            live_encoding = self.detect_and_encode_face(live_array)
-
+            id_card_encoding, id_card_error = self.detect_and_encode_face(id_card_array)
             if id_card_encoding is None:
-                return False, "Nu s-a detectat fața în imaginea buletinului"
+                return False, id_card_error
+        
+            live_encoding, live_error = self.detect_and_encode_face(live_array)
             if live_encoding is None:
-                return False, "Nu s-a detectat fața în imaginea capturată"
+                 return False, live_error
 
             face_distance = np.linalg.norm(id_card_encoding - live_encoding)
             match = face_distance < tolerance
 
             similarity = 1 - face_distance
-            similarity_percent = min(100, max(0, similarity * 100))  # Convert to percentage and clamp between 0-100
-            
+            similarity_percent = min(100, max(0, similarity * 100))  
+        
             if match:
                 message = f"Identificare reușită! (similaritate: {similarity_percent:.2f}%)"
             else:
@@ -129,8 +135,8 @@ class FaceRecognitionView(APIView):
             logger.info(f"Rezultat comparare: {message}")
             return match, message
         except Exception as e:
-            logger.error(f"Eroare la compararea fețelor: {str(e)}")
-            return False, f"Eroare la compararea fețelor: {str(e)}"
+             logger.error(f"Eroare la compararea fețelor: {str(e)}")
+             return False, f"Eroare la compararea fețelor: {str(e)}"
 
     def post(self, request):
         """Procesează cererea POST pentru compararea fețelor"""
