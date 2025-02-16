@@ -531,17 +531,17 @@ export class VoteappFrontComponent implements OnInit, AfterViewInit {
   }
   
   
-  // Utility function to parse Romanian date format (dd.mm.yy or dd.mm.yyyy) into a Date object
+  // Utilizarea unei functii de a parsa data din format romanesc intr un obiect 
   parseRomanianDate(dateString: string): Date | null {
     if (!dateString) return null;
     const parts = dateString.split('.'); // Split by "."
     if (parts.length !== 3) return null;
   
     const day = parseInt(parts[0], 10);
-    const month = parseInt(parts[1], 10) - 1; // Month is zero-indexed in JS Date
+    const month = parseInt(parts[1], 10) - 1; // Luna este indexată la zero în JS Date
     let year = parseInt(parts[2], 10);
   
-    // If year is two digits (e.g., 21), assume it's 2000+21 = 2021
+    // Daca anul are 2 cifre, de exemplu 21, adaugam 2000 pentru a obtine 2021
     if (year < 100) {
       year += 2000;
     }
@@ -646,7 +646,7 @@ export class VoteappFrontComponent implements OnInit, AfterViewInit {
         next: (response: any) => {
           if (response.cropped_image_path) {
             this.autoFillMessage = 'Imaginea a fost capturată și procesată cu succes!';
-            // Store both the relative and full paths
+            // Stochează atat caile relative cat si cele complete
             this.uploadedImagePath = `http://127.0.0.1:8000${response.cropped_image_path}`;
             this.showAutoFillButton = true;
           } else {
@@ -684,7 +684,7 @@ autoFillDataFromScan(): void {
     return;
   }
 
-  // Transformăm calea completă în calea relativă necesară pentru backend
+  // Transformam calea completa in calea relativa necesară pentru backend
       const croppedPath = this.uploadedImagePath
       .replace('http://127.0.0.1:8000/media/', '')
       .replace(/^\//, '');
@@ -795,11 +795,10 @@ autoFillDataFromScan(): void {
   }
   toggleLocalityValidation(): void {
     if (this.showSuggestions) {
-      // If suggestions are currently visible, hide them
+      // Daca sugestiile sunt vizibile in prezent, se ascund
       this.showSuggestions = false;
-      //this.suggestions = [];
     } else {
-      // Otherwise, fetch suggestions and display them
+      // In caz contrar preluam sugestiile si le afisam
       this.validateLocality();
     }
   }
@@ -811,21 +810,21 @@ autoFillDataFromScan(): void {
           console.error("Eroare: videoElement nu a fost inițializat!");
           return;
         }
-        console.log("✅ Elementul video este disponibil:", this.videoElement.nativeElement);
+        console.log("Elementul video este disponibil:", this.videoElement.nativeElement);
         this.startCamera();
       }, 1000);
     }
   }
   
   handleScroll(): void {
-    if (!this.showSuggestions) return; // Exit early if suggestions are not shown
+    if (!this.showSuggestions) return; // Se iese mai devreme daca sugestiile nu s afisate
 
     const locationFieldPosition = this.locationFieldContainer.nativeElement.getBoundingClientRect();
     const viewportHeight = window.innerHeight;
 
-    // Check if the location field is scrolled out of view
+    // Se verifica daca campul locatie este in afara view-ului
     if (locationFieldPosition.bottom < 0 || locationFieldPosition.top > viewportHeight) {
-      this.showSuggestions = false; // Hide the suggestions list
+      this.showSuggestions = false; // HSe ascunde sugestiile daca campul nu este vizibil
     }
   }
   
@@ -1031,14 +1030,14 @@ autoFillDataFromScan(): void {
             this.resultIcon = '✅';
           } else {
             this.faceMatched = false;
-            this.faceMatchMessage = "❌ Fețele nu corespund!";
+            this.faceMatchMessage = "❌ " + (response.message || "Fețele nu corespund!");
             this.faceBoxClass = 'face-match-failed';
             this.resultIcon = '❌';
           }
   
           this.cdr.detectChanges();
   
-          // 🔥 După 1 secundă, aplicăm blur și arătăm simbolul rezultatului
+          //După 1 secundă, aplicăm blur și arătăm simbolul rezultatului
           setTimeout(() => {
             this.isBlurring = true;  // Activează blur pe video
             this.showResultIcon = true;
@@ -1046,7 +1045,7 @@ autoFillDataFromScan(): void {
             this.cdr.detectChanges();
           }, 1000);
   
-          // 🔥 După încă 2 secunde, închidem camera
+          //După încă 2 secunde, închidem camera
           setTimeout(() => {
             this.stopCamera();
             this.isFaceRecognitionActive = false;
@@ -1057,8 +1056,8 @@ autoFillDataFromScan(): void {
           }, 3000);
         },
         error: (error) => {
-          console.error("⚠️ Eroare la recunoaștere:", error);
-          this.faceMatchMessage = "❌ Eroare la recunoaștere!";
+          console.error("Eroare la recunoaștere:", error);
+          this.faceMatchMessage = "❌ " + (error.error?.message || "Eroare la recunoaștere!");
           this.faceBoxClass = 'face-match-error';
   
           setTimeout(() => {
@@ -1141,9 +1140,9 @@ autoFillDataFromScan(): void {
   
     this.faceDetectionInterval = window.setInterval(async () => {
       try {
-        // ✅ Dacă verificarea s-a încheiat, oprește detectarea feței
+        //Dacă verificarea s-a încheiat, oprește detectarea feței
         if (this.recognitionComplete) {
-          console.log("✅ Recunoaștere completă. Oprim detectarea feței.");
+          console.log("Recunoaștere completă. Oprim detectarea feței.");
           
           if (this.faceDetectionInterval !== null) {
             clearInterval(this.faceDetectionInterval);
@@ -1153,9 +1152,22 @@ autoFillDataFromScan(): void {
           return;
         }
   
-        const detection = await faceapi.detectSingleFace(video, detectionOptions);
+        // Detectăm toate fețele din cadru
+        const detections = await faceapi.detectAllFaces(video, detectionOptions);
   
-        if (detection) {
+        if (detections && detections.length > 0) {
+          // Verifică dacă s-au detectat multiple fețe
+          if (detections.length > 1) {
+            this.faceDetected = false;
+            this.faceMatchMessage = '⚠️ S-au detectat multiple fețe! Procesul necesită o singură față.';
+            this.faceBoxClass = 'face-match-error';
+            this.cdr.detectChanges();
+            // Nu trimitem nimic către backend
+            return;
+          }
+  
+          // O singură față detectată - continuă procesul normal
+          const detection = detections[0];
           this.faceDetected = true;
           const videoRect = video.getBoundingClientRect();
   
@@ -1180,7 +1192,7 @@ autoFillDataFromScan(): void {
           this.faceDetected = false;
   
           if (this.recognitionComplete) {
-            console.log("✅ Verificare completă. Oprire detectare.");
+            console.log("Verificare completă. Oprire detectare.");
             
             if (this.faceDetectionInterval !== null) {
               clearInterval(this.faceDetectionInterval);

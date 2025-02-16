@@ -578,7 +578,7 @@ mat-form-field .validate-locality-btn {
     transition: filter 0.5s ease-in-out;
   }
   
-  /* 🔥 Blur aplicat pe video */
+  /*Blur aplicat pe video */
   .video-wrapper {
     position: relative;
     display: flex;
@@ -593,12 +593,12 @@ mat-form-field .validate-locality-btn {
     transition: filter 0.5s ease-in-out;
   }
   
-  /* 🔥 Aplică blur când este activ */
+  /*Aplica blur când este activ */
   .video-wrapper.blurred video {
     filter: blur(10px);
   }
   
-  /* Simbol de rezultat */
+  /*Simbol de rezultat */
   .result-icon {
     position: absolute;
     top: 50%;
@@ -622,7 +622,7 @@ mat-form-field .validate-locality-btn {
     position: absolute;
     top: 0;
     left: 0;
-    width: 100%; /* Default: lățimea liniei în mod normal */
+    width: 100%; /* Default: latimea liniei în mod normal */
     height: 2px;
     background-color: red;
     animation: move-line 2s infinite;
@@ -646,7 +646,7 @@ mat-form-field .validate-locality-btn {
 
   .cnp-validation-feedback {
     margin-top: 10px;
-    color: #ff5722; /* Orange-red color for errors */
+    color: #ff5722; 
     font-size: 14px;
   
     p {
@@ -656,7 +656,7 @@ mat-form-field .validate-locality-btn {
     ul {
       list-style-type: disc;
       margin-left: 20px;
-      color: #d32f2f; /* Red color for the bullet points */
+      color: #d32f2f; 
     }
   }
   
@@ -984,9 +984,5 @@ mat-form-field .validate-locality-btn {
         color: #90caf9;
       }
     }
-    
-
-    
-    
   }
 }
