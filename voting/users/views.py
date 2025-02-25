@@ -42,7 +42,8 @@ import face_recognition
 import numpy as np
 import io
 from ultralytics import YOLO 
-
+import threading
+import concurrent.futures
 
 
 logger = logging.getLogger(__name__)
@@ -61,27 +62,31 @@ class FaceRecognitionView(APIView):
     def detect_spoofing(self, image_array):
         """Verifica daca imaginea este reala sau falsa folosind YOLO."""
         try:
+            # Redimensionare imagine pentru procesare mai rapidă
+            h, w = image_array.shape[:2]
+            scale = min(1.0, 640 / max(h, w))
+            if scale < 1.0:
+                new_h, new_w = int(h * scale), int(w * scale)
+                image_array = cv2.resize(image_array, (new_w, new_h))
 
             # Normalizare imagine si detectie spoofing cu YOLO 
-            gray = cv2.cvtColor(image_array, cv2.COLOR_RGB2GRAY) # Conversie la grayscale
-            normalized = cv2.equalizeHist(gray) # Ajustare contrast si luminozitate
-            image_array = cv2.cvtColor(normalized, cv2.COLOR_GRAY2RGB) # Conversie inapoi la RGB
+            gray = cv2.cvtColor(image_array, cv2.COLOR_RGB2GRAY)
+            normalized = cv2.equalizeHist(gray)
+            image_array = cv2.cvtColor(normalized, cv2.COLOR_GRAY2RGB)
 
-            results = self.model(image_array, stream=True, verbose=False)
+            # Optimizare inferență YOLO
+            results = self.model(image_array, stream=True, verbose=False, conf=0.6)
 
             for r in results:
                 for box in r.boxes:
-                    conf = box.conf[0].item()  # Scorul de incredere
+                    conf = box.conf[0].item()
                     cls = int(box.cls[0].item())  # 0 = fake, 1 = real
                     
-                    #Debugging - Afiseaza scorul de incredere si clasificarea modelului
                     logger.info(f"Detectare spoofing - Scor: {conf}, Clasificare: {cls}")
-
                     
-                    if conf > 0.6:  # Prag de incredere pentru autenticitate
-                        return cls == 1  # True daca imaginea este reala, False daca este fake
+                    return cls == 1  # Returăm imediat primul rezultat care depășește pragul
 
-            return False  # Daca nu detecteaza nimic, consideram imaginea falsa
+            return False
         except Exception as e:
             logger.error(f"Eroare la detectarea spoofing-ului: {e}")
             return False
@@ -89,10 +94,17 @@ class FaceRecognitionView(APIView):
     def detect_and_encode_face(self, image_array):
         """Detecteaza si extrage encoding-ul fetei."""
         try:
-            face_locations = face_recognition.face_locations(image_array, model="hog")
-            if len(face_locations) == 0:
-                logger.info("HOG nu a detectat fata, incercam CNN")
-                face_locations = face_recognition.face_locations(image_array, model="cnn")
+            # Redimensionează imaginea pentru procesare mai rapidă
+            h, w = image_array.shape[:2]
+            scale = min(1.0, 480 / max(h, w))
+            if scale < 1.0:
+                new_h, new_w = int(h * scale), int(w * scale)
+                small_image = cv2.resize(image_array, (new_w, new_h))
+            else:
+                small_image = image_array.copy()
+            
+            # Folosește doar HOG pentru detectare, care este mai rapid
+            face_locations = face_recognition.face_locations(small_image, model="hog")
 
             if len(face_locations) == 0:
                 return None, "Nicio fata detectata in imagine"
@@ -100,7 +112,17 @@ class FaceRecognitionView(APIView):
             if len(face_locations) > 1:
                 return None, "S-au detectat mai multe fete. Procesul necesita o singura fata."
 
-            face_encodings = face_recognition.face_encodings(image_array, known_face_locations=face_locations)
+            # Dacă am redimensionat, ajustăm locațiile fețelor înapoi la dimensiunea originală
+            if scale < 1.0:
+                adjusted_locations = []
+                for top, right, bottom, left in face_locations:
+                    adjusted_locations.append(
+                        (int(top / scale), int(right / scale), 
+                         int(bottom / scale), int(left / scale))
+                    )
+                face_encodings = face_recognition.face_encodings(image_array, known_face_locations=adjusted_locations)
+            else:
+                face_encodings = face_recognition.face_encodings(image_array, known_face_locations=face_locations)
 
             if len(face_encodings) == 0:
                 return None, "Codificarea fetei a esuat"
@@ -113,18 +135,27 @@ class FaceRecognitionView(APIView):
     def compare_faces(self, id_card_array, live_array):
         """Compara fetele doar daca imaginea live este autentica."""
         try:
-            if not self.detect_spoofing(live_array):
-                return False, "Frauda detectata: folositi o imagine reala!"
+            # Executăm detectarea spoofing-ului și encoding-ul feței simultan pentru a economisi timp
+            with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
+                spoofing_future = executor.submit(self.detect_spoofing, live_array)
+                id_card_future = executor.submit(self.detect_and_encode_face, id_card_array)
+                
+                # Așteaptă finalizarea verificării spoofing
+                is_real = spoofing_future.result()
+                if not is_real:
+                    return False, "Frauda detectata: folositi o imagine reala!"
+                
+                # Obține rezultatele encoding-ului feței din ID
+                id_card_encoding, id_card_error = id_card_future.result()
+                if id_card_encoding is None:
+                    return False, id_card_error
+                
+                # Acum face encoding pentru imaginea live
+                live_encoding, live_error = self.detect_and_encode_face(live_array)
+                if live_encoding is None:
+                    return False, live_error
 
-            # Extragere encoding-uri fețe
-            id_card_encoding, id_card_error = self.detect_and_encode_face(id_card_array)
-            if id_card_encoding is None:
-                return False, id_card_error
-
-            live_encoding, live_error = self.detect_and_encode_face(live_array)
-            if live_encoding is None:
-                return False, live_error
-
+            # Compararea fețelor
             face_distance = np.linalg.norm(id_card_encoding - live_encoding)
             match = face_distance < 0.6
 
@@ -142,9 +173,19 @@ class FaceRecognitionView(APIView):
             if not id_card_image or not live_image:
                 return Response({'error': 'Fisiere lipsa'}, status=status.HTTP_400_BAD_REQUEST)
 
-            # Convertim imaginile în format array pentru analiza
-            id_card_array = np.array(Image.open(io.BytesIO(id_card_image.read())).convert("RGB"))
-            live_array = np.array(Image.open(io.BytesIO(live_image.read())).convert("RGB"))
+            # Optimizare: Reducem dimensiunea imaginilor înainte de a le încărca în memorie
+            id_card_pil = Image.open(io.BytesIO(id_card_image.read())).convert("RGB")
+            live_pil = Image.open(io.BytesIO(live_image.read())).convert("RGB")
+            
+            # Redimensionează imaginile dacă sunt prea mari
+            max_size = 1024
+            if max(id_card_pil.size) > max_size:
+                id_card_pil.thumbnail((max_size, max_size), Image.LANCZOS)
+            if max(live_pil.size) > max_size:
+                live_pil.thumbnail((max_size, max_size), Image.LANCZOS)
+                
+            id_card_array = np.array(id_card_pil)
+            live_array = np.array(live_pil)
 
             match, message = self.compare_faces(id_card_array, live_array)
 
@@ -152,7 +193,6 @@ class FaceRecognitionView(APIView):
         except Exception as e:
             logger.error(f"Eroare server: {e}")
             return Response({'error': 'Eroare internă server'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
 
 toxic_classifier = pipeline("text-classification", model="unitary/toxic-bert")
 
