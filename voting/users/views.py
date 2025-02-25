@@ -40,169 +40,120 @@ import tracemalloc # pentru a monitoriza consumul de memorie
 import gc # pentru a elibera manual memoria utilizata de imaginile temporare
 import face_recognition
 import numpy as np
+import io
+from ultralytics import YOLO 
+
 
 
 logger = logging.getLogger(__name__)
 
 
+# Calea catre modelul de anti - spoofing
+MODEL_PATH = r"C:\Users\brj\Desktop\voting\media\models\l_version_1_300.pt"
+
 class FaceRecognitionView(APIView):
     permission_classes = [AllowAny]
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        # Incarca modelul YOLO pentru detectarea spoofing-ului
+        self.model = YOLO(MODEL_PATH)
 
-    def validate_image(self, image):
-        """Verifică dacă fișierul este o imagine validă"""
+    def detect_spoofing(self, image_array):
+        """Verifica daca imaginea este reala sau falsa folosind YOLO."""
         try:
-            img = Image.open(image)
-            img.verify()
-            return True
+
+            # Normalizare imagine si detectie spoofing cu YOLO 
+            gray = cv2.cvtColor(image_array, cv2.COLOR_RGB2GRAY) # Conversie la grayscale
+            normalized = cv2.equalizeHist(gray) # Ajustare contrast si luminozitate
+            image_array = cv2.cvtColor(normalized, cv2.COLOR_GRAY2RGB) # Conversie inapoi la RGB
+
+            results = self.model(image_array, stream=True, verbose=False)
+
+            for r in results:
+                for box in r.boxes:
+                    conf = box.conf[0].item()  # Scorul de incredere
+                    cls = int(box.cls[0].item())  # 0 = fake, 1 = real
+                    
+                    #Debugging - Afiseaza scorul de incredere si clasificarea modelului
+                    logger.info(f"Detectare spoofing - Scor: {conf}, Clasificare: {cls}")
+
+                    
+                    if conf > 0.6:  # Prag de incredere pentru autenticitate
+                        return cls == 1  # True daca imaginea este reala, False daca este fake
+
+            return False  # Daca nu detecteaza nimic, consideram imaginea falsa
         except Exception as e:
-            logger.error(f"Imagine invalidă: {str(e)}")
+            logger.error(f"Eroare la detectarea spoofing-ului: {e}")
             return False
 
-    def preprocess_image(self, image):
-        """Procesează imaginea în memorie"""
-        try:
-            img = Image.open(image)
-            img = img.convert("RGB")
-            
-            # Dimensiune optima pentru performanta si acuratete
-            min_size = 640
-            ratio = max(min_size/img.size[0], min_size/img.size[1])
-            new_size = (int(img.size[0]*ratio), int(img.size[1]*ratio))
-            img = img.resize(new_size, Image.Resampling.LANCZOS)
-            
-            return np.array(img)
-        except Exception as e:
-            logger.error(f"Eroare la procesarea imaginii: {str(e)}")
-            return None
-
     def detect_and_encode_face(self, image_array):
-        """Detectează și codifică fața dintr-un array NumPy"""
+        """Detecteaza si extrage encoding-ul fetei."""
         try:
-            # Verificam dimensiunea imaginii
-            if image_array.shape[0] < 100 or image_array.shape[1] < 100:
-                logger.warning(f"Imagine prea mică: {image_array.shape}")
-                return None
-                
-            # Incercam intai HOG (mai rapid)
             face_locations = face_recognition.face_locations(image_array, model="hog")
             if len(face_locations) == 0:
-                logger.info("HOG nu a detectat fața, încercăm cu CNN")
+                logger.info("HOG nu a detectat fata, incercam CNN")
                 face_locations = face_recognition.face_locations(image_array, model="cnn")
 
-            # Incercam CNN daca HOG nu a detectat nimic    
             if len(face_locations) == 0:
-                logger.warning("Nu s-a detectat nicio față în imagine")
-                return None
+                return None, "Nicio fata detectata in imagine"
 
-            #Verificam daca sunt fete multiple
             if len(face_locations) > 1:
-                logger.warning(f"S-au detectat {len(face_locations)} fețe în imagine")
-                return None, f"S-au detectat {len(face_locations)} fețe în imagine. Procesul necesită o singură față."
+                return None, "S-au detectat mai multe fete. Procesul necesita o singura fata."
 
             face_encodings = face_recognition.face_encodings(image_array, known_face_locations=face_locations)
-            
+
             if len(face_encodings) == 0:
-                logger.warning("Codificarea feței a eșuat")
-                return None
-                
+                return None, "Codificarea fetei a esuat"
+
             return face_encodings[0], None
         except Exception as e:
-            logger.error(f"Eroare la detectarea/codificarea feței: {str(e)}")
-            return None, f"Eroare la detectarea/codificarea feței: {str(e)}"
+            logger.error(f"Eroare la detectarea/codificarea fetei: {e}")
+            return None, f"Eroare la detectarea fetei: {e}"
 
-    def compare_faces(self, id_card_array, live_array, tolerance=0.6):
-        """Compară două fețe din array-uri NumPy"""
+    def compare_faces(self, id_card_array, live_array):
+        """Compara fetele doar daca imaginea live este autentica."""
         try:
+            if not self.detect_spoofing(live_array):
+                return False, "Frauda detectata: folositi o imagine reala!"
+
+            # Extragere encoding-uri fețe
             id_card_encoding, id_card_error = self.detect_and_encode_face(id_card_array)
             if id_card_encoding is None:
                 return False, id_card_error
-        
+
             live_encoding, live_error = self.detect_and_encode_face(live_array)
             if live_encoding is None:
-                 return False, live_error
+                return False, live_error
 
             face_distance = np.linalg.norm(id_card_encoding - live_encoding)
-            match = face_distance < tolerance
+            match = face_distance < 0.6
 
-            similarity = 1 - face_distance
-            similarity_percent = min(100, max(0, similarity * 100))  
-        
-            if match:
-                message = f"Identificare reușită! (similaritate: {similarity_percent:.2f}%)"
-            else:
-                message = f"Fețele nu corespund (similaritate: {similarity_percent:.2f}%)"
-
-            logger.info(f"Rezultat comparare: {message}")
-            return match, message
+            return match, "Identificare reusita!" if match else "Fetele nu se potrivesc."
         except Exception as e:
-             logger.error(f"Eroare la compararea fețelor: {str(e)}")
-             return False, f"Eroare la compararea fețelor: {str(e)}"
+            logger.error(f"Eroare la compararea fetelor: {e}")
+            return False, f"Eroare la compararea fetelor: {e}"
 
     def post(self, request):
-        """Procesează cererea POST pentru compararea fețelor"""
+        """Primeste imaginile si verifica autenticitatea + compara fetele."""
         try:
-            # Verificam existenta imaginilor
             id_card_image = request.FILES.get('id_card_image')
             live_image = request.FILES.get('live_image')
 
             if not id_card_image or not live_image:
-                return Response(
-                    {'error': 'Lipsesc fișierele necesare'}, 
-                    status=status.HTTP_400_BAD_REQUEST
-                )
+                return Response({'error': 'Fisiere lipsa'}, status=status.HTTP_400_BAD_REQUEST)
 
-            # Verificam dimensiunea fisierelor
-            max_file_size = 10 * 1024 * 1024  # 10 MB
-            if id_card_image.size > max_file_size or live_image.size > max_file_size:
-                return Response(
-                    {'error': 'Fișierul este prea mare'}, 
-                    status=status.HTTP_400_BAD_REQUEST
-                )
+            # Convertim imaginile în format array pentru analiza
+            id_card_array = np.array(Image.open(io.BytesIO(id_card_image.read())).convert("RGB"))
+            live_array = np.array(Image.open(io.BytesIO(live_image.read())).convert("RGB"))
 
-            # Validam formatul imaginilor
-            if not self.validate_image(id_card_image) or not self.validate_image(live_image):
-                return Response(
-                    {'error': 'Fișier corupt sau format invalid'}, 
-                    status=status.HTTP_400_BAD_REQUEST
-                )
+            match, message = self.compare_faces(id_card_array, live_array)
 
-            # Procesam imaginile in memorie
-            processed_id_image = self.preprocess_image(id_card_image)
-            processed_live_image = self.preprocess_image(live_image)
-
-            if processed_id_image is None or processed_live_image is None:
-                return Response(
-                    {'error': 'Eroare la procesarea imaginii'}, 
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-
-            # Comparam fetele
-            try:
-                match, message = self.compare_faces(processed_id_image, processed_live_image)
-            except Exception as e:
-                logger.error(f"Eroare la compararea fețelor: {str(e)}")
-                return Response(
-                    {'error': 'Eroare la compararea fețelor'}, 
-                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
-                )
-
-            return Response(
-                {
-                    'message': message, 
-                    'match': match
-                }, 
-                status=status.HTTP_200_OK
-
-            )
-
+            return Response({'message': message, 'match': match}, status=status.HTTP_200_OK)
         except Exception as e:
-            logger.error(f"Eroare neașteptată: {str(e)}")
-            return Response(
-                {'error': 'Eroare internă server'},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
-            
-# Model AI pentru detectia limbajului nepotrivit
+            logger.error(f"Eroare server: {e}")
+            return Response({'error': 'Eroare internă server'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
 toxic_classifier = pipeline("text-classification", model="unitary/toxic-bert")
 
 

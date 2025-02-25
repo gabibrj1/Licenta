@@ -23,6 +23,9 @@ import face_recognition
 import logging
 logger = logging.getLogger(__name__)
 
+
+
+
 # def load_and_encode_face(image_path):
 #     try:
 #         image = face_recognition.load_image_file(image_path)
