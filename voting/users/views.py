@@ -42,8 +42,8 @@ import face_recognition
 import numpy as np
 import io
 from ultralytics import YOLO 
-import threading
 import concurrent.futures
+
 
 
 logger = logging.getLogger(__name__)
@@ -107,7 +107,7 @@ class FaceRecognitionView(APIView):
             face_locations = face_recognition.face_locations(small_image, model="hog")
 
             if len(face_locations) == 0:
-                return None, "Nicio fata detectata in imagine"
+                return None, "Nicio fata detectata in imagine. Verificati pozitia si iluminarea."
 
             if len(face_locations) > 1:
                 return None, "S-au detectat mai multe fete. Procesul necesita o singura fata."

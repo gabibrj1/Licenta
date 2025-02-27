@@ -1125,6 +1125,9 @@ autoFillDataFromScan(): void {
       console.error("Eroare la pornirea camerei:", error);
     }
   }
+  clearUploadedImage(): void {
+    this.uploadedImagePath = null;
+  }
 
   async detectFaces(): Promise<void> {
     if (!this.videoElement?.nativeElement) {
@@ -1140,31 +1143,42 @@ autoFillDataFromScan(): void {
   
     this.faceDetectionInterval = window.setInterval(async () => {
       try {
-        //Dacă verificarea s-a încheiat, oprește detectarea feței
         if (this.recognitionComplete) {
           console.log("Recunoaștere completă. Oprim detectarea feței.");
-          
-          if (this.faceDetectionInterval !== null) {
-            clearInterval(this.faceDetectionInterval);
-            this.faceDetectionInterval = null;
-          }
-  
+          this.stopFaceDetection();
           return;
         }
   
-        // Detectăm toate fețele din cadru
         const detections = await faceapi.detectAllFaces(video, detectionOptions);
   
         if (detections && detections.length > 0) {
-          // Verifică dacă s-au detectat multiple fețe
           if (detections.length > 1) {
             this.faceDetected = false;
-            this.faceMatchMessage = '⚠️ S-au detectat multiple fețe! Procesul necesită o singură față.';
+            this.faceMatchMessage = '⚠️ S-au detectat multiple fețe! Procesul se va opri.';
             this.faceBoxClass = 'face-match-error';
+            
+            // Aplicăm blur-ul și păstrăm mesajul vizibil
+            this.isBlurring = true;
+            this.showResultIcon = true;
+            this.resultIcon = '⚠️';
+          
             this.cdr.detectChanges();
-            // Nu trimitem nimic către backend
+          
+            // După 2 secunde, închidem camera și resetăm totul
+            setTimeout(() => {
+              this.stopCamera();
+              this.isFaceRecognitionActive = false;
+              this.isBlurring = false;
+              this.showResultIcon = false;
+              this.hideFaceBox = false;
+              this.stopFaceDetection();
+              this.clearUploadedImage();
+              this.cdr.detectChanges();
+            }, 2000);
+          
             return;
           }
+          
   
           // O singură față detectată - continuă procesul normal
           const detection = detections[0];
@@ -1190,18 +1204,7 @@ autoFillDataFromScan(): void {
           }
         } else {
           this.faceDetected = false;
-  
-          if (this.recognitionComplete) {
-            console.log("Verificare completă. Oprire detectare.");
-            
-            if (this.faceDetectionInterval !== null) {
-              clearInterval(this.faceDetectionInterval);
-              this.faceDetectionInterval = null;
-            }
-  
-          } else {
-            this.faceMatchMessage = '🔍 Se caută fața în cadru...';
-          }
+          this.faceMatchMessage = '🔍 Se caută fața în cadru...';
         }
   
         this.cdr.detectChanges();
@@ -1210,6 +1213,13 @@ autoFillDataFromScan(): void {
       }
     }, 100);
   }
+  stopFaceDetection(): void {
+    if (this.faceDetectionInterval !== null) {
+      clearInterval(this.faceDetectionInterval);
+      this.faceDetectionInterval = null;
+    }
+  }
+  
   
   
   // Metodă nouă pentru capturarea și trimiterea cadrului
