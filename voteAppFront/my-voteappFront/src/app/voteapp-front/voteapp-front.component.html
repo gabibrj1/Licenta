@@ -275,8 +275,17 @@
         {{ autoFillMessage }}
       </div>
 
-      <button mat-raised-button color="primary" type="button" (click)="startFaceRecognition()">
+      <button mat-raised-button color="primary" type="button" 
+      (click)="startFaceRecognition()" 
+      *ngIf="!faceMatched">
         💳 Înregistrează-te cu buletinul
+      </button>
+
+
+      <button mat-raised-button color="accent" type="button" 
+      (click)="continueRegistration()" 
+      *ngIf="faceMatched">
+        🔄 Continuă înregistrarea cu buletinul
       </button>
 
 

@@ -347,9 +347,6 @@ export class VoteappFrontComponent implements OnInit, AfterViewInit {
     });
   }
   
-
-
-  
   onFileUpload(event: any): void {
     const dialogRef = this.dialog.open(WarningDialogComponent, { width: '400px' });
     dialogRef.afterClosed().subscribe((result) => {
@@ -389,6 +386,7 @@ export class VoteappFrontComponent implements OnInit, AfterViewInit {
         if (response.cropped_image_path) {
           this.autoFillMessage = 'Imaginea a fost procesată. Apasă pe Autofill pentru completare!';
           this.uploadedImagePath = `http://127.0.0.1:8000${response.cropped_image_path}`;
+          this.faceMatched = false; // Resetam identificarea faciala pentru o noua imagine
         } else {
           this.autoFillMessage = 'Nu s-au putut extrage datele din imagine.';
         }
@@ -1127,6 +1125,8 @@ autoFillDataFromScan(): void {
   }
   clearUploadedImage(): void {
     this.uploadedImagePath = null;
+    this.faceMatched = false; 
+    this.faceMatchMessage = '';
   }
 
   async detectFaces(): Promise<void> {
@@ -1302,5 +1302,10 @@ autoFillDataFromScan(): void {
   ngOnDestroy(): void {
     this.stopCamera();
   }
+  continueRegistration(): void {
+    this.showSuccessMessage("Continuăm înregistrarea...");
+   
+  }
+  
   
 } 
