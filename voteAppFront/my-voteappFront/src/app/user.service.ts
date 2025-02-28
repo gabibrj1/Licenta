@@ -37,7 +37,7 @@ export class UserService {
   
 
   registerWithIDCard(userData: any): Observable<any> {
-    return this.http.post(`${this.apiUrl}register-with-id/`, userData).pipe(
+    return this.http.post(`${this.apiUrl}register-with-id-card/`, userData).pipe(
       catchError(this.handleError)
     );
   }

@@ -11,6 +11,7 @@ from .views import DetectIDCardView
 from .views import ManipulateImageView
 from .views import ValidateLocalityView
 from .views import FaceRecognitionView
+from .views import RegisterWithIDCardView
 
 
 urlpatterns = [
@@ -32,5 +33,6 @@ urlpatterns = [
     path('manipulate-image/', ManipulateImageView.as_view(), name='manipulate-image'),
     path('validate-locality/', ValidateLocalityView.as_view(), name='validate-locality'),
     path('face-recognition/', FaceRecognitionView.as_view(), name='face-recognition'),
+    path('register-with-id-card/', RegisterWithIDCardView.as_view(), name='register-with-id-card'),
 
 ]

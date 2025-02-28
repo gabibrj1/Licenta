@@ -935,23 +935,31 @@ autoFillDataFromScan(): void {
   
   
   
-  fileFromUploadedPath(imagePath: string): Promise<File> {
-    const cleanPath = imagePath.split('?')[0];  // Elimină orice parametri extra
+  fileFromUploadedPath(imagePath: string | null): Promise<File> {
+    return new Promise((resolve, reject) => {
+      if (!imagePath) {
+        reject("Nu există o imagine încărcată.");
+        return;
+      }
   
-    return fetch(cleanPath)
-      .then(res => {
-        if (!res.ok) throw new Error("Eroare la descărcarea imaginii");
-        return res.blob();
-      })
-      .then(blob => {
-        const fileName = cleanPath.split('/').pop() || 'id_card.jpg';
-        return new File([blob], fileName, { type: blob.type });
-      })
-      .catch(error => {
-        console.error("Eroare la conversia imaginii:", error);
-        throw error;
-      });
+      const cleanPath = imagePath.split('?')[0];  // Elimină orice parametri extra
+  
+      fetch(cleanPath)
+        .then(res => {
+          if (!res.ok) throw new Error("Eroare la descărcarea imaginii");
+          return res.blob();
+        })
+        .then(blob => {
+          const fileName = cleanPath.split('/').pop() || 'id_card.jpg';
+          resolve(new File([blob], fileName, { type: blob.type }));
+        })
+        .catch(error => {
+          console.error("Eroare la conversia imaginii:", error);
+          reject(error);
+        });
+    });
   }
+  
     
   dataURItoBlobId(dataURI: string): Blob {
     const byteString = atob(dataURI.split(',')[1]);
@@ -1303,8 +1311,62 @@ autoFillDataFromScan(): void {
     this.stopCamera();
   }
   continueRegistration(): void {
-    this.showSuccessMessage("Continuăm înregistrarea...");
-   
+    if (!this.idCardForm.valid) {
+      this.showErrorMessage("Toate câmpurile sunt obligatorii!");
+      return;
+    }
+  
+    this.isLoading = true;
+    const formData = new FormData();
+  
+    // Formatarea corectă a datei pentru Django (YYYY-MM-DD)
+    const formattedIssueDate = new Date(this.idCardForm.value.date_of_issue).toISOString().split('T')[0];
+    const formattedExpiryDate = new Date(this.idCardForm.value.date_of_expiry).toISOString().split('T')[0];
+  
+    // Adăugăm datele din formular în formData
+    formData.append('cnp', this.idCardForm.value.cnp);
+    formData.append('series', this.idCardForm.value.series);
+    formData.append('number', this.idCardForm.value.number);
+    formData.append('first_name', this.idCardForm.value.first_name);
+    formData.append('last_name', this.idCardForm.value.last_name);
+    formData.append('place_of_birth', this.idCardForm.value.place_of_birth);
+    formData.append('address', this.idCardForm.value.address);
+    formData.append('issuing_authority', this.idCardForm.value.issuing_authority);
+    formData.append('sex', this.idCardForm.value.sex);
+    formData.append('date_of_issue', formattedIssueDate);
+    formData.append('date_of_expiry', formattedExpiryDate);
+  
+    // Atașăm imaginea buletinului
+    this.fileFromUploadedPath(this.uploadedImagePath)
+      .then((file) => {
+        formData.append('id_card_image', file, 'id_card.jpg');
+  
+        // Apelăm serviciul de înregistrare
+        this.userService.registerWithIDCard(formData).subscribe({
+          next: (response) => {
+            this.isLoading = false;
+            this.showSuccessMessage(response.message || "Înregistrarea a fost realizată cu succes!");
+            this.router.navigate(['/auth']); // Navigăm către dashboard după înregistrare
+          },
+          error: (error) => {
+            this.isLoading = false;
+            console.error("Eroare la înregistrarea cu buletinul:", error);
+            
+            // Extragem și afișăm mesajele de eroare primite de la backend
+            if (error.error) {
+              let errorMessages = Object.values(error.error).flat().join(' ');
+              this.showErrorMessage(errorMessages || "A apărut o eroare în timpul înregistrării.");
+            } else {
+              this.showErrorMessage("A apărut o eroare necunoscută.");
+            }
+          }
+        });
+      })
+      .catch((error) => {
+        this.isLoading = false;
+        console.error("Eroare la conversia imaginii:", error);
+        this.showErrorMessage("Eroare la procesarea imaginii buletinului.");
+      });
   }
   
   

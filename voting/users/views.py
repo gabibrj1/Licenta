@@ -43,10 +43,45 @@ import numpy as np
 import io
 from ultralytics import YOLO 
 import concurrent.futures
+from .serializers import IDCardRegistrationSerializer
 
 
 
 logger = logging.getLogger(__name__)
+
+class RegisterWithIDCardView(APIView):
+    parser_classes = (MultiPartParser, FormParser)
+    permission_classes = [AllowAny] 
+
+    def post(self, request):
+        serializer = IDCardRegistrationSerializer(data=request.data)
+
+        if serializer.is_valid():
+            # Verificam daca utilizatorul exista deja
+            cnp = serializer.validated_data.get("cnp")
+            email = serializer.validated_data.get("email")
+
+            existing_user = None
+            if cnp:
+                existing_user = User.objects.filter(cnp=cnp).first()
+            elif email:
+                existing_user = User.objects.filter(email=email).first()
+
+            if existing_user:
+                return Response({'error': 'Utilizatorul există deja. Încearcă să te autentifici.'}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Cream un nou utilizator
+            user = serializer.save(is_active=False, is_verified_by_id=True)  # 🔹 Initial, contul este inactiv
+
+            # Salvam imaginea buletinului daca este incarcata
+            image = request.FILES.get('id_card_image')
+            if image:
+                user.id_card_image.save(f'id_cards/{user.id}_{image.name}', image, save=True)
+
+            return Response({'message': 'Înregistrare cu buletinul completată cu succes!'}, status=status.HTTP_201_CREATED)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 
 # Calea catre modelul de anti - spoofing

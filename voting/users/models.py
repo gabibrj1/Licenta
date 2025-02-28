@@ -3,42 +3,45 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
 
-#manager personalizat pentru User
+# Manager personalizat pentru User
 class CustomUserManager(BaseUserManager):
     
-    #crearea unui utilizator obisnuit
+    # Crearea unui utilizator obișnuit
     def create_user(self, email=None, password=None, cnp=None, **extra_fields):
         if not email and not cnp:
-            raise ValueError('Utilizatorii trebuie să aibă fie o adresă de email, fie un CNP.')
+            raise ValueError('Utilizatorii trebuie să aibă fie o adresă de email, fie un CNP.')
+        
+        # Creăm utilizatorul și normalizăm email-ul
         user = self.model(
             email=self.normalize_email(email) if email else None,
             cnp=cnp,
             **extra_fields
         )
 
-        #setam parola daca este furnizata 
+        # Setăm parola dacă este furnizată
         if password:
             user.set_password(password)
 
         user.save(using=self._db)
         return user
 
-def create_superuser(self, email, password=None, **extra_fields):
-    extra_fields.setdefault('is_staff', True)
-    extra_fields.setdefault('is_superuser', True)
-    extra_fields.setdefault('is_active', True)
+    # Crearea unui superuser
+    def create_superuser(self, email, password=None, **extra_fields):
+        extra_fields.setdefault('is_staff', True)
+        extra_fields.setdefault('is_superuser', True)
+        extra_fields.setdefault('is_active', True)
 
-    #verif ca atributele pt admin sa fie corecte
-    if extra_fields.get('is_staff') is not True:
-        raise ValueError('Superuser must have is_staff=True.')
-    if extra_fields.get('is_superuser') is not True:
-        raise ValueError('Superuser must have is_superuser=True.')
+        # Verificăm că atributele pentru admin sunt corecte
+        if extra_fields.get('is_staff') is not True:
+            raise ValueError('Superuser trebuie să aibă is_staff=True.')
+        if extra_fields.get('is_superuser') is not True:
+            raise ValueError('Superuser trebuie să aibă is_superuser=True.')
 
-    return self.create_user(email, password, **extra_fields)
+        return self.create_user(email, password, **extra_fields)
 
-#modelul personalizat de utilizator
+# Modelul personalizat de utilizator
 class User(AbstractBaseUser, PermissionsMixin):
-    #email ul este unic, dar optional, pt a permite autentif si prin buletin
+    # Email-ul este unic, dar opțional, pentru a permite autentificare și prin buletin
     email = models.EmailField(_('email address'), unique=True, blank=True, null=True)
     first_name = models.CharField(_('first name'), max_length=255, blank=True)
     last_name = models.CharField(_('last name'), max_length=255, blank=True)
@@ -60,19 +63,21 @@ class User(AbstractBaseUser, PermissionsMixin):
     
     is_verified_by_id = models.BooleanField(default=False)
     verification_code = models.CharField(max_length=6, blank=True, null=True)
-    
-    #adaugam camp pentru imaginea fetei utilizatorului
-    face_image = models.ImageField(upload_to='faces/', blank=True, null=True)
+
+    # Camp pentru a salva imaginea buletinului
+    id_card_image = models.ImageField(
+        _('ID Card Image'), upload_to='id_cards/', blank=True, null=True
+    )
 
     username = None
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = []
 
-    #asociem managerul personalizat
+    # Asociem managerul personalizat
     objects = CustomUserManager()
 
-    #repr textuala a modelului ( email sau cnp )
-    def __str__(self):
+    # Reprezentare textuala a modelului (email sau CNP)
+    def _str_(self):
         return self.email if self.email else self.cnp
 
     class Meta:
