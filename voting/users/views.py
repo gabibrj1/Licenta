@@ -44,7 +44,7 @@ import io
 from ultralytics import YOLO 
 import concurrent.futures
 from .serializers import IDCardRegistrationSerializer
-
+from django.utils.decorators import method_decorator
 
 
 logger = logging.getLogger(__name__)
@@ -752,7 +752,50 @@ class SocialLoginCallbackView(APIView):
         except Exception as e:
             return Response({'error': str(e)}, status=400)
 
-#view pt autentif clasica cu mail si parola   
+#view pentru autentificarea cu buletin
+@method_decorator(csrf_exempt, name='dispatch')
+class LoginWithIDCardView(APIView):
+
+    authentication_classes = [] # Permite autentificarea si fara token JWT
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        cnp = request.data.get('cnp')
+        series = request.data.get('series')
+        first_name = request.data.get('first_name')
+        last_name = request.data.get('last_name')
+
+        if not cnp or not series or not first_name or not last_name:
+            return Response(
+                {"detail": "Toate câmpurile sunt necesare pentru autentificare cu buletinul."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            user = User.objects.get(cnp=cnp, series=series, first_name=first_name, last_name=last_name)
+        except User.DoesNotExist:
+            return Response(
+                {"detail": "Autentificare eșuată. Verifică datele introduse."},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+        
+        # Verifica daca utilizatorul este verificat prin buletin
+        if user.is_verified_by_id and not user.is_active:
+            user.is_active = True
+            user.save()
+        
+
+        # Generăm tokeni JWT pentru sesiunea utilizatorului
+        refresh = RefreshToken.for_user(user)
+        return Response({
+            'refresh': str(refresh),
+            'access': str(refresh.access_token),
+            'cnp': user.cnp # Adaugam cnp in raspuns pentru a fi folosit in frontend
+        }, status=status.HTTP_200_OK)
+
+
+
+# view pt autentif clasica cu mail si parola   
 class LoginView(APIView):
     permission_classes = [AllowAny]  # Permite accesul public pentru autentificare
 

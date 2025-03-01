@@ -74,9 +74,6 @@ export class AuthComponent {
     });
   }
   
-  
-  
-
   toggleDarkMode() {
     this.darkMode = !this.darkMode;
     localStorage.setItem('darkMode', JSON.stringify(this.darkMode));
@@ -100,13 +97,49 @@ export class AuthComponent {
   }
 
   onSubmit(): void {
-    if (this.email && this.password) {
-      this.isLoading = true;
+    this.isLoading = true;
+  
+    if (this.useIdCardAuth) {
+      // Autentificare prin buletin
+      if (!this.cnp || !this.series || !this.firstName || !this.lastName) {
+        this.showErrorMessage('Toate câmpurile pentru autentificare prin buletin sunt obligatorii.');
+        this.isLoading = false;
+        return;
+      }
+  
+      const idCardAuthData = {
+        cnp: this.cnp,
+        series: this.series,
+        first_name: this.firstName,
+        last_name: this.lastName
+      };
+  
+      this.authService.loginWithIDCard(idCardAuthData).subscribe(
+        (response: any) => {
+          localStorage.setItem('access_token', response.access);
+          localStorage.setItem('refresh_token', response.refresh);
+          this.snackBar.open('Autentificare reușită!', 'Închide', { duration: 3000 });
+          this.router.navigate(['/menu']);
+        },
+        (error) => {
+          console.error('Autentificare eșuată', error);
+          this.showErrorMessage('Autentificarea a eșuat. Verifică datele introduse.');
+          this.isLoading = false;
+        }
+      );
+  
+    } else {
+      // Autentificare standard cu email și parolă
+      if (!this.email || !this.password) {
+        this.showErrorMessage('Te rugăm să introduci email-ul și parola.');
+        this.isLoading = false;
+        return;
+      }
+  
       this.authService.login(this.email, this.password).subscribe(
         (response: any) => {
           localStorage.setItem('access_token', response.access);
           localStorage.setItem('refresh_token', response.refresh);
-
           this.snackBar.open('Autentificare reușită!', 'Închide', { duration: 3000 });
           this.router.navigate(['/menu']);
         },
@@ -116,15 +149,9 @@ export class AuthComponent {
           this.isLoading = false;
         }
       );
-    } else {
-      this.showErrorMessage('Te rugăm să introduci email-ul și parola.');
     }
   }
-
   
-  
-  
-
 
   private showErrorMessage(message: string) {
     this.snackBar.open(message, 'Închide', {
@@ -172,7 +199,6 @@ export class AuthComponent {
         );
     }
 }
-
 
   openCamera() {
     this.isCameraOpen = true;
@@ -224,8 +250,6 @@ export class AuthComponent {
       window.location.href = 'http://localhost:8000/accounts/google/login';
     }, 1000); 
   }
-
-
 
   loginWithFacebook() {
     this.isLoading = true;

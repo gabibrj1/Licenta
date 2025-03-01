@@ -60,12 +60,19 @@ export class AuthService {
   }
 
   // Autentificare cu buletin (CNP, serie, nume si prenume)
-  loginWithIDCard(cnp: string, series: string, firstName: string, lastName: string): Observable<any> {
-    const idCardData = { cnp, series, firstName, lastName };
-    return this.http.post(`${this.apiUrl}/auth/id-card-login`, idCardData).pipe(
-      catchError(this.handleError)
+  loginWithIDCard(data: any): Observable<any> {
+    return this.http.post(`${this.apiUrl}login-id-card/`, data).pipe(
+      tap((response: any) => {
+        console.log('Token primit:', response);
+        localStorage.setItem('access_token', response.access);
+        localStorage.setItem('refresh_token', response.refresh);
+        localStorage.setItem('user_cnp', response.cnp); // Salvăm CNP-ul pentru meniu
+      })
     );
   }
+
+
+  
 
   // incarcare imagine buletin
   uploadIDCard(formData: FormData): Observable<any> {
