@@ -1,3 +1,4 @@
+<!-- Actualizare la auth.component.html -->
 <app-header></app-header>
 <div class="page-container">
   <div class="auth-container" [ngClass]="{'dark-mode': darkMode}">
@@ -11,12 +12,12 @@
 
     <form (ngSubmit)="onSubmit()">
    
-      <mat-form-field appearance="fill">
+      <mat-form-field appearance="fill" *ngIf="!useIdCardAuth">
         <mat-label>Email</mat-label>
         <input matInput type="email" [(ngModel)]="email" name="email" required />
       </mat-form-field>
 
-      <mat-form-field appearance="fill">
+      <mat-form-field appearance="fill" *ngIf="!useIdCardAuth">
         <mat-label>Parolă</mat-label>
         <input matInput type="password" [(ngModel)]="password" name="password" required />
       </mat-form-field>
@@ -53,44 +54,63 @@
           <input matInput type="text" [(ngModel)]="series" name="series" required />
         </mat-form-field>
 
-  
-        <div class="camera-upload-buttons">
-          <button mat-raised-button color="accent" class="unified-btn" (click)="openCamera()">📸 Deschide Camera</button>
-          <label class="unified-btn upload-btn">
-            <input type="file" (change)="onFileUpload($event)" />
-            📁 Upload Imagine
-          </label>
-        </div>
-
-        <div class="image-info">
-          <span *ngIf="uploadedImageName">{{ uploadedImageName }}</span>
-          <span *ngIf="capturedImage">C.I.</span>
-          <button *ngIf="uploadedImageName || capturedImage" mat-raised-button color="warn" (click)="deleteImage()">
-            🗑️ Șterge Imagine
+        <!-- Butonul pentru verificare facială -->
+        <div class="auth-options">
+          <button mat-raised-button 
+                  type="button" 
+                  class="face-auth-btn" 
+                  (click)="startFaceRecognition()" 
+                  [disabled]="!cnp || !series || !firstName || !lastName">
+            <mat-icon>face</mat-icon> Verificare Facială
           </button>
         </div>
 
-        <div *ngIf="isCameraOpen" class="camera-container">
-          <video #video autoplay></video>
-          <button mat-icon-button color="warn" class="close-camera-btn" (click)="closeCamera()">❌</button>
-          <button mat-raised-button color="primary" (click)="capturePhoto()">Capturează Imagine</button>
+        <!-- Container pentru recunoașterea facială -->
+        <div *ngIf="isFaceRecognitionActive" class="face-recognition-container">
+          <div class="video-container" [ngClass]="{'video-blur': isBlurring}">
+            <video #video autoplay></video>
+            
+            <!-- Casetă pentru detecția feței -->
+            <div *ngIf="faceDetected && !hideFaceBox" class="face-box" 
+                [ngClass]="faceBoxClass"
+                [ngStyle]="{'top.px': faceBox?.top, 'left.px': faceBox?.left, 
+                            'width.px': faceBox?.width, 'height.px': faceBox?.height}">
+            </div>
+            
+            <!-- Icon pentru rezultatul recunoașterii -->
+            <div *ngIf="showResultIcon" class="result-icon">
+              {{ resultIcon }}
+            </div>
+          </div>
+          
+          <!-- Mesaj de stare pentru recunoașterea facială -->
+          <div class="face-recognition-status">
+            {{ faceMatchMessage }}
+          </div>
+          
+          <!-- Controale pentru camera de recunoaștere facială -->
+          <div class="face-recognition-controls">
+            <button mat-raised-button color="warn" (click)="stopCamera()">
+              <mat-icon>cancel</mat-icon> Anulează
+            </button>
+          </div>
         </div>
       </div>
 
-    
-      <button mat-raised-button color="primary" type="submit">
-        Autentificare
+      <!-- Buton de submit pentru autentificare -->
+      <button mat-raised-button color="primary" type="submit" [disabled]="isLoading">
+        <span *ngIf="!isLoading">Autentificare</span>
+        <mat-spinner *ngIf="isLoading" diameter="25" color="accent"></mat-spinner>
       </button>
       
-
- 
+      <!-- Link către resetarea parolei -->
       <div class="forgot-password">
         <a href="http://localhost:8000/accounts/password/reset/">Ai uitat parola?</a>
       </div>
-      
     </form>
+    
+    <!-- Autentificare socială -->
     <div class="social-login">
-
       <button mat-raised-button class="google-btn" color="primary" (click)="loginWithGoogle()">
         <i class="fab fa-google"></i> Google
       </button>
@@ -103,5 +123,6 @@
         <div class="ball"></div>
         <p>Redirecționare în curs...</p>
       </div>
+    </div>
   </div>
 </div>

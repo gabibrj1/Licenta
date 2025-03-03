@@ -70,6 +70,9 @@ export class AuthService {
       })
     );
   }
+  loginWithFaceRecognition(formData: FormData): Observable<any> {
+    return this.http.post(`${this.apiUrl}login-id-card/`, formData);
+  }
 
 
   

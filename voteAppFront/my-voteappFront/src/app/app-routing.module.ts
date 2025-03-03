@@ -6,14 +6,15 @@ import { AuthComponent } from './auth/auth.component';
 import { HomeComponent } from './home/home.component';
 import { MenuComponent } from './menu/menu.component';
 import { ReviewsComponent } from './reviews/reviews.component';
+import { AuthGuard } from './guards/auth.guard';
 const routes: Routes = [
   { path: '', component: HomeComponent },
   { path: 'auth', component: AuthComponent },
-  { path: 'menu', component: MenuComponent},
+  { path: 'menu', component: MenuComponent, canActivate: [AuthGuard] },
   { path: 'verify-email', component: VerifyEmailComponent },
   { path: 'voteapp-front', component: VoteappFrontComponent},
   { path: 'reviews', component: ReviewsComponent },
-  { path: '**', redirectTo: ''} //redirect pt rute inexistente
+  { path: '**', redirectTo: '/auth'} //redirect pt rute inexistente
 ];
 
 @NgModule({

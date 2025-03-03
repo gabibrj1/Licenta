@@ -77,8 +77,8 @@ class User(AbstractBaseUser, PermissionsMixin):
     objects = CustomUserManager()
 
     # Reprezentare textuala a modelului (email sau CNP)
-    def _str_(self):
-        return self.email if self.email else self.cnp
+    def __str__(self):
+        return self.email if self.email else self.cnp if self.cnp else "Utilizator fără identificare"
 
     class Meta:
         verbose_name = _('user')

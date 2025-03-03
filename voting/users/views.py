@@ -45,7 +45,7 @@ from ultralytics import YOLO
 import concurrent.futures
 from .serializers import IDCardRegistrationSerializer
 from django.utils.decorators import method_decorator
-
+from django.core.files.storage import default_storage
 
 logger = logging.getLogger(__name__)
 
@@ -89,8 +89,8 @@ MODEL_PATH = r"C:\Users\brj\Desktop\voting\media\models\l_version_1_300.pt"
 
 class FaceRecognitionView(APIView):
     permission_classes = [AllowAny]
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+    def _init_(self, **kwargs):
+        super()._init_(**kwargs)
         # Incarca modelul YOLO pentru detectarea spoofing-ului
         self.model = YOLO(MODEL_PATH)
 
@@ -357,8 +357,8 @@ class UploadIdView(APIView):
     parser_classes = (MultiPartParser, FormParser)
     permission_classes = [AllowAny]
 
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+    def _init_(self, **kwargs):
+        super()._init_(**kwargs)
         # Citim cuvintele cheie din fisierul CSV
         self.valid_keywords = load_valid_keywords(settings.VALID_KEYWORDS_CSV)
     
@@ -421,8 +421,8 @@ class ValidateLocalityView(APIView):
     """
     permission_classes = []
 
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+    def _init_(self, **kwargs):
+        super()._init_(**kwargs)
         try:
             self.matcher = LocalityMatcher(settings.LOCALITATI_CSV_PATH)
         except Exception as e:
@@ -518,7 +518,7 @@ class ManipulateImageView(APIView):
 
             # Genereaza un nou nume de fisier bazat pe actiune
             if action == 'rotate':
-                new_base_name = f"{base_name}_rotated_{angle}"
+                new_base_name = f"{base_name}rotated{angle}"
             else:  # flip
                 if '_flipped' in base_name:
                     # Daca imaginea este deja oglindita, revenim la versiunea neoglindita
@@ -755,44 +755,97 @@ class SocialLoginCallbackView(APIView):
 #view pentru autentificarea cu buletin
 @method_decorator(csrf_exempt, name='dispatch')
 class LoginWithIDCardView(APIView):
-
-    authentication_classes = [] # Permite autentificarea si fara token JWT
     permission_classes = [AllowAny]
 
-    def post(self, request):
-        cnp = request.data.get('cnp')
-        series = request.data.get('series')
-        first_name = request.data.get('first_name')
-        last_name = request.data.get('last_name')
+    def detect_and_encode_face(self, image_array):
+        """Detectează și extrage encoding-ul feței."""
+        try:
+            face_locations = face_recognition.face_locations(image_array, model="hog")
 
-        if not cnp or not series or not first_name or not last_name:
+            if len(face_locations) == 0:
+                return None, "Nicio față detectată în imagine."
+
+            if len(face_locations) > 1:
+                return None, "S-au detectat mai multe fețe. Folosiți doar una."
+
+            face_encodings = face_recognition.face_encodings(image_array, known_face_locations=face_locations)
+
+            if len(face_encodings) == 0:
+                return None, "Codificarea feței a eșuat."
+
+            return face_encodings[0], None
+        except Exception as e:
+            return None, f"Eroare la detectarea feței: {e}"
+
+    def compare_faces(self, id_card_array, live_array):
+        """Compară fața din baza de date cu cea transmisă live."""
+        try:
+            # Obținem encoding-ul pentru ambele imagini
+            id_card_encoding, id_card_error = self.detect_and_encode_face(id_card_array)
+            if id_card_encoding is None:
+                return False, id_card_error
+
+            live_encoding, live_error = self.detect_and_encode_face(live_array)
+            if live_encoding is None:
+                return False, live_error
+
+            # Compararea fețelor
+            face_distance = np.linalg.norm(id_card_encoding - live_encoding)
+            match = face_distance < 0.6
+
+            return match, "Identificare reușită!" if match else "Fetele nu se potrivesc."
+        except Exception as e:
+            return False, f"Eroare la compararea fețelor: {e}"
+
+    def post(self, request):
+        """Autentifică utilizatorul prin CNP + imagine live."""
+        cnp = request.data.get('cnp')
+        live_image = request.FILES.get('live_image')
+
+        if not cnp or not live_image:
             return Response(
-                {"detail": "Toate câmpurile sunt necesare pentru autentificare cu buletinul."},
-                status=status.HTTP_400_BAD_REQUEST
+                {"detail": "CNP și imaginea live sunt necesare pentru autentificare."},
+                status=400
             )
 
         try:
-            user = User.objects.get(cnp=cnp, series=series, first_name=first_name, last_name=last_name)
+            user = User.objects.get(cnp=cnp)
         except User.DoesNotExist:
-            return Response(
-                {"detail": "Autentificare eșuată. Verifică datele introduse."},
-                status=status.HTTP_401_UNAUTHORIZED
-            )
-        
-        # Verifica daca utilizatorul este verificat prin buletin
-        if user.is_verified_by_id and not user.is_active:
-            user.is_active = True
-            user.save()
-        
+            return Response({"detail": "Utilizator inexistent."}, status=401)
 
-        # Generăm tokeni JWT pentru sesiunea utilizatorului
-        refresh = RefreshToken.for_user(user)
-        return Response({
-            'refresh': str(refresh),
-            'access': str(refresh.access_token),
-            'cnp': user.cnp # Adaugam cnp in raspuns pentru a fi folosit in frontend
-        }, status=status.HTTP_200_OK)
+        if not user.is_verified_by_id:
+            return Response({"detail": "Contul nu este verificat prin buletin."}, status=403)
 
+        # Citim imaginea live și imaginea din baza de date
+        live_pil = Image.open(io.BytesIO(live_image.read())).convert("RGB")
+
+        if user.id_card_image:
+            # Citim imaginea din baza de date
+            id_card_path = user.id_card_image.path if default_storage.exists(user.id_card_image.name) else None
+            if not id_card_path:
+                return Response({"detail": "Nu există imaginea de referință în baza de date."}, status=404)
+
+            id_card_pil = Image.open(id_card_path).convert("RGB")
+
+            # Convertim în array-uri NumPy
+            id_card_array = np.array(id_card_pil)
+            live_array = np.array(live_pil)
+
+            match, message = self.compare_faces(id_card_array, live_array)
+
+            if not match:
+                return Response({"detail": message}, status=401)
+
+            # Generăm tokeni JWT
+            refresh = RefreshToken.for_user(user)
+            return Response({
+                'refresh': str(refresh),
+                'access': str(refresh.access_token),
+                'cnp': user.cnp,
+                'message': "Autentificare reușită!"
+            }, status=200)
+
+        return Response({"detail": "Imaginea de referință lipsește."}, status=404)
 
 
 # view pt autentif clasica cu mail si parola   
@@ -927,4 +980,4 @@ def send_feedback(request):
     email.content_subtype = 'html'
     email.send()
 
-    return Response({'message': 'Feedback-ul a fost trimis cu succes!'}, status=status.HTTP_200_OK) 
+    return Response({'message': 'Feedback-ul a fost trimis cu succes!'}, status=status.HTTP_200_OK)
