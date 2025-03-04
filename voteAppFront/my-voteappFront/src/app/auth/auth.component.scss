@@ -469,5 +469,65 @@
       background-color: rgba(255, 255, 255, 0.05);
       color: #f0f0f0;
     }
+    
   }
+}
+/* Stiluri pentru reCAPTCHA */
+.captcha-container {
+  margin: 20px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.captcha-info {
+  margin-bottom: 10px;
+  color: #f44336;
+  font-weight: 500;
+  transition: color 0.3s ease;
+}
+
+.captcha-verified {
+  color: #4caf50;
+}
+
+/* Stilizare pentru indicator de verificare */
+.auth-container form {
+  position: relative;
+}
+
+.auth-container form::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(to right, #f44336 50%, #4caf50 50%);
+  background-size: 200% 100%;
+  background-position: 100% 0;
+  transition: background-position 0.5s ease;
+}
+
+.auth-container form.captcha-verified::before {
+  background-position: 0 0;
+}
+
+/* Stiluri pentru butoane dezactivate */
+button[disabled] {
+  opacity: 0.7 !important;
+  cursor: not-allowed !important;
+}
+
+/* Stiluri pentru dark mode */
+.dark-mode .captcha-info {
+  color: #ff6161;
+}
+
+.dark-mode .captcha-verified {
+  color: #69f0ae;
+}
+
+.dark-mode .g-recaptcha {
+  filter: invert(85%) hue-rotate(180deg);
 }

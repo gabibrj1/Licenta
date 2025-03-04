@@ -46,6 +46,7 @@ import concurrent.futures
 from .serializers import IDCardRegistrationSerializer
 from django.utils.decorators import method_decorator
 from django.core.files.storage import default_storage
+from .utils import verify_recaptcha
 
 logger = logging.getLogger(__name__)
 
@@ -54,6 +55,12 @@ class RegisterWithIDCardView(APIView):
     permission_classes = [AllowAny] 
 
     def post(self, request):
+        recaptcha_token = request.data.get('recaptcha')
+        if not verify_recaptcha(recaptcha_token):
+            return Response(
+                {"detail": "Verificarea reCAPTCHA a eșuat. Te rugăm să încerci din nou."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
         serializer = IDCardRegistrationSerializer(data=request.data)
 
         if serializer.is_valid():
@@ -799,6 +806,13 @@ class LoginWithIDCardView(APIView):
 
     def post(self, request):
         """Autentifică utilizatorul prin CNP + imagine live."""
+        # Verificam token ul reCAPTCHA
+        recaptcha_token = request.data.get('recaptcha')
+        if not verify_recaptcha(recaptcha_token):
+            return Response(
+                {"detail:": "Verificarea reCAPTCHA a esuat. Te Rugam sa incerci din nou"},
+                status= status.HTTP_400_BAD_REQUEST
+            )
         cnp = request.data.get('cnp')
         live_image = request.FILES.get('live_image')
 
@@ -847,6 +861,18 @@ class LoginWithIDCardView(APIView):
 
         return Response({"detail": "Imaginea de referință lipsește."}, status=404)
 
+#Endpoint pentru verificarea reCAPTCHA
+class VerifyRecaptchaView(APIView):
+    permission_classes = [AllowAny]
+    
+    def post(self, request):
+        token = request.data.get('token')
+        is_valid = verify_recaptcha(token)
+        
+        if is_valid:
+            return Response({'success': True}, status=status.HTTP_200_OK)
+        else:
+            return Response({'success': False, 'detail': 'Verificarea reCAPTCHA a eșuat'}, status=status.HTTP_400_BAD_REQUEST)
 
 # view pt autentif clasica cu mail si parola   
 class LoginView(APIView):

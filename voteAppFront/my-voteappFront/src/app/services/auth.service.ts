@@ -74,6 +74,14 @@ export class AuthService {
     return this.http.post(`${this.apiUrl}login-id-card/`, formData);
   }
 
+    // Verificăm token-ul reCAPTCHA direct
+    verifyRecaptcha(token: string): Observable<any> {
+      return this.http.post(`${this.apiUrl}verify-recaptcha/`, {
+        token
+      });
+    }
+  
+
 
   
 

@@ -1,9 +1,11 @@
 // Actualizare la auth.component.ts
 import { Component, ElementRef, ViewChild, Renderer2, OnInit, ChangeDetectorRef, NgZone } from '@angular/core';
-import { Router, ActivatedRoute } from '@angular/router';
+import { Router, ActivatedRoute, NavigationEnd } from '@angular/router';
 import { AuthService } from '../services/auth.service';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import * as faceapi from 'face-api.js';
+import { environment } from '../../src/environments/environment';
+
 
 @Component({
   selector: 'app-auth',
@@ -24,6 +26,12 @@ export class AuthComponent implements OnInit {
   capturedImage: string | null = null;
   uploadedImageName: string | null = null;
   isLoading: boolean = false;
+
+  // proprietati reCAPTCHA
+  captchaResponse: string | null = null;
+  isCaptchaVerified: boolean = false;
+  captchaWidgetId: any = null;
+  private recaptchaSiteKey: string = environment.recaptcha.siteKey;
   
   // Face recognition related properties
   isFaceRecognitionActive: boolean = false;
@@ -52,10 +60,24 @@ export class AuthComponent implements OnInit {
     private route: ActivatedRoute,
     private cdr: ChangeDetectorRef,
     private ngZone: NgZone
-  ) {}
+  ) {
+    this.router.events.subscribe(event => {
+      if (event instanceof NavigationEnd && this.router.url.includes('/auth')) {
+        setTimeout(() => {
+          this.reloadCaptcha();
+        }, 500);
+      }
+    });
+  }
 
   async ngOnInit() {
     console.log('Initializare componenta auth...');
+
+    //Adaugam functiile de callback reCAPTCHA la window
+    (window as any).onCaptchaResolved = (response: string) => this.ngZone.run(() => this.onCaptchaResolved(response));
+    (window as any).onCaptchaExpired = () => this.ngZone.run(() => this.onCaptchaExpired());
+    (window as any).onCaptchaLoad = () => this.ngZone.run(() => this.renderCaptcha());
+
     this.checkSocialLoginRedirect();
     const savedDarkMode = localStorage.getItem('darkMode');
     if (savedDarkMode) {
@@ -70,6 +92,149 @@ export class AuthComponent implements OnInit {
       console.error("Eroare la încărcarea modelelor Face API:", error);
     }
   }
+    // Reîncarcă widget-ul reCAPTCHA (utilă când avem nevoie să resetăm CAPTCHA)
+    resetCaptcha() {
+      if ((window as any).grecaptcha && (window as any).grecaptcha.reset) {
+        console.log('Resetare reCAPTCHA');
+        (window as any).grecaptcha.reset(this.captchaWidgetId || 0);
+        this.captchaResponse = null;
+        this.isCaptchaVerified = false;
+        this.cdr.detectChanges();
+        
+        // Forțează challenge-ul după resetare
+        setTimeout(() => {
+          this.showCaptchaChallenge();
+        }, 500);
+      }
+    }
+    ngAfterViewInit() {
+      // Forțează renderizarea CAPTCHA după ce view-ul este inițializat
+      setTimeout(() => {
+        this.reloadCaptcha();
+      }, 500);
+    }
+    renderCaptcha() {
+      if ((window as any).grecaptcha && (window as any).grecaptcha.render) {
+        try {
+          console.log('Renderizare explicită reCAPTCHA cu challenge');
+          const captchaElement = document.querySelector('.g-recaptcha');
+          
+          if (captchaElement && !captchaElement.hasChildNodes()) {
+            // Stochează ID-ul widget-ului pentru referințe ulterioare
+            this.captchaWidgetId = (window as any).grecaptcha.render(captchaElement, {
+              'sitekey': this.recaptchaSiteKey,
+              'callback': (window as any).onCaptchaResolved,
+              'expired-callback': (window as any).onCaptchaExpired,
+              'theme': 'light',
+              'type': 'image',  // Forțează tipul image pentru challenge
+              'size': 'normal',
+              'tabindex': '0'
+            });
+    
+            // Forțează executarea manuală a challenge-ului imediat după render
+            setTimeout(() => {
+              this.showCaptchaChallenge();
+            }, 500);
+          } else {
+            this.resetCaptcha();
+            setTimeout(() => {
+              this.showCaptchaChallenge();
+            }, 300);
+          }
+        } catch (e) {
+          console.error('Eroare la renderizarea reCAPTCHA:', e);
+          // Dacă apare o eroare, reîncercăm
+          this.reloadCaptcha();
+        }
+      }
+    }
+    showCaptchaChallenge() {
+      console.log('Forțăm afișarea challenge-ului');
+      if ((window as any).grecaptcha && (window as any).grecaptcha.execute) {
+        try {
+          // Execută captcha pentru a declanșa challenge-ul
+          (window as any).grecaptcha.execute(this.captchaWidgetId || 0);
+        } catch (e) {
+          console.error('Eroare la executarea challenge-ului:', e);
+        }
+      }
+    }
+
+    reloadCaptcha() {
+      console.log('Reîncărcăm reCAPTCHA');
+      
+      // Eliminăm widget-ul vechi
+      const container = document.querySelector('.captcha-container');
+      const oldWidget = document.querySelector('.g-recaptcha-response');
+      
+      if (oldWidget) {
+        try {
+          this.resetCaptcha();
+        } catch (e) {
+          console.error('Eroare la resetarea CAPTCHA:', e);
+          
+          // Dacă resetarea nu funcționează, forțăm reîncărcarea scriptului
+          const existingScript = document.querySelector('script[src*="recaptcha/api.js"]');
+          if (existingScript) {
+            existingScript.remove();
+          }
+          
+          // Recreăm div-ul g-recaptcha
+          const captchaDiv = document.querySelector('.g-recaptcha');
+          if (captchaDiv) {
+            const parentNode = captchaDiv.parentNode;
+            const newCaptchaDiv = document.createElement('div');
+            newCaptchaDiv.className = 'g-recaptcha';
+            newCaptchaDiv.setAttribute('data-sitekey', this.recaptchaSiteKey);
+            newCaptchaDiv.setAttribute('data-callback', 'onCaptchaResolved');
+            newCaptchaDiv.setAttribute('data-expired-callback', 'onCaptchaExpired');
+            newCaptchaDiv.setAttribute('data-theme', 'light');
+            newCaptchaDiv.setAttribute('data-type', 'image');  // Forțează tipul image
+            newCaptchaDiv.setAttribute('data-size', 'normal');
+            newCaptchaDiv.setAttribute('data-tabindex', '0');
+            
+            if (parentNode) {
+              parentNode.replaceChild(newCaptchaDiv, captchaDiv);
+            }
+          }
+          
+          // Reîncărcăm scriptul
+          const script = document.createElement('script');
+          script.src = 'https://www.google.com/recaptcha/api.js?render=explicit&onload=onCaptchaLoad';
+          script.async = true;
+          script.defer = true;
+          document.head.appendChild(script);
+        }
+      } else {
+        // Dacă widget-ul nu există deloc, reîncărcăm scriptul
+        const script = document.createElement('script');
+        script.src = 'https://www.google.com/recaptcha/api.js?render=explicit&onload=onCaptchaLoad';
+        script.async = true;
+        script.defer = true;
+        document.head.appendChild(script);
+      }
+      
+      // Resetăm starea
+      this.captchaResponse = null;
+      this.isCaptchaVerified = false;
+      this.cdr.detectChanges();
+    }
+    
+    // Callback pentru rezolvarea CAPTCHA
+    onCaptchaResolved(response: string) {
+      console.log('CAPTCHA rezolvat:', response ? 'Valid' : 'Invalid');
+      this.captchaResponse = response;
+      this.isCaptchaVerified = !!response;
+      this.cdr.detectChanges();
+    }
+    
+    // Callback pentru expirarea CAPTCHA
+    onCaptchaExpired() {
+      console.log('CAPTCHA expirat');
+      this.captchaResponse = null;
+      this.isCaptchaVerified = false;
+      this.cdr.detectChanges();
+    }
   
   // Încarcă modelele necesare pentru face-api.js
   async loadFaceApiModels(): Promise<void> {
@@ -140,6 +305,11 @@ export class AuthComponent implements OnInit {
   }
 
   onSubmit(): void {
+    // Verificam daca CAPTCHA a fost completat
+    if (!this.isCaptchaVerified) {
+      this.showErrorMessage('Te rugăm să confirmi că nu ești un robot înainte de a continua.');
+      return;
+    }
     this.isLoading = true;
   
     if (this.useIdCardAuth) {
@@ -166,8 +336,10 @@ export class AuthComponent implements OnInit {
         },
         (error) => {
           console.error('Autentificare eșuată', error);
-          this.showErrorMessage('Autentificarea a eșuat. Verifică datele introduse.');
+          this.showErrorMessage('Autentificarea se poate realiza doar după verificarea feței ');
           this.isLoading = false;
+          //Resetam CAPTCHA in caz de eroare
+          this.resetCaptcha();
         }
       );
   
@@ -190,6 +362,7 @@ export class AuthComponent implements OnInit {
           console.error('Autentificare eșuată', error);
           this.showErrorMessage('Autentificarea a eșuat. Verifică email-ul și parola.');
           this.isLoading = false;
+          this.resetCaptcha();
         }
       );
     }

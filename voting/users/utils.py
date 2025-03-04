@@ -22,60 +22,34 @@ from scipy import ndimage
 import face_recognition
 import logging
 logger = logging.getLogger(__name__)
+import requests
 
-
-
-
-# def load_and_encode_face(image_path):
-#     try:
-#         image = face_recognition.load_image_file(image_path)
+def verify_recaptcha(recaptcha_response):
+    """
+    Verifică răspunsul reCAPTCHA cu API-ul Google
+    
+    Args:
+        recaptcha_response (str): Token-ul reCAPTCHA de la client
         
-#         # Verificăm dimensiunea imaginii
-#         if image.shape[0] < 100 or image.shape[1] < 100:
-#             logger.warning(f"Imagine prea mică: {image.shape}")
-#             return None
-            
-#         # Încercăm mai multe modele de detectare
-#         face_locations = face_recognition.face_locations(image, model="cnn")
-#         if len(face_locations) == 0:
-#             # Încercăm și modelul HOG dacă CNN nu găsește nimic
-#             face_locations = face_recognition.face_locations(image, model="hog")
-            
-#         if len(face_locations) == 0:
-#             logger.warning(f"Nu s-a detectat nicio față în imaginea {image_path}")
-#             return None
-
-#         face_encodings = face_recognition.face_encodings(image, known_face_locations=face_locations)
-        
-#         if len(face_encodings) == 0:
-#             logger.warning(f"Codificarea feței a eșuat pentru imaginea {image_path}")
-#             return None
-            
-#         return face_encodings[0]
-#     except Exception as e:
-#         logger.error(f"Eroare la încărcarea/codificarea imaginii {image_path}: {str(e)}")
-#         return None
+    Returns:
+        bool: True dacă verificarea a avut succes, False în caz contrar
+    """
+    if not recaptcha_response:
+        return False
+    
+    url = 'https://www.google.com/recaptcha/api/siteverify'
+    payload = {
+        'secret': settings.RECAPTCHA_PRIVATE_KEY,
+        'response': recaptcha_response
+    }
+    
+    response = requests.post(url, data=payload)
+    result = response.json()
+    
+    # Returnăm rezultatul verificării
+    return result.get('success', False)
 
 
-# def compare_faces(id_card_image_path, live_image_path, tolerance=0.6):  
-#     try:
-#         id_card_encoding = load_and_encode_face(id_card_image_path)
-#         live_encoding = load_and_encode_face(live_image_path)
-
-#         if id_card_encoding is None:
-#             return False, "Nu s-a detectat fața în imaginea buletinului"
-#         if live_encoding is None:
-#             return False, "Nu s-a detectat fața în imaginea capturată"
-
-#         face_distance = np.linalg.norm(id_card_encoding - live_encoding)
-#         match = face_distance < tolerance
-
-#         message = "Identificare reușită!" if match else f"Fețele nu corespund (similaritate: {1 - face_distance:.2f})"
-
-    #     return match, message
-    # except Exception as e:
-    #     logger.error(f"Eroare la compararea fețelor: {str(e)}")
-    #     return False, f"Eroare la compararea fețelor: {str(e)}"
 
 def is_valid_image(image_path):
     """Verifică dacă un fișier este o imagine validă."""

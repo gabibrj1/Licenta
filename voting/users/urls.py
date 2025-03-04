@@ -13,6 +13,7 @@ from .views import ValidateLocalityView
 from .views import FaceRecognitionView
 from .views import RegisterWithIDCardView
 from .views import LoginWithIDCardView
+from .views import VerifyRecaptchaView
 
 
 urlpatterns = [
@@ -36,5 +37,6 @@ urlpatterns = [
     path('face-recognition/', FaceRecognitionView.as_view(), name='face-recognition'),
     path('register-with-id-card/', RegisterWithIDCardView.as_view(), name='register-with-id-card'),
     path('login-id-card/', LoginWithIDCardView.as_view(), name='login-id-card'),
+    path('verify-recaptcha/', VerifyRecaptchaView.as_view(), name='verify-recaptcha'),
 
 ]

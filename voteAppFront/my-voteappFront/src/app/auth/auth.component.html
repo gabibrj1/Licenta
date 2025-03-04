@@ -1,4 +1,3 @@
-<!-- Actualizare la auth.component.html -->
 <app-header></app-header>
 <div class="page-container">
   <div class="auth-container" [ngClass]="{'dark-mode': darkMode}">
@@ -10,7 +9,7 @@
       </button>
     </div>
 
-    <form (ngSubmit)="onSubmit()">
+    <form (ngSubmit)="onSubmit()" [ngClass]="{'captcha-verified': isCaptchaVerified}">
    
       <mat-form-field appearance="fill" *ngIf="!useIdCardAuth">
         <mat-label>Email</mat-label>
@@ -60,7 +59,7 @@
                   type="button" 
                   class="face-auth-btn" 
                   (click)="startFaceRecognition()" 
-                  [disabled]="!cnp || !series || !firstName || !lastName">
+                  [disabled]="!cnp || !series || !firstName || !lastName || !isCaptchaVerified">
             <mat-icon>face</mat-icon> Verificare Facială
           </button>
         </div>
@@ -96,9 +95,26 @@
           </div>
         </div>
       </div>
+      
+      <!-- reCAPTCHA component -->
+      <div class="captcha-container">
+        <p class="captcha-info" [ngClass]="{'captcha-verified': isCaptchaVerified}">
+          {{ isCaptchaVerified ? '✅ Verificare completă' : '⚠️ Te rugăm să confirmi că nu ești un robot' }}
+        </p>
+        <div class="g-recaptcha" 
+             data-sitekey="6LegX-kqAAAAADb793rarotw3NJMHATck6xzAFuO"
+             data-callback="onCaptchaResolved"
+             data-expired-callback="onCaptchaExpired"
+             data-theme="light"
+             data-type="image"
+             data-size="normal"
+             data-tabindex="0"
+             >
+        </div>
+      </div>
 
       <!-- Buton de submit pentru autentificare -->
-      <button mat-raised-button color="primary" type="submit" [disabled]="isLoading">
+      <button mat-raised-button color="primary" type="submit" [disabled]="isLoading || !isCaptchaVerified">
         <span *ngIf="!isLoading">Autentificare</span>
         <mat-spinner *ngIf="isLoading" diameter="25" color="accent"></mat-spinner>
       </button>
@@ -111,11 +127,11 @@
     
     <!-- Autentificare socială -->
     <div class="social-login">
-      <button mat-raised-button class="google-btn" color="primary" (click)="loginWithGoogle()">
+      <button mat-raised-button class="google-btn" color="primary" (click)="loginWithGoogle()" [disabled]="!isCaptchaVerified">
         <i class="fab fa-google"></i> Google
       </button>
       
-      <button mat-raised-button class="facebook-btn" color="primary" (click)="loginWithFacebook()">
+      <button mat-raised-button class="facebook-btn" color="primary" (click)="loginWithFacebook()" [disabled]="!isCaptchaVerified">
         <mat-icon>facebook</mat-icon> Facebook
       </button>
   
