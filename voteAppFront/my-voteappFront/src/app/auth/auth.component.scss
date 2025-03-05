@@ -492,7 +492,7 @@
 }
 
 /* Stilizare pentru indicator de verificare */
-.auth-container form {
+/*.auth-container form {
   position: relative;
 }
 
@@ -512,7 +512,7 @@
 .auth-container form.captcha-verified::before {
   background-position: 0 0;
 }
-
+*/
 /* Stiluri pentru butoane dezactivate */
 button[disabled] {
   opacity: 0.7 !important;

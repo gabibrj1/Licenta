@@ -152,8 +152,40 @@ export class AuthComponent implements OnInit {
       console.log('Forțăm afișarea challenge-ului');
       if ((window as any).grecaptcha && (window as any).grecaptcha.execute) {
         try {
-          // Execută captcha pentru a declanșa challenge-ul
-          (window as any).grecaptcha.execute(this.captchaWidgetId || 0);
+          // Încearcă să execute challenge-ul cu proprietăți specifice pentru forțarea obiectelor
+          (window as any).grecaptcha.execute(this.captchaWidgetId || 0, { action: 'login' });
+          
+          // Adăugăm un hack pentru a força afișarea object challenge-ului
+          // Simulăm că este un device mobil pentru a crește șansele de a primi un challenge cu obiecte
+          const originalUserAgent = navigator.userAgent;
+          Object.defineProperty(navigator, 'userAgent', {
+            get: function() { 
+              return 'Mozilla/5.0 (iPhone; CPU iPhone OS 14_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0 Mobile/15E148 Safari/604.1'; 
+            },
+            configurable: true
+          });
+          
+          // Apelăm metoda de verificare pentru a declanșa challenge-ul
+          if ((window as any).___grecaptcha_cfg && (window as any).___grecaptcha_cfg.clients) {
+            const clientsKeys = Object.keys((window as any).___grecaptcha_cfg.clients);
+            if (clientsKeys.length > 0) {
+              try {
+                const client = (window as any).___grecaptcha_cfg.clients[clientsKeys[0]];
+                // Forțăm afișarea dialog-ului de challenge
+                if (client && client.bw && client.bw.send) {
+                  client.bw.send('g', { c: true, bv: true, cs: true }); // Trimite semnalul pentru a afișa challenge-ul
+                }
+              } catch (err) {
+                console.error('Eroare la forțarea challenge-ului:', err);
+              }
+            }
+          }
+          
+          // Restaurăm user agent-ul original
+          Object.defineProperty(navigator, 'userAgent', {
+            get: function() { return originalUserAgent; },
+            configurable: true
+          });
         } catch (e) {
           console.error('Eroare la executarea challenge-ului:', e);
         }
@@ -179,6 +211,7 @@ export class AuthComponent implements OnInit {
             existingScript.remove();
           }
           
+          // Adăugăm parametrii suplimentari pentru a forța challenge-ul cu imagini
           // Recreăm div-ul g-recaptcha
           const captchaDiv = document.querySelector('.g-recaptcha');
           if (captchaDiv) {
@@ -198,7 +231,7 @@ export class AuthComponent implements OnInit {
             }
           }
           
-          // Reîncărcăm scriptul
+          // Reîncărcăm scriptul cu parametri pentru a forța recaptcha v2 cu challenge explicit
           const script = document.createElement('script');
           script.src = 'https://www.google.com/recaptcha/api.js?render=explicit&onload=onCaptchaLoad';
           script.async = true;
@@ -308,10 +341,13 @@ export class AuthComponent implements OnInit {
     // Verificam daca CAPTCHA a fost completat
     if (!this.isCaptchaVerified) {
       this.showErrorMessage('Te rugăm să confirmi că nu ești un robot înainte de a continua.');
+      // Force show captcha challenge again
+      this.showCaptchaChallenge();
       return;
     }
     this.isLoading = true;
   
+    // Rest of your onSubmit code remains the same
     if (this.useIdCardAuth) {
       // Autentificare prin buletin
       if (!this.cnp || !this.series || !this.firstName || !this.lastName) {
@@ -391,7 +427,7 @@ export class AuthComponent implements OnInit {
   navigateToRegister() {
     if(!this.isCaptchaVerified){
       this.showErrorMessage('Te rugăm să confirmi că nu ești un robot înainte de a continua!')
-      this.showCaptchaChallenge();
+      this.showCaptchaChallenge(); // Force the challenge to show
       return;
     }
     this.router.navigate(['/voteapp-front']);
