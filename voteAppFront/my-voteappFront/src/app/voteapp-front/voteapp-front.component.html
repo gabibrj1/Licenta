@@ -60,9 +60,16 @@
   </form>
 
   
+<!-- Adaugă butonul de conectare lângă checkbox-ul de înregistrare cu buletin -->
+<div class="checkbox-and-login-container">
   <mat-checkbox [(ngModel)]="useIDCard" name="useIDCard" (change)="onIdCardChange()" class="voteapp-checkbox">
     <span [ngClass]="{'dark-mode-text': darkMode}" class="custom-checkbox-text">Înregistrare cu buletin 💳</span>
   </mat-checkbox>
+
+  <button mat-raised-button color="accent" (click)="navigateToLogin()" class="login-button">
+    <mat-icon>login</mat-icon> Conectează-te
+  </button>
+</div>
 
 
   

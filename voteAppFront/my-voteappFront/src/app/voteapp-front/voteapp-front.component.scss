@@ -983,3 +983,50 @@ mat-form-field .validate-locality-btn {
     }
   }
 }
+/* Stiluri pentru containerul checkbox-ului și butonului de conectare */
+.checkbox-and-login-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.login-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 16px;
+  height: 36px;
+  border-radius: 4px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.login-button mat-icon {
+  font-size: 18px;
+  height: 18px;
+  width: 18px;
+  margin-right: 4px;
+}
+
+/* Stiluri pentru dark mode */
+.dark-mode .login-button {
+  background-color: #673ab7;
+  color: white;
+}
+
+/* Stiluri pentru responsive */
+@media (max-width: 600px) {
+  .checkbox-and-login-container {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .login-button {
+    margin-top: 10px;
+    align-self: flex-end;
+  }
+}

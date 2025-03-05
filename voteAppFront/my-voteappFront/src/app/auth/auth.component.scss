@@ -531,3 +531,14 @@ button[disabled] {
 .dark-mode .g-recaptcha {
   filter: invert(85%) hue-rotate(180deg);
 }
+.register-link a.disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  pointer-events: none; /* Opțional - dezactivează complet interacțiunea */
+}
+
+/* Sau dacă dorești să fie activ pentru a arăta mesajul de eroare */
+.register-link a.disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

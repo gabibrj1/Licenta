@@ -389,6 +389,11 @@ export class AuthComponent implements OnInit {
   }
 
   navigateToRegister() {
+    if(!this.isCaptchaVerified){
+      this.showErrorMessage('Te rugăm să confirmi că nu ești un robot înainte de a continua!')
+      this.showCaptchaChallenge();
+      return;
+    }
     this.router.navigate(['/voteapp-front']);
   }
 

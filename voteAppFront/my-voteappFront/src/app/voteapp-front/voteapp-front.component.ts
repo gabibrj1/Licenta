@@ -128,7 +128,9 @@ export class VoteappFrontComponent implements OnInit, AfterViewInit {
     
   }
   
-
+  navigateToLogin() {
+    this.router.navigate(['/auth']);
+  }
   
  async ngOnInit() {
     console.log('Initializare componenta:...');

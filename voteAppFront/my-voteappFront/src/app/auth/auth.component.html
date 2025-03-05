@@ -23,7 +23,13 @@
 
 
       <div class="register-link">
-        <p>Nu ai deja un cont? <a (click)="navigateToRegister()">Înregistrează-te</a></p>
+        <p>Nu ai deja un cont? 
+          <a (click)="navigateToRegister()" 
+             [title]="!isCaptchaVerified ? 'Trebuie să completezi verificarea CAPTCHA înainte de a continua' : ''"
+             [class.disabled]="!isCaptchaVerified">
+            Înregistrează-te
+          </a>
+        </p>
       </div>
       
 
