@@ -1,27 +1,88 @@
-<div class="verify-email-container">
-  <h2>📧 Verificare Email</h2>
+<div class="verify-container" [class.reset-mode]="isResetPassword">
+  <button class="close-btn" (click)="goBack()">×</button>
+  <h2>{{ isResetPassword ? 'Resetare Parolă' : 'Verificare Email' }}</h2>
+  
+  <div class="form-group">
+    <label for="email">Email</label>
+    <input type="email" id="email" [(ngModel)]="email" [disabled]="email">
+  </div>
+  
+  <div class="form-group">
+    <label for="code">{{ isResetPassword ? 'Cod de Resetare' : 'Cod de Verificare' }}</label>
+    <input type="text" id="code" [(ngModel)]="verificationCode">
+  </div>
+  
+  <button (click)="verifyCode()" *ngIf="!isSuccess || !isResetPassword">
+    {{ isResetPassword ? 'Verifică Codul de Resetare' : 'Verifică Codul' }}
+  </button>
+  <!-- Câmpuri pentru resetarea parolei, vizibile doar după verificarea codului în context de resetare -->
+  <div *ngIf="isResetPassword && isSuccess">
+    <form [formGroup]="resetForm">
+      <div class="form-group password-field">
+        <label for="new-password">Parolă Nouă*</label>
+        <div class="password-input-container">
+          <input 
+            [type]="showPassword ? 'text' : 'password'" 
+            id="new-password" 
+            formControlName="new_password">
+          <button 
+            type="button" 
+            class="toggle-password" 
+            (click)="togglePasswordVisibility()" 
+            [attr.aria-label]="showPassword ? 'Ascunde parola' : 'Arată parola'">
+            <span class="eye-icon">👁️</span>
+          </button>
+        </div>
+      </div>
+            <!-- Afișarea erorilor de validare pentru parolă -->
+            <div class="password-validation" *ngIf="resetForm.get('new_password')?.touched || resetForm.get('new_password')?.value">
+              <div class="validation-item" *ngFor="let error of passwordErrors" [ngClass]="{'error': true}">
+                <span class="error-icon">⚠️</span> {{ error }}
+              </div>
+            </div>
 
-  <form (ngSubmit)="verifyCode()" class="verification-form">
-    <mat-form-field appearance="fill">
-      <mat-label>Adresă Email</mat-label>
-      <input matInput type="email" [(ngModel)]="email" name="email" required>
-    </mat-form-field>
-
-    <mat-form-field appearance="fill">
-      <mat-label>Cod de Verificare</mat-label>
-      <input matInput type="text" [(ngModel)]="verificationCode" name="verificationCode" required>
-    </mat-form-field>
-
-    <button mat-raised-button color="primary" type="submit">
-      Verifică Codul
-    </button>
-  </form>
-
-  <!-- Mesaj de confirmare sau eroare -->
-  <div *ngIf="message" class="message" [ngClass]="{'success': isSuccess, 'error': !isSuccess}">
+                  <!-- Indicator de putere a parolei -->
+      <div class="password-strength" *ngIf="resetForm.get('new_password')?.value">
+        <div class="strength-meter">
+          <div class="strength-meter-fill" 
+              [style.width.%]="getPasswordStrength().score * 20"
+              [style.background-color]="getPasswordStrength().color"></div>
+        </div>
+        <div class="strength-text" [style.color]="getPasswordStrength().color">
+          Putere parolă: {{ getPasswordStrength().label }}
+        </div>
+      </div>
+            
+            <div class="form-group password-field">
+              <label for="confirm-password">Confirmare Parolă*</label>
+              <div class="password-input-container">
+                <input 
+                  [type]="showConfirmPassword ? 'text' : 'password'" 
+                  id="confirm-password" 
+                  formControlName="confirm_password">
+                <button 
+                  type="button" 
+                  class="toggle-password" 
+                  (click)="toggleConfirmPasswordVisibility()" 
+                  [attr.aria-label]="showConfirmPassword ? 'Ascunde parola' : 'Arată parola'">
+                  <span class="eye-icon">👁️</span>
+                </button>
+              </div>
+            </div>
+            
+            <!-- Afișarea erorii pentru confirmarea parolei -->
+            <div class="validation-item error" *ngIf="resetForm.hasError('mismatch') && resetForm.get('confirm_password')?.touched">
+              <span class="error-icon">⚠️</span> Parolele nu se potrivesc.
+            </div>
+      
+      
+      <button (click)="resetPassword()">Resetează Parola</button>
+    </form>
+  </div>
+  
+  <div class="message" [class.success]="isSuccess" [class.error]="!isSuccess" *ngIf="message">
     {{ message }}
   </div>
-
 
   <div class="email-animation">
     <div class="envelope">

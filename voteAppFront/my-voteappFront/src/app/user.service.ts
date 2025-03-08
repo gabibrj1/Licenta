@@ -25,10 +25,11 @@ export class UserService {
   }
 
  
-  verifyEmail(email: string, verification_code: string): Observable<any> {
-    return this.http.post(`${this.apiUrl}verify-email/`, { email, verification_code }).pipe(
-      catchError(this.handleError)
-    );
+  verifyEmail(email: string, verificationCode: string) {
+    return this.http.post(`${this.apiUrl}verify-email/`, { 
+      email: email, 
+      verification_code: verificationCode 
+    });
   }
   loginWithGoogle(): void {
     window.location.href = `${this.apiUrl}accounts/google/login/`;
@@ -109,6 +110,26 @@ recognizeFace(formData: FormData): Observable<any> {
   return this.http.post(`${this.apiUrl}face-recognition/`, formData).pipe(
     catchError(this.handleError)
   );
+}
+// Adaugă în user.service.ts
+
+// Solicită resetarea parolei (trimite email cu cod)
+requestPasswordReset(email: string) {
+  return this.http.post<any>(`${this.apiUrl}request-password-reset/`, { email });
+}
+
+// Verifică codul de resetare
+verifyResetCode(email: string, code: string) {
+  return this.http.post<any>(`${this.apiUrl}verify-reset-code/`, { email, verification_code: code });
+}
+
+// Resetează parola
+resetPassword(email: string, code: string, newPassword: string) {
+  return this.http.post<any>(`${this.apiUrl}reset-password/`, {
+    email,
+    verification_code: code,
+    new_password: newPassword
+  });
 }
 
   

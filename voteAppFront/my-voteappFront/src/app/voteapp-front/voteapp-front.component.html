@@ -29,6 +29,17 @@
         <mat-icon>{{ showPassword ? 'visibility_off' : 'visibility' }}</mat-icon>
       </button>
     </mat-form-field>
+    <div class="password-strength" *ngIf="registrationForm.get('password')?.value">
+      <div class="strength-meter">
+        <div class="strength-meter-fill" 
+            [style.width.%]="getPasswordStrength().score * 20"
+            [style.background-color]="getPasswordStrength().color"></div>
+      </div>
+      <div class="strength-text" [style.color]="getPasswordStrength().color">
+        Putere parolă: {{ getPasswordStrength().label }}
+      </div>
+    </div>
+
 
 
   <div *ngIf="errorMessage" class="error-message">

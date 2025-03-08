@@ -101,6 +101,17 @@ export class AuthService {
       catchError(this.handleError)
     );
   }
+  requestPasswordReset(email: string) {
+    return this.http.post<any>(`${this.apiUrl}request-password-reset/`, { email });
+  }
+  
+  resetPassword(email: string, verification_code: string, new_password: string) {
+    return this.http.post<any>(`${this.apiUrl}reset-password/`, {
+      email,
+      verification_code,
+      new_password
+    });
+  }
   
 
   private handleError(error: HttpErrorResponse) {

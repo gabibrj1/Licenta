@@ -207,8 +207,9 @@ export class VoteappFrontComponent implements OnInit, AfterViewInit {
   validatePassword() {
     const password = this.registrationForm.get('password')?.value;
     this.passwordErrors = [];
-
-    if (password.length < 6) {
+  
+    // Verificări de bază pentru complexitatea parolei
+    if (!password || password.length < 6) {
       this.passwordErrors.push('Parola trebuie să aibă cel puțin 6 caractere.');
     }
     if (!/[A-Z]/.test(password)) {
@@ -220,6 +221,112 @@ export class VoteappFrontComponent implements OnInit, AfterViewInit {
     if (!/\d/.test(password)) {
       this.passwordErrors.push('Parola trebuie să conțină cel puțin o cifră.');
     }
+  
+    // Verificări extinse pentru a evita utilizarea părților din email
+    const email = this.registrationForm.get('email')?.value;
+    if (email) {
+      const emailLower = email.toLowerCase();
+      const passwordLower = password.toLowerCase();
+      
+      // Împărțim email-ul în părți pentru verificări separate
+      const emailParts = emailLower.split(/[.@_-]/);
+      
+      // Verificăm fiecare parte a emailului care are cel puțin 3 caractere
+      for (const part of emailParts) {
+        if (part.length >= 3 && passwordLower.includes(part)) {
+          this.passwordErrors.push(`Parola nu trebuie să conțină părți din adresa de email (${part}).`);
+          break;
+        }
+      }
+      
+      // Verificăm numele de utilizator întreg (înainte de @)
+      const username = emailLower.split('@')[0];
+      if (username.length >= 3 && passwordLower.includes(username)) {
+        this.passwordErrors.push('Parola nu trebuie să conțină numele de utilizator din email.');
+      }
+      
+      // Verificăm pentru subșiruri din email
+      for (let i = 0; i < emailLower.length - 3; i++) {
+        const substr = emailLower.substring(i, i + 4); // Verificăm subșiruri de 4 caractere
+        if (passwordLower.includes(substr)) {
+          this.passwordErrors.push(`Parola nu trebuie să conțină secvențe din adresa de email (${substr}).`);
+          break;
+        }
+      }
+    }
+  
+    // Verificare pentru repetări de caractere (ex: 'aaa', '111')
+    if (/(.)\1{2,}/.test(password)) {
+      this.passwordErrors.push('Parola nu trebuie să conțină caractere repetate excesiv.');
+    }
+  
+    // Verificare pentru secvențe alfanumerice (ex: abc123, 123456)
+    const sequences = ['abc', 'bcd', 'cde', 'def', 'efg', 'fgh', 'ghi', 'hij', 'ijk', 'jkl', 
+                      'klm', 'lmn', 'mno', 'nop', 'opq', 'pqr', 'qrs', 'rst', 'stu', 'tuv', 
+                      'uvw', 'vwx', 'wxy', 'xyz', '012', '123', '234', '345', '456', '567', 
+                      '678', '789'];
+    
+    for (const seq of sequences) {
+      if (password.toLowerCase().includes(seq)) {
+        this.passwordErrors.push('Parola conține secvențe predictibile de caractere.');
+        break;
+      }
+    }
+  
+    // Verificare pentru parole comune
+    const commonPasswords = ['password', '123456', 'qwerty', 'admin', 'welcome', 'parola'];
+    if (commonPasswords.includes(password.toLowerCase())) {
+      this.passwordErrors.push('Această parolă este prea comună și ușor de ghicit.');
+    }
+    
+    this.isPasswordValid = this.passwordErrors.length === 0;
+    this.validateConfirmPassword();
+  }
+  
+  // Funcție pentru calcularea puterii parolei
+  getPasswordStrength(): { score: number, label: string, color: string } {
+    const password = this.registrationForm.get('password')?.value || '';
+    
+    if (!password) {
+      return { score: 0, label: 'Foarte slabă', color: '#dc3545' };
+    }
+    
+    let score = 0;
+    
+    // Acordă puncte pentru diferite criterii
+    if (password.length >= 8) score += 1;
+    if (password.length >= 12) score += 1;
+    if (/[A-Z]/.test(password)) score += 1;
+    if (/[a-z]/.test(password)) score += 1;
+    if (/[0-9]/.test(password)) score += 1;
+    if (/[^A-Za-z0-9]/.test(password)) score += 1;
+    
+    // Penalizări
+    if (/(.)\1{2,}/.test(password)) score -= 1;  // Caractere repetate
+    
+    // Secvențe predictibile
+    const sequences = ['abc', 'bcd', 'cde', 'def', '123', '234', '345', '456'];
+    for (const seq of sequences) {
+      if (password.toLowerCase().includes(seq)) {
+        score -= 1;
+        break;
+      }
+    }
+    
+    // Nu lăsa scorul să fie negativ
+    score = Math.max(0, score);
+    
+    // Mapează scorul la un nivel
+    const strengthMap = [
+      { score: 0, label: 'Foarte slabă', color: '#dc3545' },
+      { score: 1, label: 'Slabă', color: '#dc3545' },
+      { score: 2, label: 'Medie', color: '#ffc107' },
+      { score: 3, label: 'Bună', color: '#28a745' },
+      { score: 4, label: 'Puternică', color: '#28a745' },
+      { score: 5, label: 'Foarte puternică', color: '#28a745' }
+    ];
+    
+    return strengthMap[Math.min(score, 5)];
   }
 
   validateConfirmPassword() {
@@ -283,6 +390,8 @@ export class VoteappFrontComponent implements OnInit, AfterViewInit {
       if (this.registrationForm.valid) {
 
         const { email, password } = this.registrationForm.value;
+        localStorage.setItem('verification_email', email);
+        
         this.userService.register({ email, password }).subscribe(
           (response: any) => {
             alert('Verifică-ți emailul pentru codul de verificare');

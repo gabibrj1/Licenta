@@ -818,6 +818,33 @@ export class AuthComponent implements OnInit {
       this.cdr.detectChanges();
     }
   }
+  // În auth.component.ts adaugă:
+
+forgotPassword() {
+  if (!this.email) {
+    this.showErrorMessage('Te rugăm să introduci adresa de email pentru resetarea parolei.');
+    return;
+  }
+
+  this.isLoading = true;
+  this.authService.requestPasswordReset(this.email).subscribe(
+    response => {
+      this.isLoading = false;
+      this.showSuccessMessage(response.message || 'Un cod de resetare a fost trimis pe adresa de email.');
+      // Navigăm către verificare cu parametri pentru resetare
+      this.router.navigate(['/verify-email'], { 
+        queryParams: { 
+          reset: 'true', 
+          email: this.email 
+        } 
+      });
+    },
+    error => {
+      this.isLoading = false;
+      this.showErrorMessage(error.error?.error || 'A apărut o eroare. Te rugăm să încerci din nou.');
+    }
+  );
+}
 
   // Oprește camera și toate procesele asociate
   stopCamera(): void {

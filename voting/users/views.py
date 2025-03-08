@@ -971,6 +971,182 @@ class LoginView(APIView):
             {"detail": "Autentificare eșuată. Verifică email-ul și parola."},
             status=status.HTTP_401_UNAUTHORIZED
         )
+    
+class RequestPasswordResetView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        email = request.data.get('email')
+        if not email:
+            return Response({'error': 'Email-ul este obligatoriu'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            user = User.objects.get(email=email)
+            
+            # Verificăm dacă utilizatorul are cont social
+            if SocialAccount.objects.filter(user=user).exists():
+                return Response({'error': 'Contul este asociat cu autentificare socială. Nu se poate reseta parola.'}, 
+                               status=status.HTTP_400_BAD_REQUEST)
+            
+            # Generăm un cod de resetare
+            reset_code = str(random.randint(100000, 999999))
+            user.verification_code = reset_code  # Folosim același câmp ca pentru verificarea emailului
+            user.save()
+            
+            # Trimitem codul prin email
+            html_message = render_to_string('password_reset_email.html', {
+                'verification_code': reset_code
+            })
+            
+            email = EmailMessage(
+                'Cod de resetare parolă SmartVote',
+                html_message,
+                config('EMAIL_FROM'),
+                [user.email],
+                reply_to=[config('EMAIL_FROM')],
+            )
+            email.content_subtype = 'html'
+            email.send()
+            
+            return Response({'message': 'Un cod de resetare a fost trimis pe adresa de email.'}, 
+                          status=status.HTTP_200_OK)
+        
+        except User.DoesNotExist:
+            # Pentru securitate, nu dezvăluim că email-ul nu există
+            return Response({'message': 'Dacă email-ul există în sistem, un cod de resetare a fost trimis.'}, 
+                          status=status.HTTP_200_OK)
+
+
+class VerifyResetCodeView(APIView):
+    """
+    View pentru verificarea codului de resetare a parolei.
+    """
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        email = request.data.get('email')
+        verification_code = request.data.get('verification_code')
+        
+        if not all([email, verification_code]):
+            return Response({'error': 'Email-ul și codul de verificare sunt obligatorii'}, 
+                          status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            user = User.objects.get(email=email, verification_code=verification_code)
+            return Response({'message': 'Cod de verificare corect.'}, 
+                          status=status.HTTP_200_OK)
+            
+        except User.DoesNotExist:
+            return Response({'error': 'Cod de verificare incorect sau email invalid.'}, 
+                          status=status.HTTP_400_BAD_REQUEST)
+
+
+
+class ResetPasswordView(APIView):
+    """
+    View pentru resetarea efectivă a parolei după verificarea codului.
+    """
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        email = request.data.get('email')
+        verification_code = request.data.get('verification_code')
+        new_password = request.data.get('new_password')
+        
+        if not all([email, verification_code, new_password]):
+            return Response({'error': 'Toate câmpurile sunt obligatorii'}, 
+                          status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            user = User.objects.get(email=email, verification_code=verification_code)
+            
+            # Validăm complexitatea parolei cu aceleași reguli ca la înregistrare
+            password_errors = []
+            
+            # Verificare lungime minimă
+            if len(new_password) < 6:
+                password_errors.append('Parola trebuie să aibă cel puțin 6 caractere.')
+            
+            # Verificare pentru cel puțin o literă mare
+            if not re.search(r'[A-Z]', new_password):
+                password_errors.append('Parola trebuie să conțină cel puțin o literă mare.')
+            
+            # Verificare pentru cel puțin un caracter special
+            if not re.search(r'[!@#$%^&*(),.?":{}|<>]', new_password):
+                password_errors.append('Parola trebuie să conțină cel puțin un caracter special.')
+            
+            # Verificare pentru cel puțin o cifră
+            if not re.search(r'\d', new_password):
+                password_errors.append('Parola trebuie să conțină cel puțin o cifră.')
+            
+            # Verificare dacă parola conține informații personale
+            first_name = user.first_name.lower() if user.first_name else ""
+            last_name = user.last_name.lower() if user.last_name else ""
+            
+            if first_name and len(first_name) > 2 and first_name in new_password.lower():
+                password_errors.append('Parola nu trebuie să conțină prenumele tău.')
+                
+            if last_name and len(last_name) > 2 and last_name in new_password.lower():
+                password_errors.append('Parola nu trebuie să conțină numele tău.')
+                
+            # Verificăm dacă parola nouă este similară cu parola veche
+            if user.check_password(new_password):
+                password_errors.append('Noua parolă nu poate fi identică cu parola veche.')
+            
+            # Verificări extinse pentru similitudine cu adresa de email
+            if email:
+                email_lower = email.lower()
+                password_lower = new_password.lower()
+                
+                # Împărțim email-ul în părți pentru verificări separate
+                email_parts = re.split(r'[.@_-]', email_lower)
+                
+                # Verificăm fiecare parte a emailului care are cel puțin 3 caractere
+                for part in email_parts:
+                    if len(part) >= 3 and part in password_lower:
+                        password_errors.append(f'Parola nu trebuie să conțină părți din adresa de email ({part}).')
+                        break
+                
+                # Verificăm numele de utilizator întreg (înainte de @)
+                username = email_lower.split('@')[0]
+                if len(username) >= 3 and username in password_lower:
+                    password_errors.append('Parola nu trebuie să conțină numele de utilizator din email.')
+                
+                # Verificăm pentru subșiruri mai lungi de 3 caractere din email
+                for i in range(len(email_lower) - 3):
+                    substr = email_lower[i:i+4]  # Verificăm subșiruri de 4 caractere
+                    if len(substr) >= 4 and substr in password_lower:
+                        password_errors.append(f'Parola nu trebuie să conțină secvențe din adresa de email ({substr}).')
+                        break
+            
+            # Verificăm împotriva parolelor comune
+            common_passwords = ["password", "123456", "qwerty", "admin", "welcome", "parola"]
+            if new_password.lower() in common_passwords:
+                password_errors.append('Această parolă este prea comună și ușor de ghicit.')
+            
+            # Verificăm secvențe alfanumerice (ex: abc123, 123456)
+            if re.search(r'(abc|bcd|cde|def|efg|fgh|ghi|hij|ijk|jkl|klm|lmn|mno|nop|opq|pqr|qrs|rst|stu|tuv|uvw|vwx|wxy|xyz|012|123|234|345|456|567|678|789)', new_password.lower()):
+                password_errors.append('Parola conține secvențe predictibile de caractere.')
+            
+            # Verificăm pentru caractere repetate excesiv
+            if re.search(r'(.)\1{2,}', new_password):
+                password_errors.append('Parola nu trebuie să conțină caractere repetate excesiv.')
+            
+            # Dacă avem erori, le returnăm
+            if password_errors:
+                return Response({'error': password_errors}, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Dacă nu avem erori, actualizăm parola
+            user.set_password(new_password)
+            user.verification_code = None  # Resetăm codul după utilizare
+            user.save()
+            
+            return Response({'message': 'Parola a fost resetată cu succes.'}, 
+                          status=status.HTTP_200_OK)
+            
+        except User.DoesNotExist:
+            return Response({'error': 'Cod de verificare incorect sau email invalid.'}, 
+                          status=status.HTTP_400_BAD_REQUEST)
 
 class VerifyEmailView(APIView):
     permission_classes = [AllowAny]
@@ -978,20 +1154,27 @@ class VerifyEmailView(APIView):
     def post(self, request):
         verification_code = request.data.get('verification_code')
         email = request.data.get('email')
+        
+        print(f"Verificare email: {email}, cod: {verification_code}")  # Log pentru debug
+        
+        if not all([email, verification_code]):
+            print("Câmpuri lipsă")  # Log pentru debug
+            return Response({'error': 'Email-ul și codul de verificare sunt obligatorii'}, 
+                          status=status.HTTP_400_BAD_REQUEST)
 
         try:
             user = User.objects.get(email=email, verification_code=verification_code)
-            # activeaza contul si resteaza codul de verificare
-            if user.verification_code == verification_code:
-                user.is_active = True
-                user.verification_code = None
-                user.save()
-                return Response({'message': 'Contul a fost verificat cu succes și activat!'}, status=status.HTTP_200_OK)
+            print(f"Utilizator găsit: {user.email}, cod: {user.verification_code}")  # Log pentru debug
+            
+            # Activează contul și resetează codul de verificare
+            user.is_active = True
+            user.verification_code = None
+            user.save()
+            return Response({'message': 'Contul a fost verificat cu succes și activat!'}, status=status.HTTP_200_OK)
 
         except User.DoesNotExist:
+            print(f"Utilizator negăsit pentru {email} cu codul {verification_code}")  # Log pentru debug
             return Response({'error': 'Cod de verificare incorect sau email invalid.'}, status=status.HTTP_400_BAD_REQUEST)
-        
-
 
 class AutofillDataView(APIView):
     """
