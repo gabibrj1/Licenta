@@ -453,9 +453,6 @@ def load_valid_keywords(file_path):
         print(f"Eroare la citirea cuvintelor cheie: {e}")
     return keywords
 
-
-
-
     
 @dataclass
 class CNPValidationResult:

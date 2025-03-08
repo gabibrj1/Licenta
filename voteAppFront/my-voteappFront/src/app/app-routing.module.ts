@@ -10,7 +10,7 @@ import { AuthGuard } from './guards/auth.guard';
 const routes: Routes = [
   { path: '', component: HomeComponent },
   { path: 'auth', component: AuthComponent },
-  { path: 'menu', component: MenuComponent, canActivate: [AuthGuard] },
+  { path: 'menu', component: MenuComponent},
   { path: 'verify-email', component: VerifyEmailComponent },
   { path: 'voteapp-front', component: VoteappFrontComponent},
   { path: 'reviews', component: ReviewsComponent },

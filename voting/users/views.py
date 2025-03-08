@@ -55,12 +55,6 @@ class RegisterWithIDCardView(APIView):
     permission_classes = [AllowAny] 
 
     def post(self, request):
-        recaptcha_token = request.data.get('recaptcha')
-        if not verify_recaptcha(recaptcha_token):
-            return Response(
-                {"detail": "Verificarea reCAPTCHA a eșuat. Te rugăm să încerci din nou."},
-                status=status.HTTP_400_BAD_REQUEST
-            )
         serializer = IDCardRegistrationSerializer(data=request.data)
 
         if serializer.is_valid():
@@ -90,14 +84,13 @@ class RegisterWithIDCardView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-
 # Calea catre modelul de anti - spoofing
 MODEL_PATH = r"C:\Users\brj\Desktop\voting\media\models\l_version_1_300.pt"
 
 class FaceRecognitionView(APIView):
     permission_classes = [AllowAny]
-    def _init_(self, **kwargs):
-        super()._init_(**kwargs)
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
         # Incarca modelul YOLO pentru detectarea spoofing-ului
         self.model = YOLO(MODEL_PATH)
 
@@ -364,8 +357,8 @@ class UploadIdView(APIView):
     parser_classes = (MultiPartParser, FormParser)
     permission_classes = [AllowAny]
 
-    def _init_(self, **kwargs):
-        super()._init_(**kwargs)
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
         # Citim cuvintele cheie din fisierul CSV
         self.valid_keywords = load_valid_keywords(settings.VALID_KEYWORDS_CSV)
     
@@ -428,8 +421,8 @@ class ValidateLocalityView(APIView):
     """
     permission_classes = []
 
-    def _init_(self, **kwargs):
-        super()._init_(**kwargs)
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
         try:
             self.matcher = LocalityMatcher(settings.LOCALITATI_CSV_PATH)
         except Exception as e:

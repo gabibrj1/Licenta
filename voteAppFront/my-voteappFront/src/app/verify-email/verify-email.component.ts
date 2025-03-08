@@ -21,7 +21,7 @@ export class VerifyEmailComponent {
         this.message = 'Email verificat cu succes!';
         this.isSuccess = true;
         setTimeout(() => {
-          this.router.navigate(['/']);
+          this.router.navigate(['/auth']);
         }, 2000); // redirectioneaza dupa 2 secunde
       },
       error => {

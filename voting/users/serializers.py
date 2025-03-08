@@ -13,7 +13,7 @@ class UserSerializer(serializers.ModelSerializer):
         fields = [
             'email', 'first_name', 'last_name', 'password', 'cnp', 'series', 
             'number', 'place_of_birth', 'address', 'issuing_authority', 
-            'sex', 'date_of_issue', 'date_of_expiry'
+            'sex', 'date_of_issue', 'date_of_expiry', 'id_card_image'
         ]
 
     def validate(self, data):
