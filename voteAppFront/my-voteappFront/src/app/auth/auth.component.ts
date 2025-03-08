@@ -77,6 +77,11 @@ export class AuthComponent implements OnInit {
     (window as any).onCaptchaResolved = (response: string) => this.ngZone.run(() => this.onCaptchaResolved(response));
     (window as any).onCaptchaExpired = () => this.ngZone.run(() => this.onCaptchaExpired());
     (window as any).onCaptchaLoad = () => this.ngZone.run(() => this.renderCaptcha());
+    console.log('CAPTCHA script încărcat - forțăm renderizarea imediată');
+    this.renderCaptcha();
+    setTimeout(() => {
+      this.showCaptchaChallenge();
+    }, 300);
 
     this.checkSocialLoginRedirect();
     const savedDarkMode = localStorage.getItem('darkMode');
@@ -91,7 +96,28 @@ export class AuthComponent implements OnInit {
     } catch (error) {
       console.error("Eroare la încărcarea modelelor Face API:", error);
     }
+    this.loadCaptchaScript();
+  } 
+  loadCaptchaScript() {
+    console.log('Încărcăm script-ul CAPTCHA');
+    
+    // Eliminăm orice script existent pentru a evita conflicte
+    const existingScript = document.querySelector('script[src*="recaptcha/api.js"]');
+    if (existingScript) {
+      existingScript.remove();
+    }
+    
+    // Adăugăm script-ul cu parametri pentru a forța CAPTCHA v2 vizibil
+    const script = document.createElement('script');
+    script.src = 'https://www.google.com/recaptcha/api.js?render=explicit&onload=onCaptchaLoad&hl=ro';
+    script.async = true;
+    script.defer = true;
+    document.head.appendChild(script);
+    
+    console.log('Script CAPTCHA adăugat la document');
   }
+  
+  
     // Reîncarcă widget-ul reCAPTCHA (utilă când avem nevoie să resetăm CAPTCHA)
     resetCaptcha() {
       if ((window as any).grecaptcha && (window as any).grecaptcha.reset) {
@@ -821,6 +847,13 @@ export class AuthComponent implements OnInit {
   // În auth.component.ts adaugă:
 
 forgotPassword() {
+  // Se verifica intai daca a fost captcha completat
+  if (!this.isCaptchaVerified) {
+    this.showErrorMessage('Te rugăm să confirmi că nu ești un robot înainte de a continua.');
+    // Force show captcha challenge again
+    this.showCaptchaChallenge();
+    return;
+  }
   if (!this.email) {
     this.showErrorMessage('Te rugăm să introduci adresa de email pentru resetarea parolei.');
     return;
@@ -842,6 +875,8 @@ forgotPassword() {
     error => {
       this.isLoading = false;
       this.showErrorMessage(error.error?.error || 'A apărut o eroare. Te rugăm să încerci din nou.');
+    // Resetam CAPTCHA in caz de eroare
+      this.resetCaptcha();
     }
   );
 }
