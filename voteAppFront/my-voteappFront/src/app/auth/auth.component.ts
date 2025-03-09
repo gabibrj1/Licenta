@@ -1,8 +1,8 @@
 // Actualizare la auth.component.ts
-import { Component, ElementRef, ViewChild, Renderer2, OnInit, ChangeDetectorRef, NgZone } from '@angular/core';
+import { Component, ElementRef, ViewChild, Renderer2, OnInit, ChangeDetectorRef, NgZone,ViewEncapsulation  } from '@angular/core';
 import { Router, ActivatedRoute, NavigationEnd } from '@angular/router';
 import { AuthService } from '../services/auth.service';
-import { MatSnackBar } from '@angular/material/snack-bar';
+import { MatSnackBar, MatSnackBarHorizontalPosition, MatSnackBarVerticalPosition } from '@angular/material/snack-bar';
 import * as faceapi from 'face-api.js';
 import { environment } from '../../src/environments/environment';
 
@@ -10,6 +10,7 @@ import { environment } from '../../src/environments/environment';
 @Component({
   selector: 'app-auth',
   templateUrl: './auth.component.html',
+  encapsulation: ViewEncapsulation.None,
   styleUrls: ['./auth.component.scss']
 })
 export class AuthComponent implements OnInit {
@@ -61,6 +62,7 @@ export class AuthComponent implements OnInit {
     private cdr: ChangeDetectorRef,
     private ngZone: NgZone
   ) {
+    
     this.router.events.subscribe(event => {
       if (event instanceof NavigationEnd && this.router.url.includes('/auth')) {
         setTimeout(() => {
@@ -69,6 +71,7 @@ export class AuthComponent implements OnInit {
       }
     });
   }
+  
 
   async ngOnInit() {
     console.log('Initializare componenta auth...');
@@ -115,6 +118,47 @@ export class AuthComponent implements OnInit {
     document.head.appendChild(script);
     
     console.log('Script CAPTCHA adăugat la document');
+  }
+    private showMessage(
+    message: string, 
+    type: 'success' | 'error' | 'warning' | 'info', 
+    duration: number = 5000,
+    horizontalPosition: MatSnackBarHorizontalPosition = 'center',
+    verticalPosition: MatSnackBarVerticalPosition = 'top'
+  ) {
+    // Define dynamic styling classes based on message type
+    const typeClasses = {
+      'success': ['success-snackbar', 'bg-green-500', 'text-white'],
+      'error': ['error-snackbar', 'bg-red-500', 'text-white'],
+      'warning': ['warning-snackbar', 'bg-yellow-500', 'text-black'],
+      'info': ['info-snackbar', 'bg-blue-500', 'text-white']
+    };
+
+    // Construct icon based on type
+    const typeIcons = {
+      'success': '✅',
+      'error': '❌',
+      'warning': '⚠️',
+      'info': 'ℹ️'
+    };
+
+    // Enhance message with icon and type-specific styling
+    const enhancedMessage = `${typeIcons[type]} ${message}`;
+
+    this.snackBar.open(enhancedMessage, 'Închide', {
+      duration,
+      horizontalPosition,
+      verticalPosition,
+      panelClass: [
+        ...typeClasses[type],
+        'custom-snackbar', // Add a base custom class for consistent styling
+        'rounded-lg',      // Rounded corners
+        'shadow-lg',       // Shadow effect
+        'font-medium',     // Medium font weight
+        'text-sm',         // Slightly smaller text
+        'animate-slide-in' // Optional slide-in animation (you'll need to define this in CSS)
+      ]
+    });
   }
   
   
@@ -431,23 +475,40 @@ export class AuthComponent implements OnInit {
   }
   
   // Metodă pentru afișarea mesajelor de eroare
-  private showErrorMessage(message: string) {
-    this.snackBar.open(message, 'Închide', {
-      duration: 5000,
-      horizontalPosition: 'center',
-      verticalPosition: 'top',
-      panelClass: ['error-snackbar']
-    });
+  private showErrorMessage(
+    message: string, 
+    duration: number = 5000,
+    horizontalPosition: MatSnackBarHorizontalPosition = 'center',
+    verticalPosition: MatSnackBarVerticalPosition = 'top'
+  ) {
+    this.showMessage(message, 'error', duration, horizontalPosition, verticalPosition);
   }
   
   // Metodă pentru afișarea mesajelor de succes
-  private showSuccessMessage(message: string) {
-    this.snackBar.open(message, 'Închide', {
-      duration: 3000,
-      horizontalPosition: 'center',
-      verticalPosition: 'top',
-      panelClass: ['success-snackbar']
-    });
+  private showSuccessMessage(
+    message: string, 
+    duration: number = 3000,
+    horizontalPosition: MatSnackBarHorizontalPosition = 'center',
+    verticalPosition: MatSnackBarVerticalPosition = 'top'
+  ) {
+    this.showMessage(message, 'success', duration, horizontalPosition, verticalPosition);
+  }
+  private showWarningMessage(
+    message: string, 
+    duration: number = 4000,
+    horizontalPosition: MatSnackBarHorizontalPosition = 'center',
+    verticalPosition: MatSnackBarVerticalPosition = 'top'
+  ) {
+    this.showMessage(message, 'warning', duration, horizontalPosition, verticalPosition);
+  }
+
+  private showInfoMessage(
+    message: string, 
+    duration: number = 3000,
+    horizontalPosition: MatSnackBarHorizontalPosition = 'center',
+    verticalPosition: MatSnackBarVerticalPosition = 'top'
+  ) {
+    this.showMessage(message, 'info', duration, horizontalPosition, verticalPosition);
   }
 
   navigateToRegister() {

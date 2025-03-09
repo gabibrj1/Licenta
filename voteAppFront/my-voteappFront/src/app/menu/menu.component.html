@@ -1,19 +1,245 @@
-<div class="menu-container">
-  <h1>Meniu Principal</h1>
+<!-- menu.component.html -->
+<div class="voting-platform">
+  <!-- Header Bar -->
+  <header class="header-bar">
+    <div class="logo-container">
+      <div class="logo">
+        <svg width="24" height="24" viewBox="0 0 512 512" fill="white" style="margin-right: 5px;">
+          <path d="M416 400V464C416 490.5 394.5 512 368 512H48C21.5 512 0 490.5 0 464V48C0 21.5 21.5 0 48 0H368C394.5 0 416 21.5 416 48V96H244C220.9 96 202 114.9 202 138V374C202 397.1 220.9 416 244 416H416zM480 320H432V224H480V320zM432 352H480V384H432V352zM352 160C352 142.3 366.3 128 384 128H486C504.8 128 520 143.2 520 162V382C520 400.8 504.8 416 486 416H384C366.3 416 352 401.7 352 384V160zM244 128H384V384H244V128z"/>
+          <path d="M284 224L344 224C348.4 224 352 227.6 352 232C352 236.4 348.4 240 344 240L284 240C279.6 240 276 236.4 276 232C276 227.6 279.6 224 284 224zM284 256L344 256C348.4 256 352 259.6 352 264C352 268.4 348.4 272 344 272L284 272C279.6 272 276 268.4 276 264C276 259.6 279.6 256 284 256zM284 288L344 288C348.4 288 352 291.6 352 296C352 300.4 348.4 304 344 304L284 304C279.6 304 276 300.4 276 296C276 291.6 279.6 288 284 288zM320 352C320 360.8 312.8 368 304 368H284C275.2 368 268 360.8 268 352V336C268 327.2 275.2 320 284 320H304C312.8 320 320 327.2 320 336V352z"/>
+        </svg>
+        <span class="logo-text">Prezență vot</span>
+      </div>
+      </div>
+    
+    <div class="election-info">
+      <span class="election-title">Alegeri prezidențiale - Tur {{ currentRound }}, {{ electionDate | date:'dd MMMM yyyy' }}</span>
+      <span class="user-icon" *ngIf="isAuthenticated()"><i class="fas fa-user-circle"></i></span>
+    </div>
+    
+    <div class="action-buttons">
+      <button class="btn-round" [class.active]="currentRound === 1" (click)="switchRound(1)">
+        Tur {{ currentRound }} <i class="fas fa-caret-down"></i>
+      </button>
+      <button class="btn-icon">
+        <i class="fas fa-history"></i> ISTORIC
+      </button>
+      <button class="btn-icon">
+        <i class="fas fa-expand"></i>
+      </button>
+      <button class="btn-icon">
+        <i class="fas fa-cog"></i>
+      </button>
+    </div>
+  </header>
 
-  <!-- Daca utilizatorul este logat cu email -->
-  <div *ngIf="userEmail">
-    <p><strong>Email:</strong> {{ userEmail }}</p>
-  </div>
+  <!-- Side Navigation -->
+  <nav class="side-nav">
+    <div class="language-selector">
+      <button class="btn-language" [class.active]="locationFilter === 'romania'" (click)="switchLocation('romania')">România</button>
+      <button class="btn-language" [class.active]="locationFilter === 'strainatate'" (click)="switchLocation('strainatate')">Străinătate</button>
+    </div>
+    
+    <div class="time-info">
+      <span>{{ currentTime | date:'EEEE HH:mm' }}</span>
+      <i class="fas fa-chevron-down"></i>
+    </div>
+    <!-- Sectiune de vot -->
+    <div class="nav-section vote-section">
+      <a (click)="navigateTo('voteaza')" class="vote-button">
+        <i class="fas fa-vote-yea"></i> <span>VOTEAZĂ AICI</span>
+      </a>
+    </div>
 
-  <!-- Daca utilizatorul este logat cu buletinul -->
-  <div *ngIf="userCNP">
-    <p><strong>CNP:</strong> {{ userCNP }}</p>
-    <p><strong>Nume:</strong> {{ lastName }}</p>
-    <p><strong>Prenume:</strong> {{ firstName }}</p>
-  </div>
-  <ng-template #socialLoginMessage>
-    <p>{{ message }}</p>
-  </ng-template>
-  <button (click)="logout()">Logout</button>
+    <!-- Sectiunea de simulare vot-->
+     <div class = "nav-section">
+      <span class="section-title">Simulare</span>
+     </div>
+
+     <ul class="nav-menu">
+      <li class="nav-item" [class.active]="currentView === 'simulare-vot'">
+        <a (click)="navigateTo('simulare-vot')">
+          <i class="fas fa-laptop"></i> Simularea procesului de vot
+        </a>
+      </li>
+     </ul>
+    
+    <div class="nav-actions">
+      <button class="nav-action">
+        <i class="fas fa-download"></i> Descarcă CSV
+      </button>
+    </div>
+    
+    <div class="nav-section">
+      <span class="section-title">Prezență la vot</span>
+    </div>
+    
+    <ul class="nav-menu">
+      <li class="nav-item" [class.active]="currentView === 'prezenta'">
+        <a (click)="navigateTo('prezenta')">
+          <i class="fas fa-desktop"></i> Prezență
+        </a>
+      </li>
+      <li class="nav-item" [class.active]="currentView === 'statistici'">
+        <a (click)="navigateTo('statistici')">
+          <i class="fas fa-chart-line"></i> Statistici
+        </a>
+      </li>
+      <li class="nav-item" [class.active]="currentView === 'harta'">
+        <a (click)="navigateTo('harta')">
+          <i class="fas fa-map"></i> Hartă
+        </a>
+      </li>
+    </ul>
+
+    <!-- Sectiunea de candidati -->
+     <div class="nav-section">
+      <span class="section-title">Candidați</span>
+     </div>
+
+     <ul class="nav-menu">
+      <li class="nav-item" [class.active]="currentView === 'candidati-prezidentiali'">
+        <a (click)="navigateTo('candidati-prezidentiali')">
+          <i class="fas fa-user-tie"></i> Candidați prezidențiali
+        </a>
+      </li>
+      <li class="nav-item" *ngIf="locationFilter === 'romania'" [class.active]="currentView === 'candidati-locali'">
+        <a (click)="navigateTo('candidati-locali')">
+          <i class="fas fa-users"></i> Candidați locali
+        </a>
+      </li>
+     </ul>
+    
+     <!-- Sectiunea de procese verbale -->
+    <div class="nav-section">
+      <span class="section-title">Procese-verbale</span>
+    </div>
+    
+    <ul class="nav-menu">
+      <li class="nav-item" [class.active]="currentView === 'rezultate'">
+        <a (click)="navigateTo('rezultate')">
+          <i class="fas fa-file-alt"></i> Rezultate
+        </a>
+      </li>
+      <li class="nav-item" [class.active]="currentView === 'harta-rezultate'">
+        <a (click)="navigateTo('harta-rezultate')">
+          <i class="fas fa-map"></i> Hartă
+        </a>
+      </li>
+    </ul>
+
+    <!-- Sectiunea de stiri si analize -->
+     <div class="nav-section">
+      <span class = "section-title">Informații</span>
+     </div>
+     <ul class="nav-menu">
+      <li class="nav-item" [class.active]="currentView === 'stiri-analize'">
+        <a (click)="navigateTo('stiri-analize')">
+          <i class="fas fa-newspaper"></i> Știri și analize
+        </a>
+      </li>
+      <li class="nav-item" [class.active]="currentView === 'forumuri'">
+        <a (click)="navigateTo('forumuri')">
+          <i class="fas fa-comments"></i> Forumuri
+        </a>
+      </li>
+    </ul>
+
+        <!-- Sectiunea Despre Noi -->
+        <div class="nav-section">
+          <span class="section-title">Despre Noi</span>
+        </div>
+        
+        <ul class="nav-menu">
+          <li class="nav-item" [class.active]="currentView === 'concept'">
+            <a (click)="navigateTo('concept')">
+              <i class="fas fa-lightbulb"></i> Concept
+            </a>
+          </li>
+          <li class="nav-item" [class.active]="currentView === 'creeaza-sistem'">
+            <a (click)="navigateTo('creeaza-sistem')">
+              <i class="fas fa-cogs"></i> Creează propriul sistem de vot
+            </a>
+          </li>
+          <li class="nav-item" [class.active]="currentView === 'misiune'">
+            <a (click)="navigateTo('misiune')">
+              <i class="fas fa-bullseye"></i> Misiune și viziune
+            </a>
+          </li>
+          <li class="nav-item" [class.active]="currentView === 'contact'">
+            <a (click)="navigateTo('contact')">
+              <i class="fas fa-envelope"></i> Contact
+            </a>
+          </li>
+        </ul>
+
+    <!-- Sectiunea Setari Avansate -->
+    <div class="nav-section">
+      <span class="section-title">Setări Avansate</span>
+    </div>
+    
+    <ul class="nav-menu">
+      <li class="nav-item" [class.active]="currentView === 'setari-cont'">
+        <a (click)="navigateTo('setari-cont')">
+          <i class="fas fa-user-cog"></i> Setări cont
+        </a>
+      </li>
+      <li class="nav-item" [class.active]="currentView === 'securitate'">
+        <a (click)="navigateTo('securitate')">
+          <i class="fas fa-shield-alt"></i> Securitate
+        </a>
+      </li>
+      <li class="nav-item" [class.active]="currentView === 'notificari'">
+        <a (click)="navigateTo('notificari')">
+          <i class="fas fa-bell"></i> Preferințe notificări
+        </a>
+      </li>
+      <li class="nav-item" [class.active]="currentView === 'accesibilitate'">
+        <a (click)="navigateTo('accesibilitate')">
+          <i class="fas fa-universal-access"></i> Accesibilitate
+        </a>
+      </li>
+    </ul>
+
+
+    
+    <!-- User Profile Section (Only shows when authenticated) -->
+    <div *ngIf="isAuthenticated()" class="user-profile">
+      <!-- Utilizator autentificat cu email și parolă -->
+      <div *ngIf="userEmail" class="user-info">
+        <i class="fas fa-user-circle"></i>
+        <div class="user-details">
+          <p class="user-email">{{ userEmail }}</p>
+          <p class="user-type">Autentificare prin email</p>
+        </div>
+      </div>
+      
+      <!-- Utilizator autentificat cu CNP/buletin -->
+      <div *ngIf="userCNP" class="user-info">
+        <i class="fas fa-id-card"></i>
+        <div class="user-details">
+          <p class="user-name">{{ lastName }} {{ firstName }}</p>
+          <p class="user-id">CNP: {{ maskCNP(userCNP) }}</p>
+          <p class="user-type">Autentificare prin buletin</p>
+        </div>
+      </div>
+      
+      <!-- Autentificare socială -->
+      <div *ngIf="message" class="user-info">
+        <i class="fas fa-user-circle"></i>
+        <div class="user-details">
+          <p class="user-type">{{ message }}</p>
+        </div>
+      </div>
+      
+      <button class="btn-logout" (click)="logout()">
+        <i class="fas fa-sign-out-alt"></i> Deconectare
+      </button>
+    </div>
+  </nav>
+
+  <!-- Main Content Area -->
+  <main class="main-content">
+    <router-outlet></router-outlet>
+  </main>
 </div>
