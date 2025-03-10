@@ -161,39 +161,42 @@ export class MenuComponent implements OnInit {
         this.router.navigate(['/forumuri']);
         break;
       
-      // Despre Noi (NOU)
-      case 'echipa':
-        this.router.navigate(['/despre/concept']);
-        break;
-      case 'creeaza-sistem':
-        this.router.navigate(['/despre/creeaza-sistem']);
-        break;
-      case 'misiune':
-        this.router.navigate(['/despre/misiune']);
-        break;
-      case 'contact':
-        this.router.navigate(['/despre/contact']);
-        break;
-      
-      // Setări Avansate (NOU)
-      case 'setari-cont':
-        this.router.navigate(['/setari/cont']);
-        break;
-      case 'securitate':
-        this.router.navigate(['/setari/securitate']);
-        break;
-      case 'notificari':
-        this.router.navigate(['/setari/notificari']);
-        break;
-      case 'accesibilitate':
-        this.router.navigate(['/setari/accesibilitate']);
-        break;
-      
-      default:
-        this.router.navigate([`/${view}`]);
-        break;
+        case 'concept':
+          console.log('Navigare către concept');
+          this.router.navigate(['/menu/despre/concept']);
+          break;
+        case 'creeaza-sistem':
+          console.log('Navigare către creeaza-sistem');
+          this.router.navigate(['/menu/despre/creeaza-sistem']);
+          break;
+        case 'misiune':
+          console.log('Navigare către misiune');
+          this.router.navigate(['/menu/despre/misiune']);
+          break;
+        case 'contact':
+          console.log('Navigare către contact');
+          this.router.navigate(['/menu/despre/contact']);
+          break;
+        
+        // Setări Avansate
+        case 'setari-cont':
+          this.router.navigate(['/menu/setari/cont']);
+          break;
+        case 'securitate':
+          this.router.navigate(['/menu/setari/securitate']);
+          break;
+        case 'notificari':
+          this.router.navigate(['/menu/setari/notificari']);
+          break;
+        case 'accesibilitate':
+          this.router.navigate(['/menu/setari/accesibilitate']);
+          break;
+        
+        default:
+          this.router.navigate([`/${view}`]);
+          break;
+      }
     }
-  }
 
   // Switch between election rounds
   switchRound(round: number): void {

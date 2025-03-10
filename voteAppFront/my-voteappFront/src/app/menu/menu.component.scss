@@ -13,6 +13,7 @@
   background-color: #121212;
   color: #ffffff;
   font-family: 'Roboto', Arial, sans-serif;
+  position: relative;
 }
 
 // Header Bar
@@ -123,7 +124,13 @@
 .main-content {
   display: flex;
   flex: 1;
-  overflow: hidden;
+  flex-direction: column; // Adaugă această linie
+  overflow: auto; // Schimbă din overflow: hidden
+  padding: 20px; // Adaugă padding pentru conținut
+  background-color: #1e1e1e; // Poți ajusta culoarea de fundal
+  margin-left: 270px; // Adaugă margin-left egal cu lățimea side-nav
+  width: calc(100% - 270px); // Ajustează lățimea
+  height: calc(100vh - 60px); // Ajustează înălțimea
 }
 
 // Side Navigation - creșterea lățimii pentru a acomoda textele mai lungi
@@ -137,6 +144,11 @@
   height: calc(100vh - 60px);
   overflow-y: auto;
   overflow-x: hidden;
+  position: fixed; 
+  top: 60px; // Adaugă această linie - înălțimea header-ului
+  left: 0; // Adaugă această linie
+  z-index: 10;
+
   
   // Customizare scrollbar pentru aspect modern
   &::-webkit-scrollbar {

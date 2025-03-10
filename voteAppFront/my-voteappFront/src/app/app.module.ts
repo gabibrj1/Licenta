@@ -18,6 +18,8 @@ import { MatNativeDateModule } from '@angular/material/core';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatCardModule } from '@angular/material/card';
+import { MatSidenavModule } from '@angular/material/sidenav';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import { SpinnerModule } from '@coreui/angular';
 import { MatDialogModule } from '@angular/material/dialog';
@@ -32,6 +34,10 @@ import { AuthInterceptor } from './interceptors/auth.interceptor';
 import { ReviewsComponent } from './reviews/reviews.component';
 import { DeleteConfirmDialogComponent } from './delete-confirm.dialog/delete-confirm.dialog.component';
 import { WarningDialogComponent } from './warning-dialog/warning-dialog.component';
+import { ContactComponent } from './contact/contact.component';
+
+
+import { AuthGuard } from './guards/auth.guard';
 
 @NgModule({
   declarations: [
@@ -46,7 +52,8 @@ import { WarningDialogComponent } from './warning-dialog/warning-dialog.componen
     MenuComponent,
     ReviewsComponent,
     DeleteConfirmDialogComponent,
-    WarningDialogComponent
+    WarningDialogComponent,
+    ContactComponent
   ],
   imports: [
     BrowserModule,
@@ -66,6 +73,8 @@ import { WarningDialogComponent } from './warning-dialog/warning-dialog.componen
     MatSlideToggleModule,
     MatProgressSpinnerModule,
     MatSnackBarModule,
+    MatCardModule,
+    MatSidenavModule,
     FontAwesomeModule,
     SpinnerModule,
     MatDialogModule,

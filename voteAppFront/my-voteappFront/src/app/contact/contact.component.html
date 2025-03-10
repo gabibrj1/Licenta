@@ -1,0 +1,103 @@
+<div class="contact-container">
+    <h2>Contact</h2>
+    
+    <div *ngIf="isLoading" class="loading-spinner">
+      <mat-spinner diameter="40" color="accent"></mat-spinner>
+    </div>
+  
+    <div *ngIf="!isLoading && contactInfo" class="contact-info">
+      <div class="info-card">
+        <div class="info-section">
+          <i class="fas fa-map-marker-alt"></i>
+          <span class="info-text">{{ contactInfo.address }}</span>
+        </div>
+        
+        <div class="info-section">
+            <i class="fas fa-phone-alt"></i>
+            <a href="tel:{{ contactInfo.phone }}" class="info-text clickable-link">
+              {{ contactInfo.phone }}
+            </a>
+          </div>
+          
+          
+          <div class="info-section">
+            <i class="fas fa-envelope"></i>
+            <a href="mailto:{{ contactInfo.email }}" class="info-text clickable-link">
+              {{ contactInfo.email }}
+            </a>
+          </div>
+    
+        
+        <div class="info-section">
+          <i class="fas fa-clock"></i>
+          <span class="info-text">{{ contactInfo.business_hours }}</span>
+        </div>
+      </div>
+      
+      <div class="map-container">
+        <h3>Locația noastră</h3>
+        <div class="map-embed">
+          <iframe
+            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d11348.93407425878!2d26.085641400000003!3d45.248228!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x40b3a35787b84b3b%3A0xab2de93128b3bb02!2s107190%20C%C4%83tunu!5e0!3m2!1sro!2sro!4v1710171607673!5m2!1sro!2sro"
+            width="100%"
+            height="300"
+            style="border:0;"
+            allowfullscreen=""
+            loading="lazy"
+            referrerpolicy="no-referrer-when-downgrade">
+          </iframe>
+        </div>
+      </div>
+      
+      <div class="contact-form">
+        <h3>Trimite-ne un mesaj</h3>
+        <form [formGroup]="contactForm" (ngSubmit)="sendMessage()">
+          <div class="form-row">
+            <div class="form-field">
+              <input type="text" 
+                     formControlName="name" 
+                     placeholder="Nume" 
+                     class="dark-input"
+                     [class.error-input]="nameInvalid">
+              <div *ngIf="nameInvalid" class="error-hint">
+                Numele este obligatoriu (minim 2 caractere)
+              </div>
+            </div>
+            <div class="form-field">
+              <input type="email" 
+                     formControlName="email" 
+                     placeholder="Email" 
+                     class="dark-input"
+                     [class.error-input]="emailInvalid">
+              <div *ngIf="emailInvalid" class="error-hint">
+                Adresa de email nu este validă
+              </div>
+            </div>
+          </div>
+          <div class="form-field">
+            <textarea formControlName="message" 
+                      placeholder="Mesaj" 
+                      rows="5" 
+                      class="dark-input"
+                      [class.error-input]="messageInvalid"></textarea>
+            <div *ngIf="messageInvalid" class="error-hint">
+              Te rugăm să introduci un mesaj (minim 10 caractere)
+            </div>
+          </div>
+          <button type="submit" class="send-button" [disabled]="isSending">
+            <i class="fas" [ngClass]="isSending ? 'fa-spinner fa-spin' : 'fa-paper-plane'"></i>
+            {{ isSending ? 'Se trimite...' : 'Trimite mesaj' }}
+          </button>
+        </form>
+      </div>
+    </div>
+    
+    <!-- Mesaj pentru debugging -->
+    <div *ngIf="!isLoading && !contactInfo" class="error-message">
+      <p>Nu s-au putut încărca informațiile de contact. Te rugăm să încerci din nou mai târziu.</p>
+      <button (click)="loadContactInfo()">
+        <i class="fas fa-sync" style="margin-right: 8px;"></i>
+        Reîncarcă
+      </button>
+    </div>
+  </div>

@@ -5,12 +5,21 @@ import { VerifyEmailComponent } from './verify-email/verify-email.component';
 import { AuthComponent } from './auth/auth.component';
 import { HomeComponent } from './home/home.component';
 import { MenuComponent } from './menu/menu.component';
+import { ContactComponent } from './contact/contact.component';
 import { ReviewsComponent } from './reviews/reviews.component';
 import { AuthGuard } from './guards/auth.guard';
 const routes: Routes = [
   { path: '', component: HomeComponent },
   { path: 'auth', component: AuthComponent },
-  { path: 'menu', component: MenuComponent},
+  { 
+    path: 'menu', 
+    component: MenuComponent,
+    children: [
+      { path: 'despre/contact', component: ContactComponent },
+      // Aici poți adăuga alte rute pentru conținutul din meniu
+      { path: '', redirectTo: '', pathMatch: 'full' } // Modificat: nu mai redirecționăm
+    ]
+  },
   { path: 'verify-email', component: VerifyEmailComponent },
   { path: 'voteapp-front', component: VoteappFrontComponent},
   { path: 'reviews', component: ReviewsComponent },
