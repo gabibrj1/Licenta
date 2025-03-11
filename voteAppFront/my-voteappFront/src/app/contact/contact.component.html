@@ -28,11 +28,12 @@
           </div>
     
         
-        <div class="info-section">
-          <i class="fas fa-clock"></i>
-          <span class="info-text">{{ contactInfo.business_hours }}</span>
-        </div>
-      </div>
+          <div class="info-section">
+            <i class="fas fa-clock"></i>
+            <a (click)="openScheduleDialog()" class="info-text clickable-link">
+              {{ contactInfo.business_hours }}
+            </a>
+          </div>
       
       <div class="map-container">
         <h3>Locația noastră</h3>

@@ -1,0 +1,110 @@
+<div class="schedule-dialog">
+    <div class="dialog-header">
+      <h2 *ngIf="currentStep === 1">Programează un apel telefonic</h2>
+      <h2 *ngIf="currentStep === 2">Alege ora</h2>
+      <h2 *ngIf="currentStep === 3">Completează detaliile</h2>
+      <button class="close-button" (click)="closeDialog()">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+  
+    <div class="dialog-content">
+      <!-- Pasul 1: Selectarea datei -->
+      <div *ngIf="currentStep === 1" class="date-selection">
+        <p class="instruction">Selectează data pentru programare:</p>
+        <div class="calendar">
+          <div class="date-grid">
+            <div *ngFor="let date of availableDates" 
+                 class="date-item" 
+                 [class.selected]="isDateSelected(date)"
+                 (click)="onSelectDate(date)">
+              <div class="date-weekday">{{ date | date:'EEE' }}</div>
+              <div class="date-day">{{ date | date:'d' }}</div>
+              <div class="date-month">{{ date | date:'MMM' }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+  
+      <!-- Pasul 2: Selectarea orei -->
+      <div *ngIf="currentStep === 2" class="time-selection">
+        <p class="instruction">Selectează ora pentru programare pe {{ selectedDate | date:'EEEE, d MMMM yyyy' }}:</p>
+        
+        <div *ngIf="isLoading" class="loading-spinner">
+          <mat-spinner diameter="30"></mat-spinner>
+          <p>Se verifică disponibilitatea...</p>
+        </div>
+        
+        <div *ngIf="!isLoading" class="time-grid">
+          <div *ngFor="let time of availableHours" 
+               class="time-item"
+               (click)="onSelectTime(time)">
+            {{ time }}
+          </div>
+        </div>
+        <div *ngIf="!isLoading && availableHours.length === 0" class="no-hours-message">
+            <p>Nu există ore disponibile pentru această dată. Te rugăm să selectezi o altă dată.</p>
+          </div>
+        <div class="navigation-buttons">
+          <button class="back-button" (click)="goBack()">
+            <i class="fas fa-arrow-left"></i> Înapoi
+          </button>
+        </div>
+      </div>
+  
+      <!-- Pasul 3: Detalii și confirmare -->
+      <div *ngIf="currentStep === 3" class="details-form">
+        <div class="appointment-summary">
+          <p class="summary-title">Detalii programare:</p>
+          <p class="summary-info">
+            <i class="fas fa-calendar-day"></i> {{ selectedDate | date:'EEEE, d MMMM yyyy' }}
+          </p>
+          <p class="summary-info">
+            <i class="fas fa-clock"></i> {{ scheduleForm.get('time')?.value }}
+          </p>
+        </div>
+  
+        <form [formGroup]="scheduleForm" (ngSubmit)="submitAppointment()">
+          <div class="form-group">
+            <label for="name">Nume*</label>
+            <input type="text" id="name" class="dark-input" formControlName="name">
+            <div *ngIf="scheduleForm.get('name')?.invalid && scheduleForm.get('name')?.touched" class="error-hint">
+              Numele este obligatoriu
+            </div>
+          </div>
+  
+          <div class="form-group">
+            <label for="email">Email*</label>
+            <input type="email" id="email" class="dark-input" formControlName="email">
+            <div *ngIf="scheduleForm.get('email')?.invalid && scheduleForm.get('email')?.touched" class="error-hint">
+              Email-ul este obligatoriu și trebuie să fie valid
+            </div>
+          </div>
+  
+          <div class="form-group">
+            <label for="phone">Telefon*</label>
+            <input type="tel" id="phone" class="dark-input" formControlName="phone">
+            <div *ngIf="scheduleForm.get('phone')?.invalid && scheduleForm.get('phone')?.touched" class="error-hint">
+              Telefonul este obligatoriu
+            </div>
+          </div>
+  
+          <div class="form-group">
+            <label for="notes">Notițe suplimentare</label>
+            <textarea id="notes" class="dark-input" formControlName="notes" rows="3"></textarea>
+          </div>
+  
+          <div class="form-actions">
+            <button type="button" class="back-button" (click)="goBack()">
+              <i class="fas fa-arrow-left"></i> Înapoi
+            </button>
+            <button type="submit" class="submit-button" [disabled]="scheduleForm.invalid || isLoading">
+              <i *ngIf="isLoading" class="fas fa-spinner fa-spin"></i>
+              <i *ngIf="!isLoading" class="fas fa-check"></i>
+              {{ isLoading ? 'Se trimite...' : 'Confirmă programarea' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>

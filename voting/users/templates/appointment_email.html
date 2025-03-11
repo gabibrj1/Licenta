@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Programare apel telefonic</title>
+</head>
+<body>
+    <h2>Solicitare programare de la {{ name }}</h2>
+    <p><strong>Nume:</strong> {{ name }}</p>
+    <p><strong>Email:</strong> {{ email }}</p>
+    <p><strong>Telefon:</strong> {{ phone }}</p>
+    <p><strong>Data și ora:</strong> {{ date_time_str }}</p>
+    <p><strong>Notițe:</strong> {{ notes|default:"Nicio notă" }}</p>
+    
+    <p><strong>Confirmă sau refuză programarea:</strong></p>
+    <p><a href="{{ confirmation_url }}" style="background-color: #4CAF50; color: white; padding: 10px 15px; text-decoration: none; margin-right: 10px;">Confirmă</a>
+    <a href="{{ reject_url }}" style="background-color: #f44336; color: white; padding: 10px 15px; text-decoration: none;">Refuză</a></p>
+</body>
+</html>

@@ -8,6 +8,11 @@ import { MenuComponent } from './menu/menu.component';
 import { ContactComponent } from './contact/contact.component';
 import { ReviewsComponent } from './reviews/reviews.component';
 import { AuthGuard } from './guards/auth.guard';
+
+import { AppointmentConfirmedComponent } from './appointments/appointment-confirmed.component';
+import { AppointmentRejectedComponent } from './appointments/appointment-rejected.component';
+import { AppointmentErrorComponent } from './appointments/appointment-error.component';
+
 const routes: Routes = [
   { path: '', component: HomeComponent },
   { path: 'auth', component: AuthComponent },
@@ -23,6 +28,12 @@ const routes: Routes = [
   { path: 'verify-email', component: VerifyEmailComponent },
   { path: 'voteapp-front', component: VoteappFrontComponent},
   { path: 'reviews', component: ReviewsComponent },
+
+  { path: 'appointment-confirmed', component: AppointmentConfirmedComponent },
+  { path: 'appointment-rejected', component: AppointmentRejectedComponent },
+  { path: 'appointment-error', component: AppointmentErrorComponent },
+  
+
   { path: '**', redirectTo: '/auth'} //redirect pt rute inexistente
 ];
 

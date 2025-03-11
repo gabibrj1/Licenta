@@ -2,6 +2,8 @@ import { Component, OnInit } from '@angular/core';
 import { ContactService, ContactInfo, ContactMessage } from '../services/contact.service';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { MatDialog } from '@angular/material/dialog';
+import { ScheduleDialogComponent } from '../schedule-dialog/schedule-dialog.component';
 
 @Component({
   selector: 'app-contact',
@@ -17,7 +19,8 @@ export class ContactComponent implements OnInit {
   constructor(
     private contactService: ContactService,
     private snackBar: MatSnackBar,
-    private fb: FormBuilder
+    private fb: FormBuilder, 
+    private dialog: MatDialog
   ) {
     this.contactForm = this.fb.group({
       name: ['', [Validators.required, Validators.minLength(2)]],
@@ -85,6 +88,21 @@ export class ContactComponent implements OnInit {
           panelClass: ['error-snackbar']
         });
         this.isSending = false;
+      }
+    });
+  }
+  openScheduleDialog(): void {
+    const dialogRef = this.dialog.open(ScheduleDialogComponent, {
+      width: '550px',
+      maxWidth: '95vw',
+      disableClose: true,
+      panelClass: 'dark-dialog'
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result) {
+        // Programare trimisă cu succes
+        console.log('Programare trimisă cu succes');
       }
     });
   }

@@ -1,0 +1,278 @@
+.schedule-dialog {
+    background-color: #1e1e1e;
+    color: #ffffff;
+    width: 100%;
+    max-width: 550px;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  
+  .dialog-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 15px 20px;
+    background-color: #2a5885;
+    
+    h2 {
+      margin: 0;
+      font-size: 1.3rem;
+      font-weight: 500;
+    }
+    
+    .close-button {
+      background: none;
+      border: none;
+      color: white;
+      font-size: 1.2rem;
+      cursor: pointer;
+      padding: 5px;
+      
+      &:hover {
+        color: #d0d0d0;
+      }
+    }
+  }
+  
+  .dialog-content {
+    padding: 20px;
+    
+    .instruction {
+      margin-bottom: 15px;
+      color: #d0d0d0;
+    }
+  }
+  
+  // Selecție dată
+  .date-selection {
+    .calendar {
+      margin-bottom: 20px;
+    }
+    
+    .date-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 10px;
+      
+      @media (max-width: 600px) {
+        grid-template-columns: repeat(4, 1fr);
+      }
+      
+      @media (max-width: 400px) {
+        grid-template-columns: repeat(3, 1fr);
+      }
+    }
+    
+    .date-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 10px 5px;
+      background-color: #2c2c2c;
+      border: 1px solid #444;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: all 0.2s;
+      
+      &:hover {
+        background-color: #3a3a3a;
+      }
+      
+      &.selected {
+        background-color: rgba(42, 88, 133, 0.3);
+        border-color: #2a5885;
+      }
+      
+      .date-weekday {
+        font-size: 0.8rem;
+        color: #999;
+        text-transform: uppercase;
+      }
+      
+      .date-day {
+        font-size: 1.3rem;
+        font-weight: 500;
+        margin: 2px 0;
+      }
+      
+      .date-month {
+        font-size: 0.8rem;
+        color: #d0d0d0;
+      }
+    }
+  }
+  
+  // Selecție oră
+  .time-selection {
+    .time-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      margin-bottom: 20px;
+      
+      @media (max-width: 500px) {
+        grid-template-columns: repeat(3, 1fr);
+      }
+      
+      @media (max-width: 400px) {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+    
+    .time-item {
+      padding: 12px 5px;
+      text-align: center;
+      background-color: #2c2c2c;
+      border: 1px solid #444;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: all 0.2s;
+      
+      &:hover {
+        background-color: #3a3a3a;
+      }
+    }
+  }
+  
+  // Formular detalii
+  .details-form {
+    .appointment-summary {
+      background-color: #2c2c2c;
+      padding: 15px;
+      border-radius: 5px;
+      margin-bottom: 20px;
+      
+      .summary-title {
+        font-weight: 500;
+        margin-bottom: 10px;
+        color: #2a5885;
+      }
+      
+      .summary-info {
+        display: flex;
+        align-items: center;
+        margin-bottom: 5px;
+        
+        i {
+          margin-right: 10px;
+          color: #d0d0d0;
+          width: 20px;
+          text-align: center;
+        }
+      }
+    }
+    
+    .form-group {
+      margin-bottom: 15px;
+      
+      label {
+        display: block;
+        margin-bottom: 5px;
+        color: #d0d0d0;
+      }
+    }
+    
+    .dark-input {
+      width: 100%;
+      background-color: #2c2c2c;
+      border: 1px solid #444;
+      border-radius: 4px;
+      padding: 10px 12px;
+      color: white;
+      font-size: 0.9rem;
+      box-sizing: border-box;
+      
+      &:focus {
+        outline: none;
+        border-color: #2a5885;
+      }
+    }
+    
+    textarea.dark-input {
+      resize: vertical;
+      min-height: 80px;
+    }
+    
+    .error-hint {
+      color: #ff6b6b;
+      font-size: 0.8rem;
+      margin-top: 5px;
+    }
+  }
+  
+  // Butoane de navigare
+  .navigation-buttons, .form-actions {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 20px;
+  }
+  
+  .form-actions {
+    margin-top: 25px;
+  }
+  
+  .back-button, .submit-button {
+    padding: 10px 15px;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    
+    i {
+      margin-right: 8px;
+    }
+  }
+  
+  .back-button {
+    background-color: transparent;
+    border: 1px solid #d0d0d0;
+    color: #d0d0d0;
+    
+    &:hover {
+      background-color: rgba(208, 208, 208, 0.1);
+    }
+  }
+  
+  .submit-button {
+    background-color: #2a5885;
+    color: white;
+    min-width: 180px;
+    
+    &:hover {
+      background-color: #3a6ca0;
+    }
+    
+    &:disabled {
+      background-color: #444;
+      cursor: not-allowed;
+    }
+  }
+  .loading-spinner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    margin: 30px 0;
+    
+    p {
+      margin-top: 15px;
+      color: #aaa;
+    }
+  }
+  
+  .no-hours-message {
+    text-align: center;
+    background-color: rgba(255, 152, 0, 0.1);
+    border: 1px solid rgba(255, 152, 0, 0.3);
+    border-radius: 4px;
+    padding: 15px;
+    margin: 20px 0;
+    
+    p {
+      color: #ff9800;
+      margin: 0;
+    }
+  }

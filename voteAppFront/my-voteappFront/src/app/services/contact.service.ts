@@ -22,7 +22,7 @@ export interface ContactMessage {
 })
 export class ContactService {
   // URL-ul API
-  private apiUrl = environment.apiUrl || 'http://127.0.0.1:8000';
+  private apiUrl = environment.apiUrl;
 
   constructor(private http: HttpClient) { }
 

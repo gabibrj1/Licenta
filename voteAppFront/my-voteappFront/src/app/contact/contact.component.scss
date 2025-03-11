@@ -275,3 +275,14 @@
         }
       }
   }
+
+  .clickable-link {
+    text-decoration: underline;
+    color: #e0e0e0;
+    transition: color 0.2s ease;
+    cursor: pointer;  /* Această proprietate este esențială */
+    
+    &:hover {
+      color: #2a5885;
+    }
+  }

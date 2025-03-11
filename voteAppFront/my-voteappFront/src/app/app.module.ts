@@ -35,9 +35,13 @@ import { ReviewsComponent } from './reviews/reviews.component';
 import { DeleteConfirmDialogComponent } from './delete-confirm.dialog/delete-confirm.dialog.component';
 import { WarningDialogComponent } from './warning-dialog/warning-dialog.component';
 import { ContactComponent } from './contact/contact.component';
+import { AppointmentConfirmedComponent } from './appointments/appointment-confirmed.component';
+import { AppointmentRejectedComponent } from './appointments/appointment-rejected.component';
+import { AppointmentErrorComponent } from './appointments/appointment-error.component';
 
 
 import { AuthGuard } from './guards/auth.guard';
+import { ScheduleDialogComponent } from './schedule-dialog/schedule-dialog.component';
 
 @NgModule({
   declarations: [
@@ -53,7 +57,11 @@ import { AuthGuard } from './guards/auth.guard';
     ReviewsComponent,
     DeleteConfirmDialogComponent,
     WarningDialogComponent,
-    ContactComponent
+    ContactComponent,
+    ScheduleDialogComponent,
+    AppointmentConfirmedComponent,
+    AppointmentRejectedComponent,
+    AppointmentErrorComponent
   ],
   imports: [
     BrowserModule,
