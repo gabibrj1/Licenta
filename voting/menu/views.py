@@ -385,3 +385,61 @@ def check_availability(request, date):
         return Response({
             'message': f'Eroare la verificarea disponibilității: {str(e)}'
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+class MapInfoView(APIView):
+    permission_classes = [AllowAny]  
+    
+    def get(self, request):
+        map_info = {
+            'center': {
+                'lat': 45.9443,
+                'lng': 25.0094
+            },
+            'zoom': 7,
+            'regions': [
+                {'name': 'Alba', 'code': 'AB', 'voters': 1250, 'percentage': 0.25},
+                {'name': 'Arad', 'code': 'AR', 'voters': 980, 'percentage': 0.18},
+                {'name': 'Argeș', 'code': 'AG', 'voters': 1430, 'percentage': 0.30},
+                {'name': 'Bacău', 'code': 'BC', 'voters': 1650, 'percentage': 0.35},
+                {'name': 'Bihor', 'code': 'BH', 'voters': 1120, 'percentage': 0.22},
+                {'name': 'Bistrița-Năsăud', 'code': 'BN', 'voters': 860, 'percentage': 0.17},
+                {'name': 'Botoșani', 'code': 'BT', 'voters': 920, 'percentage': 0.19},
+                {'name': 'Brăila', 'code': 'BR', 'voters': 780, 'percentage': 0.16},
+                {'name': 'Brașov', 'code': 'BV', 'voters': 1580, 'percentage': 0.32},
+                {'name': 'București', 'code': 'B', 'voters': 5320, 'percentage': 0.65},
+                {'name': 'Buzău', 'code': 'BZ', 'voters': 940, 'percentage': 0.20},
+                {'name': 'Călărași', 'code': 'CL', 'voters': 720, 'percentage': 0.15},
+                {'name': 'Caraș-Severin', 'code': 'CS', 'voters': 830, 'percentage': 0.17},
+                {'name': 'Cluj', 'code': 'CJ', 'voters': 1850, 'percentage': 0.38},
+                {'name': 'Constanța', 'code': 'CT', 'voters': 1730, 'percentage': 0.36},
+                {'name': 'Covasna', 'code': 'CV', 'voters': 560, 'percentage': 0.12},
+                {'name': 'Dâmbovița', 'code': 'DB', 'voters': 1020, 'percentage': 0.21},
+                {'name': 'Dolj', 'code': 'DJ', 'voters': 1380, 'percentage': 0.29},
+                {'name': 'Galați', 'code': 'GL', 'voters': 1290, 'percentage': 0.27},
+                {'name': 'Giurgiu', 'code': 'GR', 'voters': 680, 'percentage': 0.14},
+                {'name': 'Gorj', 'code': 'GJ', 'voters': 890, 'percentage': 0.18},
+                {'name': 'Harghita', 'code': 'HR', 'voters': 640, 'percentage': 0.13},
+                {'name': 'Hunedoara', 'code': 'HD', 'voters': 1060, 'percentage': 0.22},
+                {'name': 'Ialomița', 'code': 'IL', 'voters': 710, 'percentage': 0.15},
+                {'name': 'Iași', 'code': 'IS', 'voters': 1820, 'percentage': 0.37},
+                {'name': 'Ilfov', 'code': 'IF', 'voters': 1120, 'percentage': 0.23},
+                {'name': 'Maramureș', 'code': 'MM', 'voters': 1190, 'percentage': 0.24},
+                {'name': 'Mehedinți', 'code': 'MH', 'voters': 690, 'percentage': 0.14},
+                {'name': 'Mureș', 'code': 'MS', 'voters': 1280, 'percentage': 0.26},
+                {'name': 'Neamț', 'code': 'NT', 'voters': 1150, 'percentage': 0.24},
+                {'name': 'Olt', 'code': 'OT', 'voters': 950, 'percentage': 0.20},
+                {'name': 'Prahova', 'code': 'PH', 'voters': 1680, 'percentage': 0.35},
+                {'name': 'Sălaj', 'code': 'SJ', 'voters': 610, 'percentage': 0.13},
+                {'name': 'Satu Mare', 'code': 'SM', 'voters': 780, 'percentage': 0.16},
+                {'name': 'Sibiu', 'code': 'SB', 'voters': 1140, 'percentage': 0.23},
+                {'name': 'Suceava', 'code': 'SV', 'voters': 1350, 'percentage': 0.28},
+                {'name': 'Teleorman', 'code': 'TR', 'voters': 810, 'percentage': 0.17},
+                {'name': 'Timiș', 'code': 'TM', 'voters': 1620, 'percentage': 0.33},
+                {'name': 'Tulcea', 'code': 'TL', 'voters': 580, 'percentage': 0.12},
+                {'name': 'Vâlcea', 'code': 'VL', 'voters': 970, 'percentage': 0.20},
+                {'name': 'Vaslui', 'code': 'VS', 'voters': 830, 'percentage': 0.17},
+                {'name': 'Vrancea', 'code': 'VN', 'voters': 760, 'percentage': 0.16}
+            ]
+        }
+        
+        return Response(map_info)

@@ -38,6 +38,8 @@ import { ContactComponent } from './contact/contact.component';
 import { AppointmentConfirmedComponent } from './appointments/appointment-confirmed.component';
 import { AppointmentRejectedComponent } from './appointments/appointment-rejected.component';
 import { AppointmentErrorComponent } from './appointments/appointment-error.component';
+import { MapComponent } from './map/map.component';
+
 
 
 import { AuthGuard } from './guards/auth.guard';
@@ -61,7 +63,8 @@ import { ScheduleDialogComponent } from './schedule-dialog/schedule-dialog.compo
     ScheduleDialogComponent,
     AppointmentConfirmedComponent,
     AppointmentRejectedComponent,
-    AppointmentErrorComponent
+    AppointmentErrorComponent,
+    MapComponent
   ],
   imports: [
     BrowserModule,

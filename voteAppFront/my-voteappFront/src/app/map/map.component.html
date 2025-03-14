@@ -1,0 +1,90 @@
+<div class="map-container">
+    <!-- Loader -->
+    <div class="loader-container" *ngIf="isLoading">
+      <mat-spinner diameter="50"></mat-spinner>
+      <p>Se încarcă harta...</p>
+    </div>
+  
+    <!-- Main Content -->
+    <div class="map-content" *ngIf="!isLoading">
+      <div class="map-header">
+        <h1>Hartă județe</h1>
+        <div class="region-selector">
+          <button 
+            [class.active]="selectedRegion === 'romania'" 
+            (click)="switchRegion('romania')">
+            România
+          </button>
+          <button 
+            [class.active]="selectedRegion === 'strainatate'" 
+            (click)="switchRegion('strainatate')">
+            Străinătate
+          </button>
+        </div>
+      </div>
+  
+      <div class="map-information">
+        <div class="map-stats">
+          <h2>Votanți</h2>
+          <div class="stats-numbers">
+            <span class="count">53.675</span>
+            <span class="percentage">| 0.30 %</span>
+          </div>
+        </div>
+  
+        <div class="map-controls">
+          <div class="control-labels">
+            <span>NIVEL HARTĂ</span>
+            <span>CÂMP EVIDENȚIERE</span>
+            <span>Relativ la:</span>
+          </div>
+          
+          <div class="control-buttons">
+            <div class="map-level">
+              <button class="active">Județe</button>
+              <button>UAT-uri</button>
+            </div>
+            
+            <div class="highlight-field">
+              <button class="active">Prezență la vot</button>
+              <button>Votanți</button>
+              <button>Secții de votare</button>
+            </div>
+            
+            <div class="relative-to">
+              <button class="active">Maxim</button>
+              <button>100%</button>
+            </div>
+          </div>
+        </div>
+      </div>
+  
+      <!-- Map Visualization -->
+      <div class="map-visualization">
+        <!-- SVG Map would be inserted here, similar to the one in the image -->
+        <img src="assets/images/romania-map.svg" alt="Harta României" *ngIf="selectedRegion === 'romania'" />
+        <img src="assets/images/diaspora-map.svg" alt="Harta Diasporei" *ngIf="selectedRegion === 'strainatate'" />
+        
+        <!-- Map Legend -->
+        <div class="map-legend">
+          <div class="legend-header">
+            <span>Max</span>
+            <span>100</span>
+          </div>
+          <div class="legend-gradient"></div>
+          <div class="legend-footer">
+            <span>Min</span>
+            <span>-1</span>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Map Data Download -->
+      <div class="map-download">
+        <button mat-button class="download-button">
+          <mat-icon>download</mat-icon>
+          Descarcă CSV
+        </button>
+      </div>
+    </div>
+  </div>

@@ -12,6 +12,7 @@ import { AuthGuard } from './guards/auth.guard';
 import { AppointmentConfirmedComponent } from './appointments/appointment-confirmed.component';
 import { AppointmentRejectedComponent } from './appointments/appointment-rejected.component';
 import { AppointmentErrorComponent } from './appointments/appointment-error.component';
+import { MapComponent } from './map/map.component';
 
 const routes: Routes = [
   { path: '', component: HomeComponent },
@@ -21,6 +22,7 @@ const routes: Routes = [
     component: MenuComponent,
     children: [
       { path: 'despre/contact', component: ContactComponent },
+      { path: 'harta', component: MapComponent},
       // Aici poți adăuga alte rute pentru conținutul din meniu
       { path: '', redirectTo: '', pathMatch: 'full' } // Modificat: nu mai redirecționăm
     ]
@@ -32,6 +34,7 @@ const routes: Routes = [
   { path: 'appointment-confirmed', component: AppointmentConfirmedComponent },
   { path: 'appointment-rejected', component: AppointmentRejectedComponent },
   { path: 'appointment-error', component: AppointmentErrorComponent },
+  { path: 'harta', component: MapComponent },
   
 
   { path: '**', redirectTo: '/auth'} //redirect pt rute inexistente

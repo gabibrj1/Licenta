@@ -123,42 +123,42 @@ export class MenuComponent implements OnInit {
     switch (view) {
       // Secțiunea principală
       case 'voteaza':
-        this.router.navigate(['/voteaza']);
+        this.router.navigate(['menu/voteaza']);
         break;
       case 'simulare-vot':
-        this.router.navigate(['/simulare-vot']);
+        this.router.navigate(['menu/simulare-vot']);
         break;
       
       // Prezență la vot
       case 'prezenta':
-        this.router.navigate(['/prezenta']);
+        this.router.navigate(['menu/prezenta']);
         break;
       case 'statistici':
-        this.router.navigate(['/statistici']);
+        this.router.navigate(['menu/statistici']);
         break;
       case 'harta':
-        this.router.navigate(['/harta']);
+        this.router.navigate(['menu/harta']);
         break;
       
       // Candidați
       case 'candidati-locali':
-        this.router.navigate(['/candidati-locali']);
+        this.router.navigate(['menu/candidati-locali']);
         break;
       
       // Procese-verbale
       case 'rezultate':
-        this.router.navigate(['/rezultate']);
+        this.router.navigate(['menu/rezultate']);
         break;
       case 'harta-rezultate':
-        this.router.navigate(['/harta-rezultate']);
+        this.router.navigate(['menu/harta-rezultate']);
         break;
       
       // Informații
       case 'stiri-analize':
-        this.router.navigate(['/stiri-analize']);
+        this.router.navigate(['menu/stiri-analize']);
         break;
       case 'forumuri':
-        this.router.navigate(['/forumuri']);
+        this.router.navigate(['menu/forumuri']);
         break;
       
         case 'concept':

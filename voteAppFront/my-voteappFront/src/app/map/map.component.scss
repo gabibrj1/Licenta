@@ -1,0 +1,237 @@
+.map-container {
+    width: 100%;
+    padding: 20px;
+    background-color: #242424;
+    color: #fff;
+  
+    .loader-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 300px;
+      
+      p {
+        margin-top: 15px;
+        font-size: 16px;
+      }
+    }
+  
+    .map-content {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+  
+    .map-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+  
+      h1 {
+        font-size: 24px;
+        margin: 0;
+        font-weight: 500;
+      }
+  
+      .region-selector {
+        display: flex;
+        background-color: #333;
+        border-radius: 4px;
+        overflow: hidden;
+  
+        button {
+          background: none;
+          border: none;
+          padding: 8px 15px;
+          color: #fff;
+          cursor: pointer;
+          transition: background-color 0.3s;
+  
+          &.active {
+            background-color: #0066cc;
+          }
+  
+          &:hover:not(.active) {
+            background-color: #444;
+          }
+        }
+      }
+    }
+  
+    .map-information {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      margin-bottom: 20px;
+  
+      .map-stats {
+        h2 {
+          font-size: 20px;
+          margin: 0 0 5px 0;
+          color: #0088ff;
+        }
+  
+        .stats-numbers {
+          .count {
+            font-size: 22px;
+            font-weight: bold;
+          }
+  
+          .percentage {
+            font-size: 18px;
+            color: #ccc;
+            margin-left: 5px;
+          }
+        }
+      }
+  
+      .map-controls {
+        margin-top: 10px;
+  
+        .control-labels {
+          display: grid;
+          grid-template-columns: 1fr 1fr 1fr;
+          gap: 10px;
+          margin-bottom: 5px;
+          
+          span {
+            font-size: 12px;
+            color: #999;
+            text-transform: uppercase;
+          }
+        }
+  
+        .control-buttons {
+          display: grid;
+          grid-template-columns: 1fr 1fr 1fr;
+          gap: 10px;
+  
+          div {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+  
+            button {
+              background-color: #333;
+              border: none;
+              color: #fff;
+              padding: 6px 12px;
+              border-radius: 4px;
+              cursor: pointer;
+              font-size: 14px;
+              transition: background-color 0.2s;
+  
+              &.active {
+                background-color: #0066cc;
+              }
+  
+              &:hover:not(.active) {
+                background-color: #444;
+              }
+            }
+          }
+        }
+      }
+    }
+  
+    .map-visualization {
+      position: relative;
+      width: 100%;
+      min-height: 400px;
+      background-color: #333;
+      border-radius: 8px;
+      overflow: hidden;
+      margin-bottom: 15px;
+  
+      img {
+        width: 100%;
+        height: auto;
+        max-height: 500px;
+        object-fit: contain;
+      }
+  
+      .map-legend {
+        position: absolute;
+        bottom: 20px;
+        left: 20px;
+        background-color: rgba(0, 0, 0, 0.7);
+        padding: 10px;
+        border-radius: 4px;
+        width: 50px;
+  
+        .legend-header,
+        .legend-footer {
+          display: flex;
+          justify-content: space-between;
+          font-size: 12px;
+          color: #fff;
+        }
+  
+        .legend-gradient {
+          height: 150px;
+          width: 20px;
+          margin: 5px auto;
+          background: linear-gradient(to bottom, #0088ff, #004488, #222);
+          border-radius: 2px;
+        }
+      }
+    }
+  
+    .map-download {
+      margin-top: 10px;
+  
+      .download-button {
+        display: flex;
+        align-items: center;
+        background-color: transparent;
+        color: #0088ff;
+        border: none;
+        cursor: pointer;
+        padding: 0;
+        font-size: 14px;
+  
+        mat-icon {
+          margin-right: 5px;
+        }
+  
+        &:hover {
+          color: #00aaff;
+        }
+      }
+    }
+  }
+  
+  @media (max-width: 768px) {
+    .map-container {
+      padding: 10px;
+  
+      .map-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+      }
+  
+      .map-controls {
+        .control-labels, 
+        .control-buttons {
+          grid-template-columns: 1fr;
+        }
+      }
+    }
+  }
+  
+  @media (min-width: 769px) and (max-width: 1024px) {
+    .map-container {
+      .map-controls {
+        .control-buttons {
+          grid-template-columns: 1fr 1fr;
+          
+          div:last-child {
+            grid-column: span 2;
+          }
+        }
+      }
+    }
+  }
