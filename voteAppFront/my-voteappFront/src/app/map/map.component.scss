@@ -1,237 +1,264 @@
 .map-container {
-    width: 100%;
-    padding: 20px;
-    background-color: #242424;
-    color: #fff;
-  
-    .loader-container {
+  width: 100%;
+  padding: 20px;
+  background-color: #242424;
+  color: #fff;
+
+  .loader-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 300px;
+    
+    p {
+      margin-top: 15px;
+      font-size: 16px;
+    }
+    
+    .spinner {
+      border: 4px solid rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
+      border-top: 4px solid #0088ff;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  }
+
+  .map-content {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  // Votanți header
+  .votanti-header {
+    h2 {
+      font-size: 20px;
+      margin: 0 0 5px 0;
+      color: #0088ff;
+    }
+
+    .stats-numbers {
       display: flex;
-      flex-direction: column;
       align-items: center;
-      justify-content: center;
-      min-height: 300px;
       
-      p {
-        margin-top: 15px;
-        font-size: 16px;
+      .count {
+        font-size: 22px;
+        font-weight: bold;
+      }
+
+      .percentage {
+        font-size: 18px;
+        color: #ccc;
+        margin-left: 5px;
       }
     }
-  
-    .map-content {
-      display: flex;
-      flex-direction: column;
-      gap: 20px;
+  }
+
+  // Filter controls
+  .filter-controls {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 15px;
+    margin: 15px 0;
+
+    @media (max-width: 768px) {
+      grid-template-columns: 1fr;
     }
-  
-    .map-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 15px;
-  
-      h1 {
-        font-size: 24px;
-        margin: 0;
-        font-weight: 500;
+
+    .control-section {
+      .control-label {
+        font-size: 12px;
+        color: #999;
+        text-transform: uppercase;
+        margin: 0 0 8px 0;
       }
-  
-      .region-selector {
+
+      .buttons-group {
         display: flex;
-        background-color: #333;
-        border-radius: 4px;
-        overflow: hidden;
-  
-        button {
-          background: none;
+        flex-wrap: wrap;
+        gap: 5px;
+
+        .filter-button {
+          background-color: #333;
           border: none;
-          padding: 8px 15px;
           color: #fff;
+          padding: 6px 12px;
+          border-radius: 4px;
           cursor: pointer;
-          transition: background-color 0.3s;
-  
+          font-size: 14px;
+          transition: background-color 0.2s;
+
           &.active {
             background-color: #0066cc;
           }
-  
+
           &:hover:not(.active) {
             background-color: #444;
           }
         }
       }
     }
-  
-    .map-information {
+  }
+
+  // Map visualization
+  .map-visualization {
+    position: relative;
+    width: 100%;
+    min-height: 500px;
+    background-color: #333;
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 15px;
+
+    .svg-container {
+      width: 100%;
+      height: 100%;
+      min-height: 500px;
       display: flex;
-      flex-direction: column;
-      gap: 15px;
-      margin-bottom: 20px;
-  
-      .map-stats {
-        h2 {
-          font-size: 20px;
-          margin: 0 0 5px 0;
-          color: #0088ff;
-        }
-  
-        .stats-numbers {
-          .count {
-            font-size: 22px;
-            font-weight: bold;
-          }
-  
-          .percentage {
-            font-size: 18px;
-            color: #ccc;
-            margin-left: 5px;
-          }
-        }
+      justify-content: center;
+      align-items: center;
+      
+      svg {
+        width: 100%;
+        height: 100%;
+        max-height: 500px;
       }
-  
-      .map-controls {
-        margin-top: 10px;
-  
-        .control-labels {
-          display: grid;
-          grid-template-columns: 1fr 1fr 1fr;
-          gap: 10px;
-          margin-bottom: 5px;
+    }
+    
+    .county-path {
+      transition: fill 0.3s ease;
+      cursor: pointer;
+      
+      &:hover {
+        fill: #0066cc !important;
+      }
+    }
+    
+    .county-label {
+      font-family: Arial, sans-serif;
+      pointer-events: none;
+      user-select: none;
+    }
+    
+    .county-tooltip {
+      position: fixed;
+      background-color: rgba(0, 0, 0, 0.85);
+      border-radius: 4px;
+      padding: 12px;
+      min-width: 280px;
+      pointer-events: none;
+      z-index: 1000;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+      font-size: 14px;
+      
+      strong {
+        display: block;
+        margin-bottom: 8px;
+        font-size: 18px;
+        color: #fff;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        padding-bottom: 5px;
+      }
+      
+      .tooltip-data-grid {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+        
+        .tooltip-row {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
           
-          span {
-            font-size: 12px;
-            color: #999;
-            text-transform: uppercase;
+          .label {
+            color: #ccc;
+            font-size: 13px;
           }
-        }
-  
-        .control-buttons {
-          display: grid;
-          grid-template-columns: 1fr 1fr 1fr;
-          gap: 10px;
-  
-          div {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 5px;
-  
-            button {
-              background-color: #333;
-              border: none;
-              color: #fff;
-              padding: 6px 12px;
-              border-radius: 4px;
-              cursor: pointer;
-              font-size: 14px;
-              transition: background-color 0.2s;
-  
-              &.active {
-                background-color: #0066cc;
-              }
-  
-              &:hover:not(.active) {
-                background-color: #444;
-              }
+          
+          .value {
+            color: #fff;
+            font-weight: 500;
+            font-size: 14px;
+          }
+          
+          &.total-row {
+            margin-top: 5px;
+            padding-top: 5px;
+            border-top: 1px dashed rgba(255, 255, 255, 0.2);
+            
+            .label, .value {
+              font-weight: bold;
+              color: #0088ff;
+              font-size: 15px;
             }
           }
         }
       }
     }
-  
-    .map-visualization {
-      position: relative;
-      width: 100%;
-      min-height: 400px;
-      background-color: #333;
-      border-radius: 8px;
-      overflow: hidden;
-      margin-bottom: 15px;
-  
-      img {
-        width: 100%;
-        height: auto;
-        max-height: 500px;
-        object-fit: contain;
-      }
-  
-      .map-legend {
-        position: absolute;
-        bottom: 20px;
-        left: 20px;
-        background-color: rgba(0, 0, 0, 0.7);
-        padding: 10px;
-        border-radius: 4px;
-        width: 50px;
-  
-        .legend-header,
-        .legend-footer {
-          display: flex;
-          justify-content: space-between;
-          font-size: 12px;
-          color: #fff;
-        }
-  
-        .legend-gradient {
-          height: 150px;
-          width: 20px;
-          margin: 5px auto;
-          background: linear-gradient(to bottom, #0088ff, #004488, #222);
-          border-radius: 2px;
-        }
-      }
-    }
-  
-    .map-download {
-      margin-top: 10px;
-  
-      .download-button {
+
+    // Map legend
+    .legend-container {
+      position: absolute;
+      bottom: 20px;
+      left: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background-color: rgba(0, 0, 0, 0.7);
+      padding: 8px;
+      border-radius: 4px;
+      
+      .max-label, .min-label {
         display: flex;
-        align-items: center;
-        background-color: transparent;
-        color: #0088ff;
-        border: none;
-        cursor: pointer;
-        padding: 0;
-        font-size: 14px;
-  
-        mat-icon {
-          margin-right: 5px;
+        justify-content: space-between;
+        width: 100%;
+        font-size: 12px;
+        padding: 2px 0;
+        
+        span {
+          margin-left: 8px;
         }
-  
-        &:hover {
-          color: #00aaff;
-        }
+      }
+      
+      .gradient-bar {
+        height: 150px;
+        width: 20px;
+        margin: 5px 0;
+        background: linear-gradient(to bottom, #4050e0, #6070e0, #8090e0, #a0b0e0, #c0d0ff);
+        border-radius: 2px;
       }
     }
   }
-  
-  @media (max-width: 768px) {
-    .map-container {
-      padding: 10px;
-  
-      .map-header {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 10px;
+
+  // Download section
+  .download-section {
+    margin-top: 10px;
+
+    .download-button {
+      display: flex;
+      align-items: center;
+      background-color: transparent;
+      color: #0088ff;
+      border: none;
+      cursor: pointer;
+      padding: 0;
+      font-size: 14px;
+
+      .icon-download {
+        margin-right: 5px;
       }
-  
-      .map-controls {
-        .control-labels, 
-        .control-buttons {
-          grid-template-columns: 1fr;
-        }
-      }
-    }
-  }
-  
-  @media (min-width: 769px) and (max-width: 1024px) {
-    .map-container {
-      .map-controls {
-        .control-buttons {
-          grid-template-columns: 1fr 1fr;
-          
-          div:last-child {
-            grid-column: span 2;
-          }
-        }
+
+      &:hover {
+        color: #00aaff;
       }
     }
   }
+}

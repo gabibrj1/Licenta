@@ -10,6 +10,6 @@ urlpatterns = [
     path('appointments/confirm/<str:token>/', confirm_appointment, name='confirm-appointment'),
     path('appointments/reject/<str:token>/', reject_appointment, name='reject-appointment'),
     path('appointments/availability/<str:date>/', check_availability, name='check-availability'),
-    path('map/', MapInfoView.as_view(), name='map-info'),
+     path('map/', MapInfoView.as_view(), name='map-info'),
 
 ]
