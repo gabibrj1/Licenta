@@ -1,109 +1,149 @@
+<!-- Container principal -->
 <div class="map-container">
+  <!-- Titlu harta - minimalist -->
+  <div class="map-title">
+    <h1>Hartă județe</h1>
+  </div>
+
   <!-- Loader -->
   <div class="loader-container" *ngIf="isLoading">
     <div class="spinner"></div>
     <p>Se încarcă harta...</p>
   </div>
 
-  <!-- Main Content -->
+  <!-- Continut principal - structură optimizată -->
   <div class="map-content" *ngIf="!isLoading">
-    <!-- Votanți Header -->
-    <div class="votanti-header">
-      <h2>Votanți</h2>
-      <div class="stats-numbers">
-        <span class="count">{{totalVoters}}</span>
-        <span class="percentage">| {{totalPercentage}} %</span>
+    <!-- Header statistici și filtre într-un rând -->
+    <div class="top-controls">
+      <!-- Bloc statistici -->
+      <div class="votanti-stats">
+        <div class="stats-title">Votanți</div>
+        <div class="stats-numbers">
+          <span class="count">{{totalVoters}}</span>
+          <span class="percentage">| {{totalPercentage}} %</span>
+        </div>
+      </div>
+      
+      <!-- Filtre organizate pe două rânduri -->
+      <div class="filters-container">
+        <div class="filters-row">
+          <div class="filter-group">
+            <span class="category-label">NIVEL HARTĂ</span>
+            <div class="buttons-inline">
+              <button class="filter-button" [class.active]="mapLevel === 'judete'" (click)="setMapLevel('judete')">Județe</button>
+              <button class="filter-button" [class.active]="mapLevel === 'uaturi'" (click)="setMapLevel('uaturi')">UAT-uri</button>
+            </div>
+          </div>
+          
+          <div class="filter-group">
+            <span class="category-label">CÂMP EVIDENȚIERE</span>
+            <div class="buttons-inline">
+              <button class="filter-button" [class.active]="highlightField === 'prezenta'" (click)="setHighlightField('prezenta')">
+                <span class="btn-icon">🔍</span> Prezență la vot
+              </button>
+              <button class="filter-button" [class.active]="highlightField === 'votanti'" (click)="setHighlightField('votanti')">
+                <span class="btn-icon">👤</span> Votanți
+              </button>
+              <button class="filter-button" [class.active]="highlightField === 'sectii'" (click)="setHighlightField('sectii')">
+                <span class="btn-icon">📍</span> Secții de votare
+              </button>
+            </div>
+          </div>
+        </div>
+        
+        <div class="filters-row">
+          <div class="filter-group">
+            <span class="category-label">RELATIV LA:</span>
+            <div class="buttons-inline">
+              <button class="filter-button" [class.active]="relativeTo === 'maxim'" (click)="setRelativeTo('maxim')">Maxim</button>
+              <button class="filter-button" [class.active]="relativeTo === 'total'" (click)="setRelativeTo('total')">100%</button>
+            </div>
+          </div>
+          
+          <!-- Container actiuni - poziționat în linie cu celelalte filtre -->
+          <div class="action-container">
+            <button class="download-button" (click)="downloadCSV()">
+              <span class="icon-download">⬇️</span>
+              Descarcă CSV
+            </button>
+          </div>
+        </div>
       </div>
     </div>
 
-    <!-- Filter Controls -->
-    <div class="filter-controls">
-      <!-- NIVEL HARTĂ -->
-      <div class="control-section">
-        <h5 class="control-label">NIVEL HARTĂ</h5>
-        <div class="buttons-group">
-          <button class="filter-button" [class.active]="mapLevel === 'judete'" (click)="setMapLevel('judete')">Județe</button>
-          <button class="filter-button" [class.active]="mapLevel === 'uaturi'" (click)="setMapLevel('uaturi')">UAT-uri</button>
-        </div>
-      </div>
-
-      <!-- CÂMP EVIDENȚIERE -->
-      <div class="control-section">
-        <h5 class="control-label">CÂMP EVIDENȚIERE</h5>
-        <div class="buttons-group">
-          <button class="filter-button" [class.active]="highlightField === 'prezenta'" (click)="setHighlightField('prezenta')">Prezență la vot</button>
-          <button class="filter-button" [class.active]="highlightField === 'votanti'" (click)="setHighlightField('votanti')">Votanți</button>
-          <button class="filter-button" [class.active]="highlightField === 'sectii'" (click)="setHighlightField('sectii')">Secții de votare</button>
-        </div>
-      </div>
-
-      <!-- RELATIV LA: -->
-      <div class="control-section">
-        <h5 class="control-label">RELATIV LA:</h5>
-        <div class="buttons-group">
-          <button class="filter-button" [class.active]="relativeTo === 'maxim'" (click)="setRelativeTo('maxim')">Maxim</button>
-          <button class="filter-button" [class.active]="relativeTo === 'total'" (click)="setRelativeTo('total')">100%</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Map Visualization -->
+    <!-- Vizualizare harta - container optimizat -->
     <div class="map-visualization">
-      <!-- Romania Map Container -->
+      <!-- Container harta -->
       <div class="svg-container" #mapContainer>
-        <!-- Map will be generated here -->
+        <!-- Harta se va genera aici -->
       </div>
 
-      <!-- County Tooltip -->
-<!-- County Tooltip -->
-<div class="county-tooltip" *ngIf="hoveredCounty" [style.left.px]="hoverPosition.x" [style.top.px]="hoverPosition.y">
-  <strong>{{ hoveredCounty.name }}</strong>
-  <div class="tooltip-data-grid">
-    <div class="tooltip-row">
-      <span class="label">Înscriși pe liste permanente</span>
-      <span class="value">{{ hoveredCounty.registeredVoters | number }}</span>
-    </div>
-    <div class="tooltip-row">
-      <span class="label">Secții de votare</span>
-      <span class="value">{{ hoveredCounty.pollingStationCount | number }}</span>
-    </div>
-    <div class="tooltip-row">
-      <span class="label">Votanți pe liste permanente</span>
-      <span class="value">{{ hoveredCounty.permanentListVoters | number }}</span>
-    </div>
-    <div class="tooltip-row">
-      <span class="label">Votanți pe liste suplimentare</span>
-      <span class="value">{{ hoveredCounty.supplementaryListVoters | number }}</span>
-    </div>
-    <div class="tooltip-row">
-      <span class="label">Votanți cu urnă mobilă</span>
-      <span class="value">{{ hoveredCounty.mobileUrnsVoters | number }}</span>
-    </div>
-    <div class="tooltip-row total-row">
-      <span class="label">Total votanți</span>
-      <span class="value">{{ hoveredCounty.totalVoters | number }}</span>
-    </div>
-    <div class="tooltip-row">
-      <span class="label">Prezență</span>
-      <span class="value">{{ hoveredCounty.turnoutPercentage }}%</span>
+      <!-- Tooltip judet -->
+      <div class="county-tooltip" *ngIf="hoveredCounty" [style.left.px]="hoverPosition.x" [style.top.px]="hoverPosition.y">
+        <div class="tooltip-header">{{hoveredCounty.name}}</div>
+        <div class="tooltip-data-grid">
+          <div class="tooltip-row">
+            <span class="label">Înscriși pe liste permanente</span>
+            <span class="value">{{ hoveredCounty.registeredVoters | number }}</span>
+          </div>
+          <div class="tooltip-row">
+            <span class="label">Secții de votare</span>
+            <span class="value">{{ hoveredCounty.pollingStationCount | number }}</span>
+          </div>
+          <div class="tooltip-row">
+            <span class="label">Votanți pe liste permanente</span>
+            <span class="value">{{ hoveredCounty.permanentListVoters | number }}</span>
+          </div>
+          <div class="tooltip-row">
+            <span class="label">Votanți pe liste suplimentare</span>
+            <span class="value">{{ hoveredCounty.supplementaryListVoters | number }}</span>
+          </div>
+          <div class="tooltip-row">
+            <span class="label">Votanți cu urnă mobilă</span>
+            <span class="value">{{ hoveredCounty.mobileUrnsVoters | number }}</span>
+          </div>
+          <div class="tooltip-row total-row">
+            <span class="label">Total votanți</span>
+            <span class="value">{{ hoveredCounty.totalVoters | number }}</span>
+          </div>
+          <div class="tooltip-row">
+            <span class="label">Prezență</span>
+            <span class="value">{{ hoveredCounty.turnoutPercentage }}%</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Legenda -->
+      <div class="legend-container">
+        <div class="max-label">Max <span>100</span></div>
+        <div class="slider-container">
+          <div class="gradient-bar"></div>
+          <input 
+            type="range" 
+            class="percentage-slider" 
+            min="0" 
+            max="100" 
+            step="0.1" 
+            [(ngModel)]="filterPercentage" 
+            (input)="onFilterChange()">
+        </div>
+        <div class="min-label">Min <span>0</span></div>
+        <div class="filter-value">
+          <span>Filtrare: {{filterPercentage | number:'1.1-1'}}%</span>
+        </div>
+      </div>
     </div>
   </div>
-</div>
 
-      <!-- Map Legend -->
-      <div class="legend-container">
-        <div class="max-label">Max <span>{{maxValue}}</span></div>
-        <div class="gradient-bar"></div>
-        <div class="min-label">Min <span>{{minValue}}</span></div>
-      </div>
+<!-- Footer optimizat -->
+<div class="map-footer">
+  <div class="footer-items">
+    <div class="footer-item footer-text" (click)="navigateToHome()" style="cursor: pointer;">VoteAI</div>
+    <div class="footer-item footer-logo">
+      <img src="assets/icons/Logo-UT-ALB-RO.png" alt="Universitatea Transilvania din Brașov">
     </div>
-
-    <!-- Download CSV Button -->
-    <div class="download-section">
-      <button class="download-button" (click)="downloadCSV()">
-        <span class="icon-download">⬇️</span>
-        Descarcă CSV
-      </button>
+    <div class="footer-item footer-logo">
+      <img src="assets/icons/Logo-UT-IESC-ALB-RO.png" alt="IESC-CALC">
     </div>
   </div>
 </div>

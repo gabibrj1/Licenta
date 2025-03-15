@@ -1,177 +1,233 @@
+// Container principal
 .map-container {
   width: 100%;
-  padding: 20px;
-  background-color: #242424;
+  height: 100vh;
+  max-width: 100vw;
+  padding: 0;
+  margin: 0;
+  background-color: #1a1a1a;
   color: #fff;
-
-  .loader-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    min-height: 300px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-sizing: border-box;
+  font-family: Arial, sans-serif;
+  
+  // Titlu hartă - stil minimalist și înălțime redusă
+  .map-title {
+    background-color: #1a1a1a;
+    padding: 10px 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    margin: 0;
+    width: 100%;
+    box-sizing: border-box;
     
-    p {
-      margin-top: 15px;
+    h1 {
+      margin: 0;
       font-size: 16px;
-    }
-    
-    .spinner {
-      border: 4px solid rgba(255, 255, 255, 0.3);
-      border-radius: 50%;
-      border-top: 4px solid #0088ff;
-      width: 40px;
-      height: 40px;
-      animation: spin 1s linear infinite;
-    }
-    
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
+      font-weight: 500;
+      color: #fff;
     }
   }
 
+  // Conținut principal - redus în înălțime
   .map-content {
     display: flex;
     flex-direction: column;
-    gap: 20px;
-  }
-
-  // Votanți header
-  .votanti-header {
-    h2 {
-      font-size: 20px;
-      margin: 0 0 5px 0;
-      color: #0088ff;
-    }
-
-    .stats-numbers {
+    flex: 1;
+    overflow: hidden;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 10px 20px; // Padding redus
+    margin: 0;
+    
+    // Header statistici și filtre compacte
+    .top-controls {
       display: flex;
-      align-items: center;
+      flex-direction: column;
+      gap: 10px; // Spațiere redusă
+      margin-bottom: 10px; // Margine redusă
+    }
+    
+    // Secțiunea pentru votanți
+    .votanti-stats {
+      margin: 0;
+      padding: 0;
       
-      .count {
-        font-size: 22px;
-        font-weight: bold;
-      }
-
-      .percentage {
+      .stats-title {
+        color: #4285f4;
         font-size: 18px;
-        color: #ccc;
-        margin-left: 5px;
-      }
-    }
-  }
-
-  // Filter controls
-  .filter-controls {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 15px;
-    margin: 15px 0;
-
-    @media (max-width: 768px) {
-      grid-template-columns: 1fr;
-    }
-
-    .control-section {
-      .control-label {
-        font-size: 12px;
-        color: #999;
-        text-transform: uppercase;
-        margin: 0 0 8px 0;
+        font-weight: 500;
+        margin-bottom: 3px;
       }
 
-      .buttons-group {
+      .stats-numbers {
         display: flex;
-        flex-wrap: wrap;
-        gap: 5px;
-
-        .filter-button {
-          background-color: #333;
-          border: none;
+        align-items: center;
+        
+        .count {
+          font-size: 24px;
+          font-weight: bold;
           color: #fff;
-          padding: 6px 12px;
-          border-radius: 4px;
-          cursor: pointer;
-          font-size: 14px;
-          transition: background-color 0.2s;
+        }
 
-          &.active {
-            background-color: #0066cc;
+        .percentage {
+          font-size: 16px;
+          color: #aaa;
+          margin-left: 5px;
+        }
+      }
+    }
+    
+    // Container filtre optimizat
+    .filters-container {
+      display: flex;
+      flex-direction: column;
+      gap: 8px; // Spațiere redusă
+      
+      .filters-row {
+        display: flex;
+        gap: 15px; // Spațiere redusă
+        flex-wrap: wrap;
+        align-items: flex-end; // Aliniază elementele pe partea de jos
+        
+        .filter-group {
+          display: flex;
+          flex-direction: column;
+          gap: 4px; // Spațiere redusă
+          
+          .category-label {
+            font-size: 11px;
+            color: #aaa;
+            text-transform: uppercase;
+            font-weight: 500;
           }
-
-          &:hover:not(.active) {
-            background-color: #444;
+          
+          .buttons-inline {
+            display: flex;
+            gap: 5px;
+            
+            .filter-button {
+              background-color: #333;
+              border: none;
+              color: #fff;
+              padding: 5px 10px;
+              border-radius: 4px;
+              cursor: pointer;
+              font-size: 12px;
+              transition: all 0.2s;
+              display: flex;
+              align-items: center;
+              
+              .btn-icon {
+                margin-right: 4px;
+                font-size: 11px;
+              }
+              
+              &.active {
+                background-color: #4285f4;
+              }
+              
+              &:hover:not(.active) {
+                background-color: #444;
+              }
+            }
+          }
+        }
+        
+        // Container actiuni integrat cu filtrele
+        .action-container {
+          margin-left: auto; // Împinge către dreapta
+          align-self: flex-end; // Aliniază cu partea de jos
+          
+          .download-button {
+            display: flex;
+            align-items: center;
+            background-color: #4285f4;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+            padding: 6px 15px;
+            font-size: 13px;
+            border-radius: 4px;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 6px rgba(66, 133, 244, 0.4);
+            
+            .icon-download {
+              margin-right: 8px;
+            }
+            
+            &:hover {
+              background-color: #5a95f5;
+              transform: translateY(-2px);
+              box-shadow: 0 4px 8px rgba(66, 133, 244, 0.6);
+            }
+            
+            &:active {
+              transform: translateY(0);
+            }
           }
         }
       }
     }
   }
 
-  // Map visualization
+  // Container hartă - mărit pentru a ocupa tot spațiul disponibil
   .map-visualization {
     position: relative;
-    width: 100%;
-    min-height: 500px;
-    background-color: #333;
-    border-radius: 8px;
+    flex: 1;
+    background-color: #1a1a1a;
     overflow: hidden;
-    margin-bottom: 15px;
-
+    display: flex;
+    margin: 0;
+    border-radius: 0;
+    min-height: 65vh; // Asigură că harta are cel puțin 65% din înălțimea viewport-ului
+    
+    // SVG Container mărit
     .svg-container {
       width: 100%;
       height: 100%;
-      min-height: 500px;
       display: flex;
       justify-content: center;
       align-items: center;
+      padding: 0;
+      margin: 0;
       
       svg {
-        width: 100%;
-        height: 100%;
-        max-height: 500px;
+        max-width: 95%;
+        max-height: 95%;
+        margin: 0 auto;
       }
     }
     
-    .county-path {
-      transition: fill 0.3s ease;
-      cursor: pointer;
-      
-      &:hover {
-        fill: #0066cc !important;
-      }
-    }
-    
-    .county-label {
-      font-family: Arial, sans-serif;
-      pointer-events: none;
-      user-select: none;
-    }
-    
+    // Tooltip pentru județe
     .county-tooltip {
-      position: fixed;
-      background-color: rgba(0, 0, 0, 0.85);
-      border-radius: 4px;
-      padding: 12px;
-      min-width: 280px;
-      pointer-events: none;
+      position: absolute;
       z-index: 1000;
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
-      font-size: 14px;
+      background-color: rgba(20, 20, 20, 0.95);
+      padding: 12px;
+      border-radius: 6px;
+      min-width: 280px;
+      max-width: 320px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.7);
+      pointer-events: none;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      font-size: 13px;
       
-      strong {
-        display: block;
-        margin-bottom: 8px;
-        font-size: 18px;
-        color: #fff;
+      .tooltip-header {
+        font-size: 16px;
+        font-weight: bold;
+        color: #ffffff;
+        margin-bottom: 10px;
+        padding-bottom: 6px;
         border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-        padding-bottom: 5px;
+        text-align: center;
       }
       
       .tooltip-data-grid {
         display: flex;
         flex-direction: column;
-        gap: 5px;
+        gap: 6px;
         
         .tooltip-row {
           display: flex;
@@ -179,85 +235,269 @@
           align-items: center;
           
           .label {
-            color: #ccc;
-            font-size: 13px;
+            flex: 2;
+            color: #aaaaaa;
+            font-size: 12px;
+            text-align: left;
+            padding-right: 10px;
           }
           
           .value {
-            color: #fff;
+            flex: 1;
+            color: #ffffff;
             font-weight: 500;
-            font-size: 14px;
+            font-size: 13px;
+            text-align: right;
           }
           
           &.total-row {
-            margin-top: 5px;
-            padding-top: 5px;
+            margin-top: 8px;
+            padding-top: 8px;
             border-top: 1px dashed rgba(255, 255, 255, 0.2);
             
             .label, .value {
               font-weight: bold;
-              color: #0088ff;
-              font-size: 15px;
+              color: #4285f4;
+              font-size: 14px;
             }
           }
         }
       }
     }
-
-    // Map legend
+    
+    // Legendă
     .legend-container {
       position: absolute;
-      bottom: 20px;
-      left: 20px;
+      bottom: 15px;
+      left: 15px;
       display: flex;
       flex-direction: column;
       align-items: center;
-      background-color: rgba(0, 0, 0, 0.7);
-      padding: 8px;
-      border-radius: 4px;
+      background-color: rgba(0, 0, 0, 0.75);
+      padding: 12px;
+      border-radius: 8px;
+      width: 95px;
+      border: 1px solid rgba(66, 133, 244, 0.3);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
       
       .max-label, .min-label {
         display: flex;
         justify-content: space-between;
         width: 100%;
-        font-size: 12px;
+        font-size: 11px;
+        font-weight: 500;
         padding: 2px 0;
         
         span {
-          margin-left: 8px;
+          margin-left: auto;
+          font-weight: bold;
         }
       }
       
-      .gradient-bar {
-        height: 150px;
-        width: 20px;
-        margin: 5px 0;
-        background: linear-gradient(to bottom, #4050e0, #6070e0, #8090e0, #a0b0e0, #c0d0ff);
-        border-radius: 2px;
+      .slider-container {
+        position: relative;
+        height: 120px;
+        width: 22px;
+        margin: 10px 0;
+        
+        .gradient-bar {
+          position: absolute;
+          height: 100%;
+          width: 100%;
+          background: linear-gradient(to bottom, #4285f4, #5a95f5, #8fb0f7, #c5d5fa, #e8f0fe);
+          border-radius: 4px;
+          box-shadow: 0 0 8px rgba(66, 133, 244, 0.4);
+        }
+        
+        .percentage-slider {
+          position: absolute;
+          height: 100%;
+          width: 34px;
+          opacity: 0.7;
+          appearance: slider-vertical;
+          -webkit-appearance: slider-vertical;
+          writing-mode: bt-lr;
+          cursor: pointer;
+          margin: 0;
+          left: -6px;
+          
+          &::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 30px;
+            height: 12px;
+            background: #ea4335;
+            cursor: pointer;
+            border-radius: 2px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 0 5px rgba(234, 67, 53, 0.7);
+          }
+          
+          &::-moz-range-thumb {
+            width: 30px;
+            height: 12px;
+            background: #ea4335;
+            cursor: pointer;
+            border-radius: 2px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 0 5px rgba(234, 67, 53, 0.7);
+          }
+        }
+      }
+      
+      .filter-value {
+        width: 100%;
+        text-align: center;
+        margin-top: 8px;
+        font-size: 12px;
+        font-weight: bold;
+        color: #4285f4;
+        white-space: nowrap;
+        overflow: hidden;
+        
+        span {
+          display: inline-block;
+          min-width: 100%;
+        }
       }
     }
   }
-
-  // Download section
-  .download-section {
-    margin-top: 10px;
-
-    .download-button {
+  
+  // Footer original - doar înălțime optimizată
+  .map-footer {
+    background-color: #1a1a1a;
+    padding: 10px 20px; // Padding redus
+    border-top: 1px solid rgba(255, 255, 255, 0.15);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.3);
+    margin: 0;
+    width: 100%;
+    box-sizing: border-box;
+    
+    .footer-items {
       display: flex;
       align-items: center;
-      background-color: transparent;
-      color: #0088ff;
-      border: none;
-      cursor: pointer;
-      padding: 0;
-      font-size: 14px;
+      justify-content: center;
+      gap: 40px;
+      
+      .footer-item {
+        display: flex;
+        align-items: center;
+        
+        &.footer-text {
+          font-weight: bold;
+          color: #4285f4;
+          font-size: 20px;
+          letter-spacing: 0.8px;
+          text-shadow: 0 0 10px rgba(66, 133, 244, 0.5);
+          cursor: pointer;
+          transition: all 0.2s ease;
+          
+          &:hover {
+            color: #5a95f5; // Culoare mai deschisă la hover
+            transform: scale(1.05); // Usoara marire la hover
+          }
 
-      .icon-download {
-        margin-right: 5px;
+          
+          &::after {
+            content: '';
+            display: block;
+            width: 1px;
+            height: 30px;
+            background-color: rgba(255, 255, 255, 0.4);
+            margin-left: 40px;
+          }
+        }
+        
+        &.footer-logo {
+          height: 35px; // Înălțime redusă
+          padding: 0;
+          
+          img {
+            height: 100%;
+            max-height: 35px;
+            width: auto;
+            object-fit: contain;
+            filter: brightness(1.2) contrast(1.1);
+            -webkit-filter: brightness(1.2) contrast(1.1); 
+            transition: all 0.3s ease;
+            
+            &:hover {
+              filter: brightness(1.4) contrast(1.2);
+              -webkit-filter: brightness(1.4) contrast(1.2);
+              transform: scale(1.05);
+            }
+          }
+        }
       }
+    }
+  }
+}
 
-      &:hover {
-        color: #00aaff;
+// Stiluri globale pentru a elimina margini implicite
+html, body {
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background-color: #1a1a1a;
+  height: 100%;
+  width: 100%;
+}
+
+// Media query pentru dispozitive mobile
+@media (max-width: 768px) {
+  .map-container {
+    .map-content {
+      padding: 10px;
+      
+      .filters-container {
+        .filters-row {
+          flex-direction: column;
+          gap: 10px;
+          
+          .action-container {
+            margin-left: 0;
+            align-self: stretch;
+            
+            .download-button {
+              width: 100%;
+              justify-content: center;
+            }
+          }
+        }
+      }
+    }
+    
+    .map-visualization {
+      min-height: 50vh; // Înălțime redusă pe mobil
+    }
+    
+    .map-footer {
+      padding: 8px;
+      
+      .footer-items {
+        flex-direction: column;
+        gap: 15px;
+        
+        .footer-item {
+          &.footer-text {
+            font-size: 18px;
+            
+            &::after {
+              display: none;
+            }
+          }
+          
+          &.footer-logo {
+            height: 30px;
+            
+            img {
+              max-height: 30px;
+            }
+          }
+        }
       }
     }
   }
