@@ -32,8 +32,26 @@
             <div class="buttons-inline">
               <button class="filter-button" [class.active]="mapLevel === 'judete'" (click)="setMapLevel('judete')">Județe</button>
               <button class="filter-button" [class.active]="mapLevel === 'uaturi'" (click)="setMapLevel('uaturi')">UAT-uri</button>
+
             </div>
           </div>
+          <div class="county-selector" *ngIf="mapLevel === 'uaturi'">
+            <label for="county-select">Selectează județul:</label>
+            <select #countySelect id="county-select" (change)="loadCountyUATMap(countySelect.value)" [value]="selectedCounty">
+              <option value="">Alege județul</option>
+              <option *ngFor="let county of countyOptions" [value]="county.code" [selected]="county.code === selectedCounty">
+                {{ county.name }}
+              </option>
+            </select>
+          </div>
+          
+          <!-- Adaugă o informație despre județul selectat când vizualizarea UAT este activă -->
+          <div class="selected-county-info" *ngIf="isUATView && selectedCounty">
+            <h3>UAT-uri {{ getCountyName(selectedCounty) }}</h3>
+          </div>
+
+
+          
           
           <div class="filter-group">
             <span class="category-label">CÂMP EVIDENȚIERE</span>

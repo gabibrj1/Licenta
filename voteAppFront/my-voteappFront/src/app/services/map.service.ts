@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, of } from 'rxjs';
+import { Observable, of, forkJoin } from 'rxjs';
 import { catchError, tap, map } from 'rxjs/operators';
 import { environment } from '../../src/environments/environment';
 
@@ -28,6 +28,9 @@ export class MapService {
   // Path for GeoJSON and CSV
   private geoJsonPath = 'assets/maps/romania.geojson';
   private csvPath = 'assets/data/presence_2024-12-06.csv';
+
+  // Cache pentru datele GeoJSON UAT
+  private uatGeoJsonCache: { [countyCode: string]: any } = {};
 
   constructor(private http: HttpClient) { }
 
@@ -101,6 +104,51 @@ export class MapService {
     );
   }
 
+    /**
+   * Get UAT GeoJSON for a specific county
+   */
+    getCountyUATGeoJson(countyCode: string): Observable<any> {
+      // Folosește codul județului cu MAJUSCULE pentru a se potrivi cu denumirile fișierelor
+      const upperCaseCode = countyCode.toUpperCase();
+      
+      // Verifică dacă datele sunt deja în cache
+      if (this.uatGeoJsonCache[upperCaseCode]) {
+        console.log(`Folosește date din cache pentru județul ${countyCode}`);
+        return of(this.uatGeoJsonCache[upperCaseCode]);
+      }
+      
+      const uatGeoJsonUrl = `assets/maps/uat/${upperCaseCode}.geojson`;
+      
+      console.log(`Încercare încărcare GeoJSON UAT pentru județul ${countyCode} de la: ${uatGeoJsonUrl}`);
+      
+      return this.http.get(uatGeoJsonUrl).pipe(
+        tap(data => {
+          console.log(`GeoJSON UAT pentru județul ${countyCode} încărcat cu succes`);
+          // Adaugă datele în cache
+          this.uatGeoJsonCache[upperCaseCode] = data;
+        }),
+        catchError(error => {
+          console.error(`Eroare la încărcarea GeoJSON UAT pentru județul ${countyCode}:`, error);
+          return of(null);
+        })
+      );
+    }
+  
+    preloadAllUATGeoJson(): Observable<any> {
+      const countyCodes = [
+        'AB', 'AR', 'AG', 'BC', 'BH', 'BN', 'BT', 'BV', 'BR', 'B', 'BZ', 'CS', 
+        'CL', 'CJ', 'CT', 'CV', 'DB', 'DJ', 'GL', 'GR', 'GJ', 'HR', 'HD', 'IL', 
+        'IS', 'IF', 'MM', 'MH', 'MS', 'NT', 'OT', 'PH', 'SM', 'SJ', 'SB', 'SV', 
+        'TR', 'TM', 'TL', 'VS', 'VL', 'VN'
+      ];
+      
+      const observables = countyCodes.map(code => 
+        this.getCountyUATGeoJson(code)
+      );
+      
+      return forkJoin(observables);
+    }
+  
   /**
    * Fetches and processes voting statistics from CSV file
    */

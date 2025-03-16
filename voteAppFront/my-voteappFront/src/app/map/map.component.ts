@@ -28,6 +28,15 @@ interface GeoFeature {
   geometry: any;
 }
 
+interface GeoJSONFeature {
+  type: string;
+  geometry: any;
+  properties: {
+    name: string;
+    [key: string]: any;
+  };
+}
+
 @Component({
   selector: 'app-map',
   templateUrl: './map.component.html',
@@ -67,7 +76,12 @@ export class MapComponent implements OnInit, AfterViewInit {
   private zoom: any;
   private g: any;
   private currentTransform: any = { k: 1, x: 0, y: 0 };
-  
+
+  // Variabile pentru harta cu UAT-uri
+  selectedCounty: string | null = null;
+  uatGeoJsonData: any = null;
+  isUATView: boolean = false;
+  countyOptions: {code: string, name: string}[] = [];
   
   constructor(
     private mapService: MapService,
@@ -119,6 +133,11 @@ export class MapComponent implements OnInit, AfterViewInit {
               
               // Proceseaza si combina datele
               if (countyStats && countyStats.regions) {
+                this.countyOptions = countyStats.regions.map(region => ({
+                  code: region.code,
+                  name: region.name
+                })).sort((a, b) => a.name.localeCompare(b.name));
+
                 countyStats.regions.forEach((region: CountyData) => {
                   const csvData = votingStats[region.code] || {};
                   
@@ -218,7 +237,7 @@ export class MapComponent implements OnInit, AfterViewInit {
       
       // Comportamentul de zoom imbunatatit
       this.zoom = d3.zoom()
-      .scaleExtent([1, 8]) // limitele de zoom
+      .scaleExtent([0.3, 9]) // limitele de zoom
       .translateExtent([[0, 0], [width, height]]) // limitele de translatie
       .on('zoom', (event) => {
         // Actualizeaza transformarea curenta
@@ -311,7 +330,21 @@ export class MapComponent implements OnInit, AfterViewInit {
         .attr('y', (d: GeoFeature) => this.path.centroid(d)[1]);
       
       // Reaplica transformarea curenta
-      this.g.attr('transform', this.currentTransform);
+      this.zoom = d3.zoom()
+  .scaleExtent([0.3, 9])
+  .translateExtent([[0, 0], [width, height]])
+  .on('zoom', (event) => {
+    // Actualizeaza transformarea curenta
+    this.currentTransform = event.transform;
+    
+    // Aplică transformarea corect
+    this.g.attr('transform', `translate(${event.transform.x},${event.transform.y}) scale(${event.transform.k})`);
+    
+    // Ajusteaza grosimea conturului in functie de zoom
+    const strokeWidth = 0.5 / event.transform.k;
+    this.g.selectAll('.uat-path')
+      .attr('stroke-width', strokeWidth);
+  });
     });
   }
   
@@ -465,11 +498,17 @@ export class MapComponent implements OnInit, AfterViewInit {
   }
   
   // Gestioneaza click-ul pe un judet
-  handleCountyClick(feature: GeoFeature): void {
-    const countyCode = this.getCountyCode(feature);
-    console.log(`Județ selectat: ${feature.properties.name} (${countyCode})`);
-    
-    // Zoom pe judetul selectat
+// Gestionează click-ul pe un județ
+handleCountyClick(feature: GeoFeature): void {
+  const countyCode = this.getCountyCode(feature);
+  console.log(`Județ selectat: ${feature.properties.name} (${countyCode})`);
+  
+  // Opțional: întreabă utilizatorul dacă dorește să vadă UAT-urile pentru acest județ
+  if (confirm(`Doriți să vizualizați UAT-urile pentru județul ${feature.properties.name}?`)) {
+    this.mapLevel = 'uaturi';
+    this.loadCountyUATMap(countyCode);
+  } else {
+    // Altfel, doar zoom pe județ (codul existent)
     if (this.svg && this.path) {
       const bounds = this.path.bounds(feature);
       const dx = bounds[1][0] - bounds[0][0];
@@ -481,11 +520,11 @@ export class MapComponent implements OnInit, AfterViewInit {
       const width = container.clientWidth;
       const height = container.clientHeight;
       
-      // Calculeaza scara si translatia pentru zoom
+      // Calculează scara și translația pentru zoom
       const scale = Math.min(5, 0.9 / Math.max(dx / width, dy / height));
       const translate = [width / 2 - scale * x, height / 2 - scale * y];
       
-      // Aplica transformarea pentru zoom
+      // Aplică transformarea pentru zoom
       this.svg.transition()
         .duration(750)
         .call(this.zoom.transform, d3.zoomIdentity
@@ -493,6 +532,7 @@ export class MapComponent implements OnInit, AfterViewInit {
           .scale(scale));
     }
   }
+}
   
   // Metoda pentru a incarca datele GeoJSON
   private loadGeoJsonData(): Promise<any> {
@@ -576,10 +616,242 @@ updateGlobalStats(): void {
   console.log(`Județe cu prezență de ${this.filterPercentage}%: ${countiesAtThreshold}`);
 }
    // Metode de control pentru filtre
-  setMapLevel(level: string): void {
+   setMapLevel(level: string): void {
+    if (this.mapLevel === level) return;
+    
     this.mapLevel = level;
-   // Implementeaza logica pentru comutarea intre nivele judete si UAT
-   console.log(`Nivel hartă setat la: ${level}`);
+    console.log(`Nivel hartă setat la: ${level}`);
+    
+    if (level === 'uaturi') {
+      // Încarcă automat primul județ din listă dacă există
+      if (this.countyOptions && this.countyOptions.length > 0) {
+        const firstCounty = this.countyOptions[0];
+        this.loadCountyUATMap(firstCounty.code);
+      } else {
+        console.log('Niciun județ disponibil pentru încărcare automată');
+      }
+    } else {
+      // Revino la harta de județe
+      this.isUATView = false;
+      this.selectedCounty = null;
+      this.initializeMap();
+    }
+  }
+  loadCountyUATMap(countyCode: string): void {
+    if (!countyCode) return;
+    
+    console.log('Încărcare hartă UAT pentru județul:', countyCode);
+    
+    // Setează loading și starea vizualizării
+    this.isLoading = true;
+    this.selectedCounty = countyCode;
+    this.isUATView = true;
+    
+    // Obține datele GeoJSON pentru UAT
+    this.mapService.getCountyUATGeoJson(countyCode).subscribe({
+      next: (geoData) => {
+        if (!geoData) {
+          console.error(`Nu există date GeoJSON disponibile pentru județul ${countyCode}`);
+          this.isLoading = false;
+          return;
+        }
+        
+        this.uatGeoJsonData = geoData;
+        console.log('Date GeoJSON pentru UAT:', this.uatGeoJsonData);
+        
+        // Oprește loading înainte de inițializarea hărții
+        this.isLoading = false;
+        
+        // Actualizează selectorul de județe (dacă există)
+        setTimeout(() => {
+          const countySelector = document.getElementById('county-select') as HTMLSelectElement;
+          if (countySelector) {
+            countySelector.value = countyCode;
+          }
+          
+          // Verifică dacă mapContainer este disponibil după actualizarea DOM
+          if (this.mapContainer) {
+            this.initializeUATMap();
+          } else {
+            console.error('Container hartă (mapContainer) nu este disponibil după actualizarea DOM');
+          }
+        }, 100);
+      },
+      error: (error) => {
+        console.error(`Eroare la încărcarea UAT map pentru județul ${countyCode}:`, error);
+        this.isLoading = false;
+      }
+    });
+  }
+  initializeUATMap(): void {
+    console.log('mapContainer:', this.mapContainer);
+    console.log('uatGeoJsonData:', this.uatGeoJsonData);
+    
+    if (!this.uatGeoJsonData) {
+      console.error('Date GeoJSON lipsă');
+      return;
+    }
+    
+    if (!this.mapContainer) {
+      console.error('Container hartă lipsă');
+      return;
+    }
+    
+    console.log('Începe inițializarea hărții UAT');
+    
+    this.ngZone.runOutsideAngular(() => {
+      // Curăță containerul
+      const container = this.mapContainer.nativeElement;
+      console.log('Container dimensiuni:', container.clientWidth, 'x', container.clientHeight);
+      
+      while (container.firstChild) {
+        container.removeChild(container.firstChild);
+      }
+      
+      // Dimensiuni adaptate la container
+      const width = container.clientWidth || 800;
+      const height = container.clientHeight || 600;
+      
+      // Creează SVG
+      const svg = d3.select(container)
+        .append('svg')
+        .attr('width', width)
+        .attr('height', height)
+        .style('background-color', '#1a1a1a')
+        .style('border', '1px solid #4285f4');
+      
+      // Creează grupul pentru hartă
+      const g = svg.append('g');
+      
+      // Salvează referințele
+      this.svg = svg;
+      this.g = g;
+      
+      try {
+        // Creează proiecția
+        this.projection = d3.geoMercator()
+          .fitExtent([[20, 20], [width - 20, height - 20]], this.uatGeoJsonData);
+        
+        this.path = d3.geoPath().projection(this.projection);
+        
+        // Configurează zoom-ul
+        this.zoom = d3.zoom()
+          .scaleExtent([0.3, 9])
+          .on('zoom', (event) => {
+            g.attr('transform', `translate(${event.transform.x},${event.transform.y}) scale(${event.transform.k})`);
+            
+            const strokeWidth = 0.5 / event.transform.k;
+            g.selectAll('.uat-path')
+              .attr('stroke-width', strokeWidth);
+          });
+        
+        // Aplică zoom
+        svg.call(this.zoom);
+        
+        // Desenează UAT-urile
+        const paths = g.selectAll('.uat-path')
+          .data(this.uatGeoJsonData.features)
+          .enter()
+          .append('path')
+          .attr('class', 'uat-path')
+          .attr('d', this.path)
+          .attr('fill', '#80a0e0')
+          .attr('stroke', '#fff')
+          .attr('stroke-width', 0.5);
+        
+        console.log('Număr de path-uri create:', paths.size());
+        
+        // Adaugă evenimente de hover
+        paths.on('mouseover', (event, d: any) => {
+          this.ngZone.run(() => {
+            d3.select(event.target)
+              .attr('fill', '#0066cc');
+            
+            // Actualizează tooltip
+            this.hoveredCounty = {
+              name: d.properties.name,
+              code: this.selectedCounty || '',
+              voters: 0,
+              percentage: 0,
+              registeredVoters: 0,
+              pollingStationCount: 0,
+              permanentListVoters: 0,
+              supplementaryListVoters: 0,
+              specialCircumstancesVoters: 0,
+              mobileUrnsVoters: 0,
+              totalVoters: 0,
+              turnoutPercentage: 0
+            };
+            
+            // Poziționează tooltip
+            const mapRect = this.mapContainer.nativeElement.getBoundingClientRect();
+            this.hoverPosition = {
+              x: event.pageX - mapRect.left,
+              y: event.pageY - mapRect.top
+            };
+          });
+        })
+        .on('mouseout', (event) => {
+          this.ngZone.run(() => {
+            d3.select(event.target)
+              .attr('fill', '#80a0e0');
+            
+            this.hoveredCounty = null;
+          });
+        });
+        
+        // Adaugă buton înapoi
+        const backButton = svg.append('g')
+          .attr('class', 'back-button')
+          .attr('transform', 'translate(20, 20)')
+          .style('cursor', 'pointer')
+          .on('click', () => {
+            this.ngZone.run(() => {
+              this.mapLevel = 'judete';
+              this.isUATView = false;
+              this.initializeMap();
+            });
+          });
+        
+        backButton.append('rect')
+          .attr('width', 80)
+          .attr('height', 30)
+          .attr('rx', 5)
+          .attr('fill', '#4285f4');
+        
+        backButton.append('text')
+          .attr('x', 40)
+          .attr('y', 18)
+          .attr('text-anchor', 'middle')
+          .attr('dominant-baseline', 'middle')
+          .attr('fill', '#fff')
+          .text('← Înapoi');
+        
+      } catch (error: any) {
+        console.error('Eroare în procesarea sau desenarea GeoJSON:', error);
+        
+        // Afișează eroarea
+        svg.append('text')
+          .attr('x', width / 2)
+          .attr('y', height / 2)
+          .attr('text-anchor', 'middle')
+          .attr('fill', 'red')
+          .attr('font-size', '16px')
+          .text(`Eroare: ${error.message}`);
+      }
+    });
+    
+    console.log('Finalizare inițializare hartă UAT');
+  }
+// Metoda pentru a obține numele unui județ după codul său
+getCountyName(countyCode: string): string {
+  const county = Object.values(this.countyData).find(c => c.code === countyCode);
+  return county ? county.name : countyCode;
+}
+
+  showCountySelectionDialog(): void {
+    // Implementată în HTML ca un dropdown sau dialog modal
+    console.log('Afișează selector județe pentru vizualizare UAT');
   }
   
   setHighlightField(field: string): void {
