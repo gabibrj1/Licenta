@@ -32,9 +32,10 @@
             <div class="buttons-inline">
               <button class="filter-button" [class.active]="mapLevel === 'judete'" (click)="setMapLevel('judete')">Județe</button>
               <button class="filter-button" [class.active]="mapLevel === 'uaturi'" (click)="setMapLevel('uaturi')">UAT-uri</button>
-
             </div>
           </div>
+
+          
           <div class="county-selector" *ngIf="mapLevel === 'uaturi'">
             <label for="county-select">Selectează județul:</label>
             <select #countySelect id="county-select" (change)="loadCountyUATMap(countySelect.value)" [value]="selectedCounty">
@@ -70,12 +71,21 @@
         </div>
         
         <div class="filters-row">
-          <div class="filter-group">
+          <div class="filter-group" *ngIf="highlightField === 'prezenta'">
             <span class="category-label">RELATIV LA:</span>
             <div class="buttons-inline">
               <button class="filter-button" [class.active]="relativeTo === 'maxim'" (click)="setRelativeTo('maxim')">Maxim</button>
               <button class="filter-button" [class.active]="relativeTo === 'total'" (click)="setRelativeTo('total')">100%</button>
             </div>
+            <!-- Butonul Înapoi poziționat sub Maxim când prezența la vot este activată -->
+            <div class="back-button-wrapper" *ngIf="isUATView">
+              <button class="back-button" (click)="backToCountyView()">← Înapoi</button>
+            </div>
+          </div>
+          
+          <!-- Butonul Înapoi pentru celelalte cazuri (când nu este activată prezența la vot) -->
+          <div class="back-button-container" *ngIf="isUATView && highlightField !== 'prezenta'">
+            <button class="back-button" (click)="backToCountyView()">← Înapoi</button>
           </div>
           
           <!-- Container actiuni - poziționat în linie cu celelalte filtre -->

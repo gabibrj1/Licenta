@@ -126,13 +126,27 @@
               
               &.active {
                 background-color: #4285f4;
+                box-shadow: 0 2px 5px rgba(66, 133, 244, 0.5);
               }
               
               &:hover:not(.active) {
                 background-color: #444;
               }
+              
+              // Efect special pentru butonul "100%" când este activ
+              &.active[data-value="total"] {
+                background-color: #3a75d8; // Nuanță mai închisă pentru 100%
+                box-shadow: 0 2px 8px rgba(66, 133, 244, 0.7); // Umbră mai pronunțată
+              }
             }
           }
+        }
+        
+        // Container pentru butonul Înapoi
+        .back-button-container {
+          display: flex;
+          align-items: flex-end;
+          margin-right: 10px;
         }
         
         // Container actiuni integrat cu filtrele
@@ -268,7 +282,7 @@
     // Legendă
     .legend-container {
       position: absolute;
-      bottom: 15px;
+      bottom: 50px;
       left: 15px;
       display: flex;
       flex-direction: column;
@@ -276,9 +290,11 @@
       background-color: rgba(0, 0, 0, 0.75);
       padding: 12px;
       border-radius: 8px;
-      width: 95px;
+      width: 117px;
       border: 1px solid rgba(66, 133, 244, 0.3);
       box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
+      z-index: 100;
+      
       
       .max-label, .min-label {
         display: flex;
@@ -375,6 +391,7 @@
     margin: 0;
     width: 100%;
     box-sizing: border-box;
+    //padding-bottom: calc(-40px + env(safe-area-inset-bottom)); // Adaugă spațiu suplimentar pentru slider
     
     .footer-items {
       display: flex;
@@ -471,7 +488,15 @@ html, body {
     }
     
     .map-visualization {
-      min-height: 50vh; // Înălțime redusă pe mobil
+      position: relative;
+      flex: 1;
+      background-color: #1a1a1a;
+      overflow: hidden;
+      display: flex;
+      margin: 0;
+      border-radius: 0;
+      min-height: 65vh;        // Înălțime minimă consistentă
+      height: calc(100vh - 200px); // Înălțime calculată în funcție de înălțimea viewport-ului
     }
     
     .map-footer {
@@ -525,17 +550,89 @@ html, body {
   }
 }
 
-.selected-county-info {
-  color: #4285f4;
-  font-size: 16px;
-  margin: 5px 0;
-  text-align: center;
+// Container pentru wrapper-ul selectorului de județe
+.county-selector-wrapper {
+  display: flex;
+  flex-direction: column;
+  margin-left: 15px;
+  min-width: 230px;
 }
 
-.back-button {
-  cursor: pointer;
+// Stilizare pentru titlul UAT-urilor
+.selected-county-info {
+  margin-bottom: 5px;
   
-  &:hover rect {
-    fill: #5a95f5;
+  h3 {
+    color: #4285f4;
+    font-size: 14px;
+    font-weight: 500;
+    margin: 0 0 5px 0;
+    padding: 5px 10px;
+    background-color: rgba(66, 133, 244, 0.1);
+    border-radius: 4px;
+    display: inline-block;
+  }
+}
+
+// Stilizare pentru selectorul de județe
+.county-selector {
+  display: flex;
+  align-items: center;
+  
+  label {
+    color: #fff;
+    margin-right: 10px;
+    font-size: 14px;
+  }
+  
+  select {
+    background-color: #333;
+    color: #fff;
+    border: 1px solid #555;
+    padding: 5px 10px;
+    border-radius: 4px;
+    min-width: 200px;
+  }
+}
+
+// Stilizare pentru butonul Înapoi - independent și mereu vizibil
+.back-button {
+  background-color: #ff4444;
+  color: #fff;
+  border: none;
+  padding: 5px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  
+  &:hover {
+    background-color: #4285f4; // Culoare albastră la hover
+    transform: translateY(-2px);
+  }
+  
+  &:active {
+    transform: translateY(0);
+  }
+}
+
+// Container pentru butonul Înapoi în cazul general
+.back-button-container {
+  display: flex;
+  align-items: center;
+}
+
+// Container pentru butonul Înapoi poziționat sub Maxim
+.back-button-wrapper {
+  display: block;
+  margin-top: 8px;
+  width: fit-content;
+  
+  .back-button {
+    width: auto;
+    min-width: 60px;
+    justify-content: center;
   }
 }

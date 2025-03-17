@@ -202,6 +202,16 @@ export class MapComponent implements OnInit, AfterViewInit {
       }
     });
   }
+  initializeMapSettings(): void {
+    // Asigură-te că efectul vizual corect este aplicat în funcție de valoarea relativeTo
+    if (this.highlightField === 'prezenta') {
+      // Aplică efectul de overlay corespunzător setării curente
+      this.applyRelativeToEffect();
+      
+      // Actualizează și maxima sliderului
+      this.updateSliderMaxForTurnout();
+    }
+  }
 
 
   // Metoda optimizata pentru initializarea hartii
@@ -219,7 +229,7 @@ export class MapComponent implements OnInit, AfterViewInit {
       const width = container.clientWidth;
       const height = container.clientHeight || 500;
       
-     // Creaza SVG cu proportii adecvate
+      // Creaza SVG cu proportii adecvate
       this.svg = d3.select(container)
         .append('svg')
         .attr('width', width)
@@ -253,12 +263,14 @@ export class MapComponent implements OnInit, AfterViewInit {
         const fontSize = 10 / event.transform.k;
         this.g.selectAll('.county-label')
           .attr('font-size', `${fontSize}px`);
+        this.g.selectAll('.polling-station-count')
+          .attr('font-size', `${fontSize}px`);
       });
       
-       // Aplica zoom-ul la SVG
+      // Aplica zoom-ul la SVG
       this.svg.call(this.zoom);
       
-       // Creaza un grup pentru toate elementele hartii
+      // Creaza un grup pentru toate elementele hartii
       this.g = this.svg.append('g');
       
       // Deseneaza judetele
@@ -285,20 +297,55 @@ export class MapComponent implements OnInit, AfterViewInit {
           this.ngZone.run(() => this.handleCountyClick(d));
         });
       
-      // Adauga etichete pentru judete
-      this.g.selectAll('.county-label')
+      // Creaza un grup pentru fiecare etichetă pentru a putea poziționa mai bine textul
+      const labelGroups = this.g.selectAll('.county-label-group')
         .data(this.geoJsonData.features)
         .enter()
-        .append('text')
+        .append('g')
+        .attr('class', 'county-label-group')
+        .attr('transform', (d: GeoFeature) => {
+          const centroid = this.path.centroid(d);
+          return `translate(${centroid[0]}, ${centroid[1]})`;
+        });
+      
+      // Adaugă codul județului (prima linie)
+      labelGroups.append('text')
         .attr('class', 'county-label')
-        .attr('x', (d: GeoFeature) => this.path.centroid(d)[0])
-        .attr('y', (d: GeoFeature) => this.path.centroid(d)[1])
+        .attr('y', (d: GeoFeature) => {
+          // Ajustează poziția verticală bazată pe highlightField
+          // Dacă este selectat "sectii", codul județului va fi puțin mai sus
+          return this.highlightField === 'sectii' ? -5 : 0;
+        })
         .attr('text-anchor', 'middle')
         .attr('alignment-baseline', 'middle')
         .attr('font-size', '10px')
         .attr('fill', '#fff')
-        .text((d: GeoFeature) => this.getCountyCode(d))
-        .attr('pointer-events', 'none');
+        .attr('pointer-events', 'none')
+        .text((d: GeoFeature) => this.getCountyCode(d));
+      
+      // Adaugă numărul de secții de votare (a doua linie)
+      // Această etichetă este afișată doar când highlightField este 'sectii'
+      labelGroups.append('text')
+        .attr('class', 'polling-station-count')
+        .attr('y', 5)
+        .attr('text-anchor', 'middle')
+        .attr('alignment-baseline', 'middle')
+        .attr('font-size', '10px')
+        .attr('fill', '#fff')
+        .attr('pointer-events', 'none')
+        .attr('opacity', this.highlightField === 'sectii' ? 1 : 0) // Ascunde textul dacă nu sunt selectate secțiile
+        .text((d: GeoFeature) => {
+          const countyCode = this.getCountyCode(d);
+          const county = this.countyData[countyCode];
+          return county && county.pollingStationCount ? county.pollingStationCount : '';
+        });
+        
+      // ADAUGĂ AICI - La finalul funcției, după ce toate elementele SVG au fost create
+      // Trebuie să fie în interiorul ngZone.run() pentru că funcția va actualiza UI
+      this.ngZone.run(() => {
+        // Inițializează setările hărții pentru a aplica efectele vizuale corecte
+        this.initializeMapSettings();
+      });
     });
   }
   // Metoda pentru redimensionarea hartii la redimensionarea ferestrei
@@ -324,27 +371,41 @@ export class MapComponent implements OnInit, AfterViewInit {
       this.g.selectAll('.county-path')
         .attr('d', this.path);
       
-      // Actualizeaza pozitiile etichetelor
+      // Actualizeaza pozitiile grupurilor etichetelor
+      this.g.selectAll('.county-label-group')
+        .attr('transform', (d: GeoFeature) => {
+          const centroid = this.path.centroid(d);
+          return `translate(${centroid[0]}, ${centroid[1]})`;
+        });
+      
+      // Verificăm starea highlightField pentru a menține vizibilitatea numărului de secții
       this.g.selectAll('.county-label')
-        .attr('x', (d: GeoFeature) => this.path.centroid(d)[0])
-        .attr('y', (d: GeoFeature) => this.path.centroid(d)[1]);
+        .attr('y', this.highlightField === 'sectii' ? -5 : 0);
+        
+      this.g.selectAll('.polling-station-count')
+        .attr('opacity', this.highlightField === 'sectii' ? 1 : 0);
       
       // Reaplica transformarea curenta
       this.zoom = d3.zoom()
-  .scaleExtent([0.3, 9])
-  .translateExtent([[0, 0], [width, height]])
-  .on('zoom', (event) => {
-    // Actualizeaza transformarea curenta
-    this.currentTransform = event.transform;
-    
-    // Aplică transformarea corect
-    this.g.attr('transform', `translate(${event.transform.x},${event.transform.y}) scale(${event.transform.k})`);
-    
-    // Ajusteaza grosimea conturului in functie de zoom
-    const strokeWidth = 0.5 / event.transform.k;
-    this.g.selectAll('.uat-path')
-      .attr('stroke-width', strokeWidth);
-  });
+        .scaleExtent([0.3, 9])
+        .translateExtent([[0, 0], [width, height]])
+        .on('zoom', (event) => {
+          // Actualizeaza transformarea curenta
+          this.currentTransform = event.transform;
+          
+          // Aplică transformarea corect
+          this.g.attr('transform', `translate(${event.transform.x},${event.transform.y}) scale(${event.transform.k})`);
+          
+          // Ajusteaza grosimea conturului in functie de zoom
+          const strokeWidth = 0.5 / event.transform.k;
+          this.g.selectAll('.county-path, .uat-path')
+            .attr('stroke-width', strokeWidth);
+            
+          // Ajustează dimensiunea textului
+          const fontSize = 10 / event.transform.k;
+          this.g.selectAll('.county-label, .polling-station-count')
+            .attr('font-size', `${fontSize}px`);
+        });
     });
   }
   
@@ -551,11 +612,41 @@ handleCountyClick(feature: GeoFeature): void {
   }
   
   // Determina culoarea judetului in functie de date
-  getCountyColor(countyCode: string): string {
-    const county = this.countyData[countyCode];
-    if (!county) return '#d0d0ff'; // Culoare implicita pentru judete fara date
+// Determina culoarea judetului in functie de date și modul de vizualizare
+getCountyColor(countyCode: string): string {
+  const county = this.countyData[countyCode];
+  if (!county) return '#d0d0ff'; // Culoare implicita pentru judete fara date
+  
+  // Verifică dacă suntem în modul "secții de votare"
+  if (this.highlightField === 'sectii') {
+    // În modul secții, folosim pollingStationCount pentru filtrare
+    const stationCount = county.pollingStationCount || 0;
     
-    // Obtine procentajul de prezenta pentru judet (turnoutPercentage)
+    // Dacă numărul de secții este foarte aproape de valoarea sliderului (toleranță de 1)
+    if (stationCount >= this.filterPercentage)  {
+      // Evidențiem acest județ cu o culoare contrastantă
+      return '#1f1f1f'; // Culoare contrastantă pentru județele la pragul de filtrare
+    }
+    
+    // Pentru celelalte județe, folosim schema de culori normală, dar bazată pe numărul de secții
+    // Calculăm un procentaj bazat pe numărul de secții raportat la numărul maxim de secții
+    let maxStations = 0;
+    Object.values(this.countyData).forEach(c => {
+      if (c.pollingStationCount && c.pollingStationCount > maxStations) {
+        maxStations = c.pollingStationCount;
+      }
+    });
+    
+    const normalizedPercentage = maxStations > 0 ? stationCount / maxStations : 0;
+    
+    if (normalizedPercentage > 0.6) return '#4050e0';
+    if (normalizedPercentage > 0.4) return '#6070e0';
+    if (normalizedPercentage > 0.2) return '#8090e0';
+    if (normalizedPercentage > 0.1) return '#a0b0e0';
+    return '#c0d0ff';
+  } 
+  else if (this.highlightField === 'prezenta') {
+    // Pentru prezență la vot folosim turnoutPercentage
     let turnoutValue = 0;
     if (typeof county.turnoutPercentage === 'string') {
       turnoutValue = parseFloat(county.turnoutPercentage);
@@ -563,13 +654,34 @@ handleCountyClick(feature: GeoFeature): void {
       turnoutValue = county.turnoutPercentage as number;
     }
     
-    //  Daca procentajul judetului este foarte aproape de valoarea slider-ului (toleranță de 0.1%)
+    // Dacă procentajul județului este foarte aproape de valoarea slider-ului (toleranță de 0.1%)
     if (Math.abs(turnoutValue - this.filterPercentage) < 0.1) {
-      // Evidentiaza judetele care se potrivesc exact cu filtrul
-      return '#1f1f1f'; // Culoare contrastanta pentru judetele la pragul de filtrare
+      // Evidențiază județele care se potrivesc exact cu filtrul
+      return '#1f1f1f'; // Culoare contrastantă pentru județele la pragul de filtrare
     }
     
-    // Pentru toate celelalte judete, foloseste schema de culori normala
+    // Pentru toate celelalte judete, foloseste schema de culori în funcție de relativeTo
+    const percentage = county.percentage;
+    
+    // Verifică dacă este selectat modul "100%" (relativeTo === 'total')
+    if (this.relativeTo === 'total') {
+      // Culori mai închise pentru modul "100%"
+      if (percentage > 0.6) return '#303dcc'; // Albastru mai închis
+      if (percentage > 0.4) return '#4050c0'; // Albastru mai închis
+      if (percentage > 0.2) return '#5060c0'; // Albastru mai închis
+      if (percentage > 0.1) return '#6080c0'; // Albastru mai închis
+      return '#a0b0e0'; // Albastru mai închis pentru restul județelor
+    } else {
+      // Schema de culori originală pentru modul "Maxim"
+      if (percentage > 0.6) return '#4050e0';
+      if (percentage > 0.4) return '#6070e0';
+      if (percentage > 0.2) return '#8090e0';
+      if (percentage > 0.1) return '#a0b0e0';
+      return '#c0d0ff';
+    }
+  } 
+  else {
+    // Pentru alte moduri, folosim exact schema originală
     const percentage = county.percentage;
     if (percentage > 0.6) return '#4050e0';
     if (percentage > 0.4) return '#6070e0';
@@ -577,43 +689,79 @@ handleCountyClick(feature: GeoFeature): void {
     if (percentage > 0.1) return '#a0b0e0';
     return '#c0d0ff';
   }
+}
 // Metoda pentru actualizarea filtrului
 onFilterChange(): void {
-  // Actualizeaza culorile judetelor pe baza noului filtru
+  // Actualizează culorile județelor pe baza noului filtru
   if (this.g) {
     this.g.selectAll('.county-path')
       .attr('fill', (d: GeoFeature) => this.getCountyColor(this.getCountyCode(d)));
   }
   
-  // Actualizeaza statisticile globale
+  // Actualizează statisticile globale
   this.updateGlobalStats();
+  
+  // Actualizează textul de filtrare
+  this.updateFilterText();
 }
 
 // Metoda pentru actualizarea statisticilor globale
 updateGlobalStats(): void {
-  // Calculeaza numarul de judete la pragul ales
-  let countiesAtThreshold = 0;
-  let totalCounties = 0;
-  
-  Object.values(this.countyData).forEach(county => {
-    totalCounties++;
-    let turnoutValue = 0;
-    if (typeof county.turnoutPercentage === 'string') {
-      turnoutValue = parseFloat(county.turnoutPercentage);
-    } else {
-      turnoutValue = county.turnoutPercentage as number;
-    }
+  if (this.highlightField === 'sectii') {
+    // Pentru modul "secții de votare"
+    let countiesAboveThreshold = 0;
+    let totalCounties = 0;
+    let totalStations = 0;
     
-    if (Math.abs(turnoutValue - this.filterPercentage) < 0.1) {
-      countiesAtThreshold++;
-    }
-  });
+    Object.values(this.countyData).forEach(county => {
+      totalCounties++;
+      const stationCount = county.pollingStationCount || 0;
+      totalStations += stationCount;
+      
+      if (stationCount >= this.filterPercentage) {
+        countiesAboveThreshold++;
+      }
+    });
+    
+    // Actualizează statisticile afișate
+    this.totalVoters = countiesAboveThreshold.toString();
+    this.totalPercentage = (countiesAboveThreshold / totalCounties * 100).toFixed(2);
+    
+    console.log(`Județe cu cel puțin ${this.filterPercentage} secții: ${countiesAboveThreshold}`);
+  } else {
+    // Pentru alte moduri (prezență, votanți)
+    // Calculeaza numărul de județe la pragul ales
+    let countiesAtThreshold = 0;
+    let totalCounties = 0;
+    
+    Object.values(this.countyData).forEach(county => {
+      totalCounties++;
+      
+      if (this.highlightField === 'prezenta') {
+        let turnoutValue = 0;
+        if (typeof county.turnoutPercentage === 'string') {
+          turnoutValue = parseFloat(county.turnoutPercentage);
+        } else {
+          turnoutValue = county.turnoutPercentage as number;
+        }
+        
+        if (Math.abs(turnoutValue - this.filterPercentage) < 0.1) {
+          countiesAtThreshold++;
+        }
+      } else {
+        // Pentru alte câmpuri, folosim logica originală
+        if (Math.abs(county.percentage * 100 - this.filterPercentage) < 0.1) {
+          countiesAtThreshold++;
+        }
+      }
+    });
 
-      // Actualizeaza statisticile afisate
-      this.totalPercentage = this.filterPercentage.toFixed(2);
-      this.totalVoters = countiesAtThreshold.toString();
-  
-  console.log(`Județe cu prezență de ${this.filterPercentage}%: ${countiesAtThreshold}`);
+    // Actualizează statisticile afișate
+    this.totalPercentage = this.filterPercentage.toFixed(2);
+    this.totalVoters = countiesAtThreshold.toString();
+    
+    console.log(`Județe cu prezență de ${this.filterPercentage}%: ${countiesAtThreshold}`);
+  }
 }
    // Metode de control pentru filtre
    setMapLevel(level: string): void {
@@ -715,10 +863,14 @@ updateGlobalStats(): void {
       // Creează SVG
       const svg = d3.select(container)
         .append('svg')
-        .attr('width', width)
-        .attr('height', height)
+        .attr('width', '100%')
+        .attr('height', '100%')
         .style('background-color', '#1a1a1a')
-        .style('border', '1px solid #4285f4');
+        .style('border', 'none')
+        .style('display', 'block')
+        .style('max-width', '100%')
+        .style('max-height', '100%')
+        .style('margin', '0');
       
       // Creează grupul pentru hartă
       const g = svg.append('g');
@@ -764,6 +916,7 @@ updateGlobalStats(): void {
         // Adaugă evenimente de hover
         paths.on('mouseover', (event, d: any) => {
           this.ngZone.run(() => {
+            
             d3.select(event.target)
               .attr('fill', '#0066cc');
             
@@ -800,32 +953,7 @@ updateGlobalStats(): void {
           });
         });
         
-        // Adaugă buton înapoi
-        const backButton = svg.append('g')
-          .attr('class', 'back-button')
-          .attr('transform', 'translate(20, 20)')
-          .style('cursor', 'pointer')
-          .on('click', () => {
-            this.ngZone.run(() => {
-              this.mapLevel = 'judete';
-              this.isUATView = false;
-              this.initializeMap();
-            });
-          });
-        
-        backButton.append('rect')
-          .attr('width', 80)
-          .attr('height', 30)
-          .attr('rx', 5)
-          .attr('fill', '#4285f4');
-        
-        backButton.append('text')
-          .attr('x', 40)
-          .attr('y', 18)
-          .attr('text-anchor', 'middle')
-          .attr('dominant-baseline', 'middle')
-          .attr('fill', '#fff')
-          .text('← Înapoi');
+        // Am eliminat butonul Înapoi din SVG, îl vom folosi pe cel din HTML
         
       } catch (error: any) {
         console.error('Eroare în procesarea sau desenarea GeoJSON:', error);
@@ -843,6 +971,18 @@ updateGlobalStats(): void {
     
     console.log('Finalizare inițializare hartă UAT');
   }
+  
+  // Metodă pentru revenirea la vizualizarea județelor
+  backToCountyView(): void {
+    this.mapLevel = 'judete';
+    this.isUATView = false;
+    this.selectedCounty = null;
+    
+    // Inițializează harta județelor
+    setTimeout(() => {
+      this.initializeMap();
+    }, 100);
+  }
 // Metoda pentru a obține numele unui județ după codul său
 getCountyName(countyCode: string): string {
   const county = Object.values(this.countyData).find(c => c.code === countyCode);
@@ -855,25 +995,222 @@ getCountyName(countyCode: string): string {
   }
   
   setHighlightField(field: string): void {
+    const previousField = this.highlightField;
     this.highlightField = field;
-    // Recoloreza judetele in functie de noul camp
+    
+    console.log(`Câmp evidențiere schimbat la: ${field}`);
+    
+    // Actualizează valorile sliderului în funcție de câmpul selectat
+    if (field === 'sectii') {
+      // Pentru secții de votare, găsește valorile minime și maxime
+      let minPollingStations = Number.MAX_VALUE;
+      let maxPollingStations = 0;
+      
+      Object.values(this.countyData).forEach(county => {
+        // Asigură-te că folosim numere pentru comparație
+        const stationCount = Number(county.pollingStationCount || 0);
+        
+        if (stationCount < minPollingStations) minPollingStations = stationCount;
+        if (stationCount > maxPollingStations) maxPollingStations = stationCount;
+        
+        // Log pentru București pentru debugging
+        if (county.code === 'B') {
+          console.log(`București - pollingStationCount: ${county.pollingStationCount} (tipul: ${typeof county.pollingStationCount})`);
+          console.log(`București - stationCount convertit: ${stationCount}`);
+        }
+      });
+      
+      console.log(`Valoare minimă secții: ${minPollingStations}, Valoare maximă secții: ${maxPollingStations}`);
+      
+      // Asigură-te că maxPollingStations este cel puțin minPollingStations+1
+      if (maxPollingStations <= minPollingStations) {
+        maxPollingStations = minPollingStations + 1;
+      }
+      
+      // Adaugă 1 la maxPollingStations pentru a permite ajustarea slider-ului la valoarea maximă exactă
+      maxPollingStations = maxPollingStations + 1;
+      
+      // Setează valorile pentru slider
+      this.minValue = minPollingStations.toString();
+      this.maxValue = maxPollingStations.toString();
+      
+      // IMPORTANT: Setează valoarea sliderului la minim pentru a nu colora județele la început
+      this.filterPercentage = minPollingStations;
+      
+      // Actualizează slider-ul cu valorile corecte
+      setTimeout(() => {
+        const slider = document.querySelector('.percentage-slider') as HTMLInputElement;
+        if (slider) {
+          slider.min = minPollingStations.toString();
+          slider.max = maxPollingStations.toString();
+          slider.value = minPollingStations.toString();
+          slider.step = '1'; // Pentru secții de votare, pasul ar trebui să fie număr întreg
+          
+          console.log(`Slider configurat cu min: ${slider.min}, max: ${slider.max}, valoare: ${slider.value}`);
+        }
+        
+        // Actualizează și etichetele min/max
+        const minLabel = document.querySelector('.min-label span');
+        const maxLabel = document.querySelector('.max-label span');
+        if (minLabel) minLabel.textContent = minPollingStations.toString();
+        if (maxLabel) maxLabel.textContent = maxPollingStations.toString();
+      }, 0);
+    } else {
+      // Pentru alte câmpuri, revenirea la valorile procentuale
+      this.minValue = '0';
+      this.maxValue = '100';
+      this.filterPercentage = 0;
+      
+      // Păstrează relativeTo la valoarea curentă dacă suntem în câmpul prezență
+      // Nu resetăm valoarea pentru a respecta setarea utilizatorului
+      if (field === 'prezenta') {
+        // Nu mai setăm default la 'maxim', păstrăm valoarea curentă
+        // Aplicăm efectul vizual corect în funcție de relativeTo actual
+        this.applyRelativeToEffect();
+      }
+      
+      // Actualizează element-ul DOM pentru slider
+      setTimeout(() => {
+        const slider = document.querySelector('.percentage-slider') as HTMLInputElement;
+        if (slider) {
+          slider.min = '0';
+          slider.max = '100';
+          slider.value = '0';
+          slider.step = '0.1';
+        }
+        
+        // Actualizează și etichetele min/max
+        const minLabel = document.querySelector('.min-label span');
+        const maxLabel = document.querySelector('.max-label span');
+        if (minLabel) minLabel.textContent = '0';
+        if (maxLabel) maxLabel.textContent = '100';
+        
+        // Actualizează maxima sliderului în funcție de relativeTo dacă suntem în modul prezență
+        if (field === 'prezenta') {
+          this.updateSliderMaxForTurnout();
+        }
+      }, 0);
+    }
+    
+    // Recolorează județele
     if (this.g) {
       this.g.selectAll('.county-path')
         .attr('fill', (d: GeoFeature) => this.getCountyColor(this.getCountyCode(d)));
+      
+      if (previousField !== field && (previousField === 'sectii' || field === 'sectii')) {
+        this.g.selectAll('.county-label')
+          .transition()
+          .duration(300)
+          .attr('y', field === 'sectii' ? -5 : 0);
+        
+        this.g.selectAll('.polling-station-count')
+          .transition()
+          .duration(300)
+          .attr('opacity', field === 'sectii' ? 1 : 0);
+      }
     }
-    console.log(`Câmp evidențiere setat la: ${field}`);
-  }
-  
-  setRelativeTo(relativeTo: string): void {
-    this.relativeTo = relativeTo;
-    // Actualizeaza visualizarea
-    if (this.g) {
-      this.g.selectAll('.county-path')
-        .attr('fill', (d: GeoFeature) => this.getCountyColor(this.getCountyCode(d)));
-    }
-    console.log(`Referință relativă setată la: ${relativeTo}`);
+    
+    // Actualizează textul pentru filtru
+    this.updateFilterText();
   }
 
+  updateFilterText(): void {
+    setTimeout(() => {
+      const filterValueElement = document.querySelector('.filter-value span');
+      if (filterValueElement) {
+        if (this.highlightField === 'sectii') {
+          filterValueElement.textContent = `Filtrare: ${Math.round(this.filterPercentage)} secții`;
+        } else {
+          filterValueElement.textContent = `Filtrare: ${this.filterPercentage.toFixed(1)}%`;
+        }
+      }
+    }, 0);
+  }
+  applyRelativeToEffect(): void {
+    // Verificăm să avem un SVG valid
+    if (!this.svg) return;
+    
+    // Selectăm overlayul existent sau îl creăm dacă nu există
+    let overlay = this.svg.select('.map-overlay');
+    const container = this.mapContainer.nativeElement;
+    const width = container.clientWidth;
+    const height = container.clientHeight;
+    
+    if (overlay.empty()) {
+      overlay = this.svg.append('rect')
+        .attr('class', 'map-overlay')
+        .attr('width', width)
+        .attr('height', height)
+        .attr('fill', 'rgba(0, 0, 0, 0.15)')  // O tentă ușor umbrita
+        .attr('opacity', 0);  // Inițial invizibil
+    }
+    
+    // Aplicăm efectul de overlay
+    if (this.relativeTo === 'total') {
+      // Pentru modul 100%, afișăm overlay-ul cu o tranziție
+      overlay.transition()
+        .duration(300)
+        .attr('opacity', 1);
+    } else {
+      // Pentru modul maxim, ascundem overlay-ul cu o tranziție
+      overlay.transition()
+        .duration(300)
+        .attr('opacity', 0);
+    }
+  }
+  
+  // Funcție nouă pentru a actualiza maxima sliderului în funcție de relativeTo
+  updateSliderMaxForTurnout(): void {
+    if (this.highlightField !== 'prezenta') return;
+    
+    setTimeout(() => {
+      const slider = document.querySelector('.percentage-slider') as HTMLInputElement;
+      const maxLabel = document.querySelector('.max-label span');
+      
+      if (this.relativeTo === 'total') {
+        // Pentru 100%, maxima este întotdeauna 100
+        if (slider) slider.max = '100';
+        if (maxLabel) maxLabel.textContent = '100';
+      } else {
+        // Pentru 'maxim', găsește valoarea maximă de prezență la vot
+        let maxTurnout = 0;
+        Object.values(this.countyData).forEach(county => {
+          let turnoutValue = 0;
+          if (typeof county.turnoutPercentage === 'string') {
+            turnoutValue = parseFloat(county.turnoutPercentage);
+          } else {
+            turnoutValue = county.turnoutPercentage as number;
+          }
+          
+          if (turnoutValue > maxTurnout) maxTurnout = turnoutValue;
+        });
+        
+        // Aplicăm valoarea găsită
+        if (slider) slider.max = maxTurnout.toString();
+        if (maxLabel) maxLabel.textContent = maxTurnout.toFixed(2);
+      }
+    }, 0);
+  }
+  setRelativeTo(relativeTo: string): void {
+    this.relativeTo = relativeTo;
+    
+    // Actualizează vizualizarea în funcție de modul selectat
+    if (this.highlightField === 'prezenta') {
+      // Aplicăm efectul vizual (overlay) în funcție de relativeTo
+      this.applyRelativeToEffect();
+      
+      // Actualizează maxima sliderului în funcție de relativeTo
+      this.updateSliderMaxForTurnout();
+    }
+    
+    // Actualizează vizualizarea
+    if (this.g) {
+      this.g.selectAll('.county-path')
+        .attr('fill', (d: GeoFeature) => this.getCountyColor(this.getCountyCode(d)));
+    }
+    
+    console.log(`Referință relativă setată la: ${relativeTo}`);
+  }
   // // Functii helper
   getPercentageDisplay(county: CountyData | null): string {
     if (!county || county.percentage === undefined) return '0.00';
