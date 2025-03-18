@@ -107,39 +107,43 @@
       </div>
 
       <!-- Tooltip judet -->
-      <div class="county-tooltip" *ngIf="hoveredCounty" [style.left.px]="hoverPosition.x" [style.top.px]="hoverPosition.y">
-        <div class="tooltip-header">{{hoveredCounty.name}}</div>
-        <div class="tooltip-data-grid">
-          <div class="tooltip-row">
-            <span class="label">Înscriși pe liste permanente</span>
-            <span class="value">{{ hoveredCounty.registeredVoters | number }}</span>
-          </div>
-          <div class="tooltip-row">
-            <span class="label">Secții de votare</span>
-            <span class="value">{{ hoveredCounty.pollingStationCount | number }}</span>
-          </div>
-          <div class="tooltip-row">
-            <span class="label">Votanți pe liste permanente</span>
-            <span class="value">{{ hoveredCounty.permanentListVoters | number }}</span>
-          </div>
-          <div class="tooltip-row">
-            <span class="label">Votanți pe liste suplimentare</span>
-            <span class="value">{{ hoveredCounty.supplementaryListVoters | number }}</span>
-          </div>
-          <div class="tooltip-row">
-            <span class="label">Votanți cu urnă mobilă</span>
-            <span class="value">{{ hoveredCounty.mobileUrnsVoters | number }}</span>
-          </div>
-          <div class="tooltip-row total-row">
-            <span class="label">Total votanți</span>
-            <span class="value">{{ hoveredCounty.totalVoters | number }}</span>
-          </div>
-          <div class="tooltip-row">
-            <span class="label">Prezență</span>
-            <span class="value">{{ hoveredCounty.turnoutPercentage }}%</span>
-          </div>
-        </div>
-      </div>
+<!-- Tooltip județ -->
+<div class="county-tooltip" 
+*ngIf="hoveredCounty" [style.left.px]="hoverPosition.x"
+ [style.top.px]="hoverPosition.y"
+ [style.display]="hoveredCounty ? 'block' : 'none'">
+  <div class="tooltip-header">{{hoveredCounty.name}}</div>
+  <div class="tooltip-data-grid">
+    <div class="tooltip-row">
+      <span class="label">Înscriși pe liste permanente</span>
+      <span class="value">{{ hoveredCounty.registeredVoters | number }}</span>
+    </div>
+    <div class="tooltip-row">
+      <span class="label">Secții de votare</span>
+      <span class="value">{{ hoveredCounty.pollingStationCount | number }}</span>
+    </div>
+    <div class="tooltip-row">
+      <span class="label">Votanți pe liste permanente</span>
+      <span class="value">{{ hoveredCounty.permanentListVoters | number }}</span>
+    </div>
+    <div class="tooltip-row">
+      <span class="label">Votanți pe liste suplimentare</span>
+      <span class="value">{{ hoveredCounty.supplementaryListVoters | number }}</span>
+    </div>
+    <div class="tooltip-row">
+      <span class="label">Votanți cu urnă mobilă</span>
+      <span class="value">{{ hoveredCounty.mobileUrnsVoters | number }}</span>
+    </div>
+    <div class="tooltip-row total-row">
+      <span class="label">Total votanți</span>
+      <span class="value">{{ hoveredCounty.totalVoters | number }}</span>
+    </div>
+    <div class="tooltip-row">
+      <span class="label">Prezență</span>
+      <span class="value">{{ hoveredCounty.turnoutPercentage }}%</span>
+    </div>
+  </div>
+</div>
 
       <!-- Legenda -->
       <div class="legend-container">
