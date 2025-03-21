@@ -417,12 +417,28 @@
     color: #ffffff;
     box-shadow: 0 4px 8px rgba(255, 255, 255, 0.1);
 
-    mat-form-field,
-    input,
-    select,
-    textarea {
-      background-color: #424242;
-      color: #ffffff;
+    // Fix for input text color in dark mode
+    .mat-form-field {
+      .mat-input-element {
+        color: #ffffff;
+      }
+      
+      .mat-form-field-label {
+        color: rgba(255, 255, 255, 0.7);
+      }
+    }
+
+    // Override Angular Material's dark input styling
+    ::ng-deep .mat-form-field-appearance-fill .mat-form-field-flex {
+      background-color: rgba(255, 255, 255, 0.05);
+    }
+
+    ::ng-deep .mat-form-field.mat-focused .mat-form-field-label {
+      color: #90caf9;
+    }
+
+    ::ng-deep .mat-form-field-ripple {
+      background-color: #90caf9;
     }
 
     mat-checkbox {
@@ -469,7 +485,6 @@
       background-color: rgba(255, 255, 255, 0.05);
       color: #f0f0f0;
     }
-    
   }
 }
 /* Stiluri pentru reCAPTCHA */

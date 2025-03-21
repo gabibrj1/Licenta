@@ -5,6 +5,8 @@ import { interval } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { AuthService } from '../services/auth.service';
 import { AuthUserService } from '../services/auth-user.service';
+import { ActivatedRoute } from '@angular/router';
+import { MapService } from '../services/map.service';
 
 @Component({
   selector: 'app-menu',
@@ -30,7 +32,9 @@ export class MenuComponent implements OnInit {
   constructor(
     private authService: AuthService, 
     private authUserService: AuthUserService,
-    private router: Router
+    private router: Router,
+    private route: ActivatedRoute,
+    private mapService: MapService
   ) {}
 
   ngOnInit(): void {
@@ -42,10 +46,20 @@ export class MenuComponent implements OnInit {
     ).subscribe(time => {
       this.currentTime = time;
     });
-
+  
     // Încearcă să încarce datele utilizatorului din localStorage
     this.loadUserDataFromStorage();
+    
+    // Transmite locația inițială către harta dacă ne aflăm pe pagina de hartă
+    if (this.router.url.includes('/harta')) {
+      this.router.navigate(['menu/harta'], { 
+        queryParams: { location: this.locationFilter },
+        replaceUrl: true
+      });
+    }
   }
+
+  
 
   // Verifică dacă utilizatorul este autentificat
   isAuthenticated(): boolean {
@@ -137,7 +151,9 @@ export class MenuComponent implements OnInit {
         this.router.navigate(['menu/statistici']);
         break;
       case 'harta':
-        this.router.navigate(['menu/harta']);
+        this.router.navigate(['menu/harta'], {
+          queryParams: { location: this.locationFilter }
+        });
         break;
       
       // Candidați
@@ -204,9 +220,18 @@ export class MenuComponent implements OnInit {
     // Implementează logica pentru a schimba datele în funcție de tur
   }
 
-  switchLocation(location: string): void {
-    this.locationFilter = location;
+// În menu.component.ts
+switchLocation(location: string): void {
+  this.locationFilter = location;
+  
+  // Dacă utilizatorul este deja pe pagina hartă, actualizează URL-ul
+  if (this.currentView === 'harta') {
+    this.router.navigate(['menu/harta'], { 
+      queryParams: { location: location },
+      replaceUrl: true
+    });
   }
+}
 
   // Mask CNP for privacy
   maskCNP(cnp: string): string {

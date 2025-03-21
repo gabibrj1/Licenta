@@ -2,6 +2,7 @@ import { Component, OnInit, AfterViewInit, ViewChild, ElementRef, Renderer2, NgZ
 import { MapService, MapInfo } from '../services/map.service';
 import * as d3 from 'd3';
 import { Router } from '@angular/router';
+import { ActivatedRoute } from '@angular/router';
 
 interface CountyData {
   name: string;
@@ -15,6 +16,7 @@ interface CountyData {
   supplementaryListVoters?: number;
   specialCircumstancesVoters?: number;
   mobileUrnsVoters?: number;
+  correspondenceVoters?: number;
   totalVoters?: number;
   turnoutPercentage?: number;
 }
@@ -82,12 +84,28 @@ export class MapComponent implements OnInit, AfterViewInit {
   uatGeoJsonData: any = null;
   isUATView: boolean = false;
   countyOptions: {code: string, name: string}[] = [];
-  
+
+  // Variabile pentru comutarea la harta lumii
+  mapLocation: string = 'romania';
+  worldGeoJsonData: any = null;
+  countryData: { [key: string]: CountyData } = {};
+  hoveredCountry: CountyData | null = null;
+
+  // Variabile pentru harta internationala
+  private worldMapZoom: number = 1;
+  // Min and max zoom constraints
+  private minZoom: number = 0.5;
+  private maxZoom: number = 3;
+  // Zoom step size
+  private zoomStep: number = 0.1;
+
+
   constructor(
     private mapService: MapService,
     private renderer: Renderer2,
     private ngZone: NgZone,
     private router: Router,
+    private route: ActivatedRoute
   ) {}
   navigateToHome(): void {
     this.router.navigate(['']);
@@ -102,7 +120,22 @@ export class MapComponent implements OnInit, AfterViewInit {
 
   ngOnInit(): void {
     console.log('MapComponent: ngOnInit a fost apelat');
-    this.loadMapData();
+    
+    // Verificăm query parameters pentru locație
+    this.route.queryParams.subscribe(params => {
+      if (params['location']) {
+        this.mapLocation = params['location'];
+        
+        // Încarcă harta corespunzătoare
+        if (this.mapLocation === 'romania') {
+          this.loadMapData();
+        } else {
+          this.loadWorldMapData();
+        }
+      } else {
+        this.loadMapData(); // Default: România
+      }
+    });
   }
 
   ngAfterViewInit(): void {
@@ -112,7 +145,597 @@ export class MapComponent implements OnInit, AfterViewInit {
     }
   }
 
+  // Metoda pentru comutare intre harti
+  setMapLocation(location: string): void {
+    if (this.mapLocation === location) return;
+    
+    this.mapLocation = location;
+    this.isLoading = true;
+    
+    if (location === 'romania') {
+      this.loadMapData();
+    } else {
+      this.loadWorldMapData();
+    }
+  }
+  /**
+ * Mărește nivelul de zoom pentru harta mondială
+ */
+zoomIn(): void {
+  if (this.worldMapZoom < this.maxZoom) {
+    this.worldMapZoom += this.zoomStep;
+    this.applyWorldMapZoom();
+  }
+}
+
+/**
+ * Reduce nivelul de zoom pentru harta mondială
+ */
+zoomOut(): void {
+  if (this.worldMapZoom > this.minZoom) {
+    this.worldMapZoom -= this.zoomStep;
+    this.applyWorldMapZoom();
+  }
+}
+
+/**
+ * Aplică nivelul curent de zoom la SVG-ul hărții mondiale
+ */
+private applyWorldMapZoom(): void {
+  if (this.mapLocation === 'strainatate' && this.svg) {
+    this.ngZone.runOutsideAngular(() => {
+      // Calculează transformarea D3 pentru zoom
+      const width = this.mapContainer.nativeElement.clientWidth;
+      const height = this.mapContainer.nativeElement.clientHeight;
+      const centerX = width / 2;
+      const centerY = height / 2;
+      
+      // Aplică zoom-ul păstrând centrul
+      const transform = d3.zoomIdentity
+        .translate(centerX, centerY)
+        .scale(this.worldMapZoom)
+        .translate(-centerX, -centerY);
+      
+      // Aplică transformarea cu animație
+      this.svg.transition()
+        .duration(300)
+        .call(this.zoom.transform, transform);
+        
+      // Ajustează dimensiunea textului în funcție de zoom
+      const fontSize = 12 / this.worldMapZoom;
+      const smallerFontSize = 10 / this.worldMapZoom;
+      
+      // Update text sizes for different label types
+      this.g.selectAll('.country-label')
+        .attr('font-size', `${fontSize}px`);
+      
+      this.g.selectAll('.polling-station-count')
+        .attr('font-size', `${fontSize}px`);
+        
+      this.g.selectAll('.country-voters')
+        .attr('font-size', `${smallerFontSize}px`);
+    });
+  }
+}
+updateCountryLabels(): void {
+  if (this.mapLocation === 'strainatate' && this.g) {
+    // Clear and recreate labels
+    this.addCountryLabels();
+    
+    // Update colors of countries
+    this.g.selectAll('.country-path')
+      .attr('fill', (d: GeoFeature) => this.getCountryColor(this.getCountryCode(d)));
+  }
+}
+  // Metoda pentru incarcarea datelor hartii mondiale
+  loadWorldMapData(): void {
+    this.mapLocation = 'strainatate';
+    console.log('MapComponent: Începe încărcarea datelor hartă mondială');
+    this.isLoading = true;
+    
+    this.loadWorldGeoJsonData().then(geoData => {
+      console.log('MapComponent: Date GeoJSON hartă mondială primite cu succes');
+      this.worldGeoJsonData = geoData;
+      
+      this.mapService.getWorldVotingStatistics().subscribe({
+        next: (countryStats: any) => {
+          console.log('MapComponent: Date statistice țări primite cu succes');
+          this.countryData = countryStats;
+          
+          // Prelucrare suplimentară a datelor pentru o mai bună vizualizare
+          this.preprocessWorldData();
+          
+          this.isLoading = false;
+          
+          setTimeout(() => {
+            this.initializeWorldMap();
+          }, 100);
+        },
+        error: (error: any) => {
+          console.error('MapComponent: Eroare la încărcarea datelor statistice pentru țări:', error);
+          this.isLoading = false;
+          
+          // Încărcăm harta chiar și în caz de eroare, dar cu date goale
+          this.countryData = {};
+          setTimeout(() => {
+            this.initializeWorldMap();
+          }, 100);
+        }
+      });
+    }).catch((error: any) => {
+      console.error('MapComponent: Eroare la încărcarea GeoJSON pentru harta lumii:', error);
+      this.isLoading = false;
+    });
+  }
+  private preprocessWorldData(): void {
+    // Aici putem adăuga orice logică de preprocesare necesară pentru datele mondiale
+    // De exemplu, calcularea procentajelor, normalizarea datelor etc.
+    
+    // Asigurăm-ne că toate țările au cel puțin valori implicite
+    Object.keys(this.countryData).forEach(code => {
+      const country = this.countryData[code];
+      if (!country.totalVoters) country.totalVoters = 0;
+      if (!country.pollingStationCount) country.pollingStationCount = 0;
+      if (!country.permanentListVoters) country.permanentListVoters = 0;
+      if (!country.correspondenceVoters) country.correspondenceVoters = 0;
+    });
+  }
+  
+
+//  Metoda pentru obtinerea GeoJSON pentru harta lumii
+private loadWorldGeoJsonData(): Promise<any> {
+  return new Promise((resolve, reject) => {
+    fetch('assets/maps/countries.geo.json')
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
+        }
+        return response.json();
+      })
+      .then(data => resolve(data))
+      .catch(error => reject(error));
+  });
+}
+
+// 5. Metoda pentru initializarea hartii mondiale
+initializeWorldMap(): void {
+  if (!this.worldGeoJsonData || !this.mapContainer) return;
+  
+  this.ngZone.runOutsideAngular(() => {
+    const container = this.mapContainer.nativeElement;
+    while (container.firstChild) {
+      container.removeChild(container.firstChild);
+    }
+    
+    const width = container.clientWidth;
+    const height = container.clientHeight || 500;
+    
+    this.svg = d3.select(container)
+      .append('svg')
+      .attr('width', width)
+      .attr('height', height)
+      .attr('viewBox', `0 0 ${width} ${height}`)
+      .attr('preserveAspectRatio', 'xMidYMid meet')
+      .attr('class', 'world-map');
+    
+    // Îmbunătățim proiecția pentru o hartă mai clară și mai centrată
+    this.projection = d3.geoMercator()
+      .center([0, 30]) // Centrare optimizată pentru vizibilitate globală
+      .scale(width / 6.5) // Scală inițială mai potrivită
+      .translate([width / 2, height / 2]);
+    
+    this.path = d3.geoPath().projection(this.projection);
+    
+    this.zoom = d3.zoom()
+      .scaleExtent([0.5, 8]) // Min și max zoom
+      .translateExtent([[-width, -height], [width * 2, height * 2]])
+      .on('zoom', (event) => {
+        this.currentTransform = event.transform;
+        this.g.attr('transform', event.transform);
+        
+        // Ajustează grosimea contururilor în funcție de nivelul de zoom
+        const strokeWidth = 0.5 / event.transform.k;
+        this.g.selectAll('.country-path')
+          .attr('stroke-width', strokeWidth);
+          
+        // Ajustează dimensiunea textului în funcție de zoom
+        const fontSize = 10 / event.transform.k;
+        this.g.selectAll('.country-label')
+          .attr('font-size', `${fontSize}px`);
+        this.g.selectAll('.country-voters')
+          .attr('font-size', `${fontSize * 0.8}px`);
+      });
+    
+    this.svg.call(this.zoom);
+    
+    this.g = this.svg.append('g');
+    
+    // Adăugăm un dreptunghi de fundal pentru interacțiune mai bună
+    this.g.append('rect')
+      .attr('width', width * 4)
+      .attr('height', height * 4)
+      .attr('x', -width)
+      .attr('y', -height)
+      .attr('fill', 'transparent')
+      .attr('pointer-events', 'none');
+    
+    // Lista de coduri/nume de țară care ar trebui ignorate
+    const invalidCodes = ['Bermuda','Ber','ATA', 'AQ', 'Unknown', 'Antarctica'];
+    
+    const countryPaths = this.g.selectAll('.country-path')
+      .data(this.worldGeoJsonData.features)
+      .enter()
+      .append('path')
+      .attr('class', 'country-path')
+      .attr('id', (d: GeoFeature) => this.getCountryCode(d))
+      .attr('d', this.path)
+      .attr('fill', (d: GeoFeature) => this.getCountryColor(this.getCountryCode(d)))
+      .attr('stroke', 'rgba(255, 255, 255, 0.5)')
+      .attr('stroke-width', 0.5);
+
+    // Filtrăm aici doar țările valide pentru evenimente de hover
+    countryPaths
+      .filter((d: GeoFeature) => {
+        const code = this.getCountryCode(d);
+        return !invalidCodes.includes(code) && !invalidCodes.includes(d.properties.name);
+      })
+      .on('mouseover', (event: any, d: GeoFeature) => {
+        event.stopPropagation();
+        this.ngZone.run(() => this.handleCountryMouseOver(event, d));
+      })
+      .on('mousemove', (event: any) => {
+        event.stopPropagation();
+        this.ngZone.run(() => this.handleCountryMouseMove(event));
+      })
+      .on('mouseout', (event: any, d: GeoFeature) => {
+        event.stopPropagation();
+        this.ngZone.run(() => this.handleCountryMouseOut(event, d));
+      });
+    
+    // Adăugăm etichetele pentru toate țările
+    this.addCountryLabels();
+    
+    // Adăugăm un handler pentru fundalul hărții pentru a ascunde tooltip-ul când mouse-ul e pe fundal
+    this.svg.on('mouseover', () => {
+      this.ngZone.run(() => {
+        this.hoveredCounty = null;
+        this.hoveredCountry = null;
+      });
+    });
+    
+    // Efectuăm un zoom inițial pentru a centra harta corect
+    const worldMapZoom = 1.2; // Valoare inițială de zoom mai bună
+    
+    // Aplicăm zoom-ul inițial după o mică întârziere pentru animație fluidă
+    setTimeout(() => {
+      const centerX = width / 2;
+      const centerY = height / 2;
+      
+      // Aplicăm zoom-ul păstrând centrul
+      const transform = d3.zoomIdentity
+        .translate(centerX, centerY)
+        .scale(worldMapZoom)
+        .translate(-centerX, -centerY);
+      
+      // Aplicăm transformarea cu animație
+      this.svg.transition()
+        .duration(500)
+        .call(this.zoom.transform, transform);
+      
+      this.ngZone.run(() => {
+        this.initializeMapSettings();
+      });
+    }, 100);
+  });
+}
+
+private addCountryLabels(): void {
+  this.g.selectAll('.country-label, .country-voters, .polling-station-count').remove();
+  
+  this.worldGeoJsonData.features.forEach((feature: GeoFeature) => {
+    const countryCode = this.getCountryCode(feature);
+    const invalidCodes = ['ATA', 'AQ', 'Unknown', 'Antarctica', 'Bermuda', 'Ber'];
+    
+    if (!invalidCodes.includes(countryCode) && !invalidCodes.includes(feature.properties.name)) {
+      const centroid = this.path.centroid(feature);
+      
+      if (!isNaN(centroid[0]) && !isNaN(centroid[1])) {
+        const area = this.path.area(feature);
+        
+        const countryData = this.countryData[countryCode];
+        const hasSignificantVotes = countryData && countryData.totalVoters && countryData.totalVoters > 0;
+        const hasPollingStations = countryData && countryData.pollingStationCount && countryData.pollingStationCount > 0;
+        
+        if (area > 3 || hasSignificantVotes || hasPollingStations) {
+          if (this.highlightField !== 'sectii' && this.highlightField !== 'votanti') {
+            this.g.append('text')
+              .attr('class', 'country-label')
+              .attr('x', centroid[0])
+              .attr('y', centroid[1])
+              .attr('text-anchor', 'middle')
+              .attr('alignment-baseline', 'middle')
+              .attr('fill', 'white')
+              .attr('font-size', hasSignificantVotes ? '12px' : '10px')
+              .attr('font-weight', 'bold')
+              .attr('pointer-events', 'none')
+              .text(countryCode);
+          }
+          
+          if (this.highlightField === 'sectii' && hasPollingStations) {
+            this.g.append('text')
+              .attr('class', 'polling-station-count')
+              .attr('x', centroid[0])
+              .attr('y', centroid[1])
+              .attr('text-anchor', 'middle')
+              .attr('alignment-baseline', 'middle')
+              .attr('fill', 'white')
+              .attr('font-size', '12px')
+              .attr('font-weight', 'bold')
+              .attr('pointer-events', 'none')
+              .text(countryData.pollingStationCount);
+          }
+          
+          if (this.highlightField === 'votanti' && hasSignificantVotes) {
+            this.g.append('text')
+              .attr('class', 'country-voters')
+              .attr('x', centroid[0])
+              .attr('y', centroid[1])
+              .attr('text-anchor', 'middle')
+              .attr('alignment-baseline', 'middle')
+              .attr('fill', 'white')
+              .attr('font-size', '12px')
+              .attr('font-weight', 'bold')
+              .attr('pointer-events', 'none')
+              .text(this.formatVotersNumber(countryData.totalVoters || 0));
+          }
+        }
+      }
+    }
+  });
+}
+// Metoda pentru a obtine codul tarii
+getCountryCode(feature: GeoFeature): string {
+  // Verifică dacă feature are un id (folosind 'as any' pentru a evita eroarea TypeScript)
+  if ((feature as any).id) {
+    return (feature as any).id.toString();
+  }
+  
+  // Verifică proprietățile pentru codul ISO sau name
+  const props = feature.properties as any;
+  
+  if (props) {
+    // Caută diverse proprietăți posibile pentru cod
+    if (props.ISO_A3) return props.ISO_A3;
+    if (props.ISO_A2) return props.ISO_A2;
+    if (props.iso_a3) return props.iso_a3;
+    if (props.iso_a2) return props.iso_a2;
+    if (props.code) return props.code;
+    
+    // Dacă nu există cod, folosește numele
+    if (props.name) return props.name;
+  }
+  
+  return 'Unknown';
+}
+getCountryColor(countryCode: string): string {
+  const country = this.countryData[countryCode];
+  if (!country) return 'rgba(255, 255, 255, 0.05)';
+  
+  if (this.highlightField === 'sectii') {
+    const stationCount = country.pollingStationCount || 0;
+    
+    if (stationCount === this.filterPercentage || 
+        (stationCount === parseInt(this.maxValue) && this.filterPercentage === parseInt(this.maxValue))) {
+      return '#1f1f1f';
+    } else if (stationCount > this.filterPercentage) {
+      let maxStations = 0;
+      Object.values(this.countryData).forEach(c => {
+        if (c.pollingStationCount && c.pollingStationCount > maxStations) {
+          maxStations = c.pollingStationCount;
+        }
+      });
+      
+      const normalizedPercentage = maxStations > 0 ? stationCount / maxStations : 0;
+      
+      if (normalizedPercentage > 0.6) return '#4050e0';
+      if (normalizedPercentage > 0.4) return '#6070e0';
+      if (normalizedPercentage > 0.2) return '#8090e0';
+      if (normalizedPercentage > 0.1) return '#a0b0e0';
+      return '#c0d0ff';
+    } else {
+      return 'rgba(255, 255, 255, 0.1)';
+    }
+  }
+  else if (this.highlightField === 'votanti') {
+    const totalVoters = country.totalVoters || 0;
+    
+    if (totalVoters === this.filterPercentage || 
+        (totalVoters === parseInt(this.maxValue) && this.filterPercentage === parseInt(this.maxValue))) {
+      return '#1f1f1f';
+    } else if (totalVoters > this.filterPercentage) {
+      let maxVoters = 0;
+      Object.values(this.countryData).forEach(c => {
+        if (c.totalVoters && c.totalVoters > maxVoters) {
+          maxVoters = c.totalVoters;
+        }
+      });
+      
+      const normalizedPercentage = maxVoters > 0 ? totalVoters / maxVoters : 0;
+      
+      if (normalizedPercentage > 0.6) return '#4050e0';
+      if (normalizedPercentage > 0.4) return '#6070e0';
+      if (normalizedPercentage > 0.2) return '#8090e0';
+      if (normalizedPercentage > 0.1) return '#a0b0e0';
+      return '#c0d0ff';
+    } else {
+      return 'rgba(255, 255, 255, 0.1)';
+    }
+  }
+  else {
+    if (this.highlightField === 'votanti') {
+      const totalVoters = country.totalVoters || 0;
+      
+      if (totalVoters >= this.filterPercentage) {
+        return '#1f1f1f';
+      }
+      
+      let maxVoters = 0;
+      Object.values(this.countryData).forEach(c => {
+        if (c.totalVoters && c.totalVoters > maxVoters) {
+          maxVoters = c.totalVoters;
+        }
+      });
+      
+      const normalizedPercentage = maxVoters > 0 ? totalVoters / maxVoters : 0;
+      
+      if (normalizedPercentage > 0.8) return 'rgba(66, 133, 244, 1.0)';
+      if (normalizedPercentage > 0.6) return 'rgba(66, 133, 244, 0.8)';
+      if (normalizedPercentage > 0.4) return 'rgba(66, 133, 244, 0.6)';
+      if (normalizedPercentage > 0.2) return 'rgba(66, 133, 244, 0.4)';
+      if (normalizedPercentage > 0.1) return 'rgba(66, 133, 244, 0.25)';
+      return 'rgba(66, 133, 244, 0.15)';
+    } else {
+      const stationCount = country.pollingStationCount || 0;
+      
+      let maxStations = 0;
+      Object.values(this.countryData).forEach(c => {
+        if (c.pollingStationCount && c.pollingStationCount > maxStations) {
+          maxStations = c.pollingStationCount;
+        }
+      });
+      
+      const normalizedPercentage = maxStations > 0 ? stationCount / maxStations : 0;
+      
+      if (normalizedPercentage > 0.8) return 'rgba(66, 133, 244, 1.0)';
+      if (normalizedPercentage > 0.6) return 'rgba(66, 133, 244, 0.8)';
+      if (normalizedPercentage > 0.4) return 'rgba(66, 133, 244, 0.6)';
+      if (normalizedPercentage > 0.2) return 'rgba(66, 133, 244, 0.4)';
+      if (normalizedPercentage > 0.1) return 'rgba(66, 133, 244, 0.25)';
+      return 'rgba(66, 133, 244, 0.15)';
+    }
+  }
+}
+
+handleCountryMouseOver(event: any, feature: GeoFeature): void {
+  // Obținem codul țării din GeoJSON
+  const countryCode = this.getCountryCode(feature);
+  
+  // Lista de coduri/nume de țară care ar trebui ignorate
+  const invalidCodes = ['ATA', 'AQ', 'Unknown', 'Antarctica'];
+  
+  // Verificăm dacă este un cod/nume de țară de ignorat
+  if (invalidCodes.includes(countryCode) || 
+      (feature.properties && invalidCodes.includes(feature.properties.name))) {
+    return; // Nu facem nimic pentru aceste cazuri
+  }
+  
+  const countryData = this.countryData[countryCode];
+  
+  // Dacă avem date pentru această țară, le folosim
+  if (countryData) {
+    this.hoveredCountry = {
+      name: countryData.name || feature.properties.name,
+      code: countryCode,
+      voters: countryData.voters || 0,
+      percentage: countryData.percentage || 0,
+      
+      pollingStationCount: countryData.pollingStationCount || 0,
+      permanentListVoters: countryData.permanentListVoters || 0,
+      correspondenceVoters: countryData.correspondenceVoters || 0,
+      totalVoters: countryData.totalVoters || 0
+    };
+  } else {
+    // Dacă nu avem date, folosim cel puțin numele țării pentru a afișa ceva
+    this.hoveredCountry = {
+      name: feature.properties.name,
+      code: countryCode,
+      voters: 0,
+      percentage: 0,
+      pollingStationCount: 0,
+      permanentListVoters: 0,
+      correspondenceVoters: 0,
+      totalVoters: 0
+    };
+  }
+  
+  // Setăm hoveredCounty pentru a afișa tooltip-ul
+  this.hoveredCounty = this.hoveredCountry;
+  
+  // Calculăm poziția tooltip-ului
+  const mapRect = this.mapContainer.nativeElement.getBoundingClientRect();
+  const x = event.pageX - mapRect.left;
+  const y = event.pageY - mapRect.top;
+  
+  const tooltipWidth = 280;
+  const tooltipHeight = 250;
+  
+  let posX = x;
+  let posY = y;
+  
+  if (x + tooltipWidth > mapRect.width) {
+    posX = x - tooltipWidth;
+  }
+  
+  if (y + tooltipHeight > mapRect.height) {
+    posY = y - tooltipHeight;
+  }
+  
+  posX = Math.max(10, posX);
+  posY = Math.max(10, posY);
+  
+  this.hoverPosition = {
+    x: posX,
+    y: posY
+  };
+  
+  // Schimbă culoarea țării
+  d3.select(event.target).attr('fill', '#0066cc');
+}
+
+handleCountryMouseMove(event: any): void {
+  if (!this.hoveredCounty) return;
+  
+  const mapRect = this.mapContainer.nativeElement.getBoundingClientRect();
+  const x = event.clientX - mapRect.left;
+  const y = event.clientY - mapRect.top;
+  
+  const tooltipWidth = 280;
+  const tooltipHeight = 250;
+  
+  let posX = x;
+  let posY = y;
+  
+  if (x + tooltipWidth > mapRect.width) {
+    posX = x - tooltipWidth;
+  }
+  
+  if (y + tooltipHeight > mapRect.height) {
+    posY = y - tooltipHeight;
+  }
+  
+  posX = Math.max(10, posX);
+  posY = Math.max(10, posY);
+  
+  this.hoverPosition = {
+    x: posX,
+    y: posY
+  };
+}
+
+handleCountryMouseOut(event: any, feature: GeoFeature): void {
+  const countryCode = this.getCountryCode(feature);
+  
+  d3.select(event.target)
+    .attr('fill', this.getCountryColor(countryCode));
+  
+  this.hoveredCounty = null;
+  this.hoveredCountry = null;
+}
+
+
+
   loadMapData(): void {
+    this.mapLocation = 'romania';
     console.log('MapComponent: Începe încărcarea datelor hartă');
     this.isLoading = true;
     
@@ -374,68 +997,64 @@ export class MapComponent implements OnInit, AfterViewInit {
     });
   }
   // Metoda pentru redimensionarea hartii la redimensionarea ferestrei
-  resizeMap(): void {
-    if (!this.svg || !this.mapContainer) return;
+// Metoda pentru redimensionarea hartii la redimensionarea ferestrei
+resizeMap(): void {
+  if (!this.svg || !this.mapContainer) return;
+  
+  this.ngZone.runOutsideAngular(() => {
+    const container = this.mapContainer.nativeElement;
+    const width = container.clientWidth;
+    const height = container.clientHeight || 500;
     
-    this.ngZone.runOutsideAngular(() => {
-      const container = this.mapContainer.nativeElement;
-      const width = container.clientWidth;
-      const height = container.clientHeight || 500;
-      
-      // Actualizeaza dimensiunile SVG-ului
-      this.svg
-        .attr('width', '100%')
-        .attr('height', '100%')
-        .attr('viewBox', `0 0 ${width} ${height}`)
-        .attr('preserveAspectRatio', 'xMidYMid meet');
-      
-      // Actualizeaza proiectia
+    // Actualizează dimensiunile SVG-ului
+    this.svg
+      .attr('width', '100%')
+      .attr('height', '100%')
+      .attr('viewBox', `0 0 ${width} ${height}`)
+      .attr('preserveAspectRatio', 'xMidYMid meet');
+    
+    if (this.mapLocation === 'romania') {
+      // Codul existent pentru România
       this.projection.fitExtent([[20, 20], [width - 20, height - 20]], this.geoJsonData);
+      // Restul codului pentru România...
+    } else {
+      // Logică îmbunătățită pentru harta mondială
+      // Recalculăm proiecția pentru dimensiunile noi
+      this.projection = d3.geoMercator()
+        .center([0, 30])
+        .scale(width / 6.5)
+        .translate([width / 2, height / 2]);
       
-      // Actualizeaza path-urile pentru judete
-      this.g.selectAll('.county-path')
+      // Actualizăm path-ul
+      this.path = d3.geoPath().projection(this.projection);
+      
+      // Actualizăm path-urile pentru țări
+      this.g.selectAll('.country-path')
         .attr('d', this.path);
       
-      // Actualizeaza pozitiile grupurilor etichetelor
-      this.g.selectAll('.county-label-group')
-        .attr('transform', (d: GeoFeature) => {
-          const centroid = this.path.centroid(d);
-          return `translate(${centroid[0]}, ${centroid[1]})`;
-        });
-      
-      // Verificăm starea highlightField pentru a menține vizibilitatea corectă a etichetelor
-      this.g.selectAll('.county-label')
-        .attr('y', (this.highlightField === 'sectii' || this.highlightField === 'votanti') ? -5 : 0);
+      // Actualizăm poziția etichetelor
+      this.g.selectAll('.country-label, .country-voters').each((d: any, i: number, nodes: any) => {
+        const node = d3.select(nodes[i]);
+        const countryCode = node.text().split(' ')[0]; // Extragem codul țării
         
-      this.g.selectAll('.polling-station-count')
-        .attr('opacity', this.highlightField === 'sectii' ? 1 : 0);
+        const feature = this.worldGeoJsonData.features.find((f: GeoFeature) => 
+          this.getCountryCode(f) === countryCode
+        );
         
-      this.g.selectAll('.voters-count')
-        .attr('opacity', this.highlightField === 'votanti' ? 1 : 0);
+        if (feature) {
+          const centroid = this.path.centroid(feature);
+          if (!isNaN(centroid[0]) && !isNaN(centroid[1])) {
+            node.attr('x', centroid[0]);
+            node.attr('y', centroid[1] + (node.classed('country-voters') ? 12 : 0));
+          }
+        }
+      });
       
-      // Reaplica transformarea curenta
-      this.zoom = d3.zoom()
-        .scaleExtent([0.3, 9])
-        .translateExtent([[0, 0], [width, height]])
-        .on('zoom', (event) => {
-          // Actualizeaza transformarea curenta
-          this.currentTransform = event.transform;
-          
-          // Aplică transformarea corect
-          this.g.attr('transform', `translate(${event.transform.x},${event.transform.y}) scale(${event.transform.k})`);
-          
-          // Ajusteaza grosimea conturului in functie de zoom
-          const strokeWidth = 0.5 / event.transform.k;
-          this.g.selectAll('.county-path, .uat-path')
-            .attr('stroke-width', strokeWidth);
-            
-          // Ajustează dimensiunea textului
-          const fontSize = 10 / event.transform.k;
-          this.g.selectAll('.county-label, .polling-station-count, .voters-count')
-            .attr('font-size', `${fontSize}px`);
-        });
-    });
-  }
+      // Reaplicăm nivelul de zoom curent
+      this.applyWorldMapZoom();
+    }
+  });
+}
   
   
   // Determina codul judetului din feature
@@ -660,28 +1279,32 @@ getCountyColor(countyCode: string): string {
     // În modul secții, folosim pollingStationCount pentru filtrare
     const stationCount = county.pollingStationCount || 0;
     
-    // Dacă numărul de secții este foarte aproape de valoarea sliderului (toleranță de 1)
-    if (stationCount >= this.filterPercentage)  {
+    // Dacă numărul de secții este exact ca valoarea sliderului sau este valoarea maximă când slider-ul e la maxim
+    if (stationCount === this.filterPercentage || 
+        (stationCount === parseInt(this.maxValue) && this.filterPercentage === parseInt(this.maxValue))) {
       // Evidențiem acest județ cu o culoare contrastantă
       return '#1f1f1f'; // Culoare contrastantă pentru județele la pragul de filtrare
+    } else if (stationCount > this.filterPercentage) {
+      // Pentru celelalte județe, folosim schema de culori normală, dar bazată pe numărul de secții
+      // Calculăm un procentaj bazat pe numărul de secții raportat la numărul maxim de secții
+      let maxStations = 0;
+      Object.values(this.countyData).forEach(c => {
+        if (c.pollingStationCount && c.pollingStationCount > maxStations) {
+          maxStations = c.pollingStationCount;
+        }
+      });
+      
+      const normalizedPercentage = maxStations > 0 ? stationCount / maxStations : 0;
+      
+      if (normalizedPercentage > 0.6) return '#4050e0';
+      if (normalizedPercentage > 0.4) return '#6070e0';
+      if (normalizedPercentage > 0.2) return '#8090e0';
+      if (normalizedPercentage > 0.1) return '#a0b0e0';
+      return '#c0d0ff';
+    } else {
+      // Județe care au mai puține secții decât filtrul
+      return 'rgba(255, 255, 255, 0.1)'; // Culoare foarte transparentă
     }
-    
-    // Pentru celelalte județe, folosim schema de culori normală, dar bazată pe numărul de secții
-    // Calculăm un procentaj bazat pe numărul de secții raportat la numărul maxim de secții
-    let maxStations = 0;
-    Object.values(this.countyData).forEach(c => {
-      if (c.pollingStationCount && c.pollingStationCount > maxStations) {
-        maxStations = c.pollingStationCount;
-      }
-    });
-    
-    const normalizedPercentage = maxStations > 0 ? stationCount / maxStations : 0;
-    
-    if (normalizedPercentage > 0.6) return '#4050e0';
-    if (normalizedPercentage > 0.4) return '#6070e0';
-    if (normalizedPercentage > 0.2) return '#8090e0';
-    if (normalizedPercentage > 0.1) return '#a0b0e0';
-    return '#c0d0ff';
   }
   else if (this.highlightField === 'votanti') {
     // În modul votanți, folosim totalVoters pentru filtrare
@@ -757,10 +1380,17 @@ getCountyColor(countyCode: string): string {
 }
 // Metoda pentru actualizarea filtrului
 onFilterChange(): void {
-  // Actualizează culorile județelor pe baza noului filtru
-  if (this.g) {
-    this.g.selectAll('.county-path')
-      .attr('fill', (d: GeoFeature) => this.getCountyColor(this.getCountyCode(d)));
+  // Actualizează culorile județelor/țărilor pe baza noului filtru
+  if (this.mapLocation === 'strainatate') {
+    if (this.g) {
+      this.g.selectAll('.country-path')
+        .attr('fill', (d: GeoFeature) => this.getCountryColor(this.getCountryCode(d)));
+    }
+  } else {
+    if (this.g) {
+      this.g.selectAll('.county-path')
+        .attr('fill', (d: GeoFeature) => this.getCountyColor(this.getCountyCode(d)));
+    }
   }
   
   // Actualizează statisticile globale
@@ -769,86 +1399,131 @@ onFilterChange(): void {
   // Actualizează textul de filtrare
   this.updateFilterText();
 }
-
 // Metoda pentru actualizarea statisticilor globale
 updateGlobalStats(): void {
   if (this.highlightField === 'sectii') {
-    // Pentru modul "secții de votare"
-    let countiesAboveThreshold = 0;
-    let totalCounties = 0;
+    let countriesOrCountiesWithExactCount = 0;
+    let totalEntities = 0;
     let totalStations = 0;
     
-    Object.values(this.countyData).forEach(county => {
-      totalCounties++;
-      const stationCount = county.pollingStationCount || 0;
-      totalStations += stationCount;
-      
-      if (stationCount >= this.filterPercentage) {
-        countiesAboveThreshold++;
-      }
-    });
-    
-    // Actualizează statisticile afișate
-    this.totalVoters = countiesAboveThreshold.toString();
-    this.totalPercentage = (countiesAboveThreshold / totalCounties * 100).toFixed(2);
-    
-    console.log(`Județe cu cel puțin ${this.filterPercentage} secții: ${countiesAboveThreshold}`);
-  } else if (this.highlightField === 'votanti') {
-    // Pentru modul "votanți"
-    let countiesAboveThreshold = 0;
-    let totalCounties = 0;
-    let totalVotersSum = 0;
-    
-    Object.values(this.countyData).forEach(county => {
-      totalCounties++;
-      const voters = county.totalVoters || 0;
-      totalVotersSum += voters;
-      
-      if (voters >= this.filterPercentage) {
-        countiesAboveThreshold++;
-      }
-    });
-    
-    // Actualizează statisticile afișate
-    this.totalVoters = countiesAboveThreshold.toString();
-    this.totalPercentage = (countiesAboveThreshold / totalCounties * 100).toFixed(2);
-    
-    console.log(`Județe cu cel puțin ${this.filterPercentage} votanți: ${countiesAboveThreshold}`);
-  } else {
-    // Pentru alte moduri (prezență)
-    // Calculează numărul de județe la pragul ales
-    let countiesAtThreshold = 0;
-    let totalCounties = 0;
-    
-    Object.values(this.countyData).forEach(county => {
-      totalCounties++;
-      
-      if (this.highlightField === 'prezenta') {
-        let turnoutValue = 0;
-        if (typeof county.turnoutPercentage === 'string') {
-          turnoutValue = parseFloat(county.turnoutPercentage);
-        } else {
-          turnoutValue = county.turnoutPercentage as number;
-        }
+    if (this.mapLocation === 'strainatate') {
+      Object.values(this.countryData).forEach(country => {
+        if (!country.pollingStationCount) return;
         
-        if (Math.abs(turnoutValue - this.filterPercentage) < 0.1) {
-          countiesAtThreshold++;
+        totalEntities++;
+        const stationCount = country.pollingStationCount || 0;
+        totalStations += stationCount;
+        
+        if (stationCount === this.filterPercentage || 
+            (stationCount === parseInt(this.maxValue) && this.filterPercentage === parseInt(this.maxValue))) {
+          countriesOrCountiesWithExactCount++;
         }
-      } else {
-        // Pentru alte câmpuri, folosim logica originală
-        if (Math.abs(county.percentage * 100 - this.filterPercentage) < 0.1) {
-          countiesAtThreshold++;
+      });
+    } else {
+      Object.values(this.countyData).forEach(county => {
+        totalEntities++;
+        const stationCount = county.pollingStationCount || 0;
+        totalStations += stationCount;
+        
+        if (stationCount === this.filterPercentage || 
+            (stationCount === parseInt(this.maxValue) && this.filterPercentage === parseInt(this.maxValue))) {
+          countriesOrCountiesWithExactCount++;
         }
-      }
-    });
-
-    // Actualizează statisticile afișate
-    this.totalPercentage = this.filterPercentage.toFixed(2);
-    this.totalVoters = countiesAtThreshold.toString();
+      });
+    }
     
-    console.log(`Județe cu prezență de ${this.filterPercentage}%: ${countiesAtThreshold}`);
+    this.totalVoters = countriesOrCountiesWithExactCount.toString();
+    
+    if (totalEntities > 0) {
+      this.totalPercentage = (countriesOrCountiesWithExactCount / totalEntities * 100).toFixed(2);
+    } else {
+      this.totalPercentage = "0.00";
+    }
+    
+    console.log(`Entități cu exact ${this.filterPercentage} secții: ${countriesOrCountiesWithExactCount}`);
+  } else if (this.highlightField === 'votanti') {
+    if (this.mapLocation === 'strainatate') {
+      let countriesWithExactVoters = 0;
+      let totalCountries = 0;
+      let totalVotersSum = 0;
+      
+      Object.values(this.countryData).forEach(country => {
+        if (!country.totalVoters) return;
+        
+        totalCountries++;
+        const voters = country.totalVoters || 0;
+        totalVotersSum += voters;
+        
+        if (voters === this.filterPercentage || 
+            (voters === parseInt(this.maxValue) && this.filterPercentage === parseInt(this.maxValue))) {
+          countriesWithExactVoters++;
+        }
+      });
+      
+      this.totalVoters = countriesWithExactVoters.toString();
+      
+      if (totalCountries > 0) {
+        this.totalPercentage = (countriesWithExactVoters / totalCountries * 100).toFixed(2);
+      } else {
+        this.totalPercentage = "0.00";
+      }
+    } else {
+      let countiesAboveThreshold = 0;
+      let totalCounties = 0;
+      let totalVotersSum = 0;
+      
+      Object.values(this.countyData).forEach(county => {
+        totalCounties++;
+        const voters = county.totalVoters || 0;
+        totalVotersSum += voters;
+        
+        if (voters >= this.filterPercentage) {
+          countiesAboveThreshold++;
+        }
+      });
+      
+      this.totalVoters = countiesAboveThreshold.toString();
+      this.totalPercentage = (countiesAboveThreshold / totalCounties * 100).toFixed(2);
+      
+      console.log(`Entități cu cel puțin ${this.filterPercentage} votanți: ${countiesAboveThreshold}`);
+    }
+  } else {
+    if (this.mapLocation === 'strainatate') {
+      this.totalPercentage = this.filterPercentage.toFixed(2);
+      this.totalVoters = "0";
+    } else {
+      let countiesAtThreshold = 0;
+      let totalCounties = 0;
+      
+      Object.values(this.countyData).forEach(county => {
+        totalCounties++;
+        
+        if (this.highlightField === 'prezenta') {
+          let turnoutValue = 0;
+          if (typeof county.turnoutPercentage === 'string') {
+            turnoutValue = parseFloat(county.turnoutPercentage);
+          } else {
+            turnoutValue = county.turnoutPercentage as number;
+          }
+          
+          if (Math.abs(turnoutValue - this.filterPercentage) < 0.1) {
+            countiesAtThreshold++;
+          }
+        } else {
+          if (Math.abs(county.percentage * 100 - this.filterPercentage) < 0.1) {
+            countiesAtThreshold++;
+          }
+        }
+      });
+
+      this.totalPercentage = this.filterPercentage.toFixed(2);
+      this.totalVoters = countiesAtThreshold.toString();
+      
+      console.log(`Județe cu prezență de ${this.filterPercentage}%: ${countiesAtThreshold}`);
+    }
   }
 }
+
    // Metode de control pentru filtre
    setMapLevel(level: string): void {
     if (this.mapLevel === level) return;
@@ -1086,50 +1761,53 @@ getCountyName(countyCode: string): string {
     
     console.log(`Câmp evidențiere schimbat la: ${field}`);
     
-    // Actualizează valorile sliderului în funcție de câmpul selectat
+    if (this.mapLocation === 'strainatate' && this.g) {
+      this.addCountryLabels();
+      
+      this.g.selectAll('.country-path')
+        .attr('fill', (d: GeoFeature) => this.getCountryColor(this.getCountryCode(d)));
+    }
+    
     if (field === 'sectii') {
-      // Pentru secții de votare, găsește valorile minime și maxime
-      let minPollingStations = Number.MAX_VALUE;
+      let minPollingStations = 0;
       let maxPollingStations = 0;
       
-      Object.values(this.countyData).forEach(county => {
-        // Asigură-te că folosim numere pentru comparație
-        const stationCount = Number(county.pollingStationCount || 0);
+      if (this.mapLocation === 'strainatate') {
+        Object.values(this.countryData).forEach(country => {
+          const stationCount = Number(country.pollingStationCount || 0);
+          if (stationCount > maxPollingStations) maxPollingStations = stationCount;
+        });
         
-        if (stationCount < minPollingStations) minPollingStations = stationCount;
-        if (stationCount > maxPollingStations) maxPollingStations = stationCount;
-      });
-      
-      console.log(`Valoare minimă secții: ${minPollingStations}, Valoare maximă secții: ${maxPollingStations}`);
-      
-      // Asigură-te că maxPollingStations este cel puțin minPollingStations+1
-      if (maxPollingStations <= minPollingStations) {
-        maxPollingStations = minPollingStations + 1;
+        console.log(`Valoare minimă secții străinătate: ${minPollingStations}, Valoare maximă secții străinătate: ${maxPollingStations}`);
+      } else {
+        Object.values(this.countyData).forEach(county => {
+          const stationCount = Number(county.pollingStationCount || 0);
+          if (stationCount > maxPollingStations) maxPollingStations = stationCount;
+        });
+        
+        console.log(`Valoare minimă secții județe: ${minPollingStations}, Valoare maximă secții județe: ${maxPollingStations}`);
       }
       
-      // Adaugă 1 la maxPollingStations pentru a permite ajustarea slider-ului la valoarea maximă exactă
-      maxPollingStations = maxPollingStations + 1;
+      if (maxPollingStations < 1) {
+        maxPollingStations = 1;
+      }
       
-      // Setează valorile pentru slider
       this.minValue = minPollingStations.toString();
       this.maxValue = maxPollingStations.toString();
       
-      // IMPORTANT: Setează valoarea sliderului la minim pentru a nu colora județele la început
       this.filterPercentage = minPollingStations;
       
-      // Actualizează slider-ul cu valorile corecte
       setTimeout(() => {
         const slider = document.querySelector('.percentage-slider') as HTMLInputElement;
         if (slider) {
           slider.min = minPollingStations.toString();
           slider.max = maxPollingStations.toString();
           slider.value = minPollingStations.toString();
-          slider.step = '1'; // Pentru secții de votare, pasul ar trebui să fie număr întreg
+          slider.step = '1';
           
           console.log(`Slider configurat cu min: ${slider.min}, max: ${slider.max}, valoare: ${slider.value}`);
         }
         
-        // Actualizează și etichetele min/max
         const minLabel = document.querySelector('.min-label span');
         const maxLabel = document.querySelector('.max-label span');
         if (minLabel) minLabel.textContent = minPollingStations.toString();
@@ -1137,67 +1815,90 @@ getCountyName(countyCode: string): string {
       }, 0);
     } 
     else if (field === 'votanti') {
-      // Pentru votanți, găsește valorile minime și maxime
-      let minVoters = Number.MAX_VALUE;
-      let maxVoters = 0;
-      
-      Object.values(this.countyData).forEach(county => {
-        // Asigură-te că folosim numere pentru comparație
-        const totalVoters = Number(county.totalVoters || 0);
+      if (this.mapLocation === 'strainatate') {
+        let minVoters = 0;
+        let maxVoters = 0;
         
-        if (totalVoters < minVoters) minVoters = totalVoters;
-        if (totalVoters > maxVoters) maxVoters = totalVoters;
-      });
-      
-      console.log(`Valoare minimă votanți: ${minVoters}, Valoare maximă votanți: ${maxVoters}`);
-      
-      // Asigură-te că maxVoters este cel puțin minVoters+1
-      if (maxVoters <= minVoters) {
-        maxVoters = minVoters + 1;
-      }
-      
-      // Rotunjește valorile pentru o utilizare mai ușoară
-      minVoters = Math.floor(minVoters / 1000) * 1000;
-      maxVoters = Math.ceil(maxVoters / 1000) * 1000;
-      
-      // Setează valorile pentru slider
-      this.minValue = minVoters.toString();
-      this.maxValue = maxVoters.toString();
-      
-      // IMPORTANT: Setează valoarea sliderului la minim pentru a nu colora județele la început
-      this.filterPercentage = minVoters;
-      
-      // Actualizează slider-ul cu valorile corecte
-      setTimeout(() => {
-        const slider = document.querySelector('.percentage-slider') as HTMLInputElement;
-        if (slider) {
-          slider.min = minVoters.toString();
-          slider.max = maxVoters.toString();
-          slider.value = minVoters.toString();
-          slider.step = '1000'; // Pentru votanți, pasul ar trebui să fie 1000
+        Object.values(this.countryData).forEach(country => {
+          const totalVoters = Number(country.totalVoters || 0);
+          if (totalVoters > maxVoters) maxVoters = totalVoters;
+        });
+        
+        console.log(`Valoare minimă votanți străinătate: ${minVoters}, Valoare maximă votanți străinătate: ${maxVoters}`);
+        
+        this.minValue = minVoters.toString();
+        this.maxValue = maxVoters.toString();
+        
+        this.filterPercentage = minVoters;
+        
+        setTimeout(() => {
+          const slider = document.querySelector('.percentage-slider') as HTMLInputElement;
+          if (slider) {
+            slider.min = minVoters.toString();
+            slider.max = maxVoters.toString();
+            slider.value = minVoters.toString();
+            slider.step = '100';
+            
+            console.log(`Slider configurat cu min: ${slider.min}, max: ${slider.max}, valoare: ${slider.value}`);
+          }
           
-          console.log(`Slider configurat cu min: ${slider.min}, max: ${slider.max}, valoare: ${slider.value}`);
+          const minLabel = document.querySelector('.min-label span');
+          const maxLabel = document.querySelector('.max-label span');
+          if (minLabel) minLabel.textContent = minVoters.toString();
+          if (maxLabel) maxLabel.textContent = maxVoters.toString();
+        }, 0);
+      } else {
+        let minVoters = Number.MAX_VALUE;
+        let maxVoters = 0;
+        
+        Object.values(this.countyData).forEach(county => {
+          const totalVoters = Number(county.totalVoters || 0);
+          
+          if (totalVoters < minVoters) minVoters = totalVoters;
+          if (totalVoters > maxVoters) maxVoters = totalVoters;
+        });
+        
+        console.log(`Valoare minimă votanți: ${minVoters}, Valoare maximă votanți: ${maxVoters}`);
+        
+        if (maxVoters <= minVoters) {
+          maxVoters = minVoters + 1;
         }
         
-        // Actualizează și etichetele min/max
-        const minLabel = document.querySelector('.min-label span');
-        const maxLabel = document.querySelector('.max-label span');
-        if (minLabel) minLabel.textContent = minVoters.toLocaleString();
-        if (maxLabel) maxLabel.textContent = maxVoters.toLocaleString();
-      }, 0);
+        minVoters = Math.floor(minVoters / 1000) * 1000;
+        maxVoters = Math.ceil(maxVoters / 1000) * 1000;
+        
+        this.minValue = minVoters.toString();
+        this.maxValue = maxVoters.toString();
+        
+        this.filterPercentage = minVoters;
+        
+        setTimeout(() => {
+          const slider = document.querySelector('.percentage-slider') as HTMLInputElement;
+          if (slider) {
+            slider.min = minVoters.toString();
+            slider.max = maxVoters.toString();
+            slider.value = minVoters.toString();
+            slider.step = '1000';
+            
+            console.log(`Slider configurat cu min: ${slider.min}, max: ${slider.max}, valoare: ${slider.value}`);
+          }
+          
+          const minLabel = document.querySelector('.min-label span');
+          const maxLabel = document.querySelector('.max-label span');
+          if (minLabel) minLabel.textContent = minVoters.toLocaleString();
+          if (maxLabel) maxLabel.textContent = maxVoters.toLocaleString();
+        }, 0);
+      }
     }
     else {
-      // Pentru alte câmpuri (prezenta), revenirea la valorile procentuale
       this.minValue = '0';
       this.maxValue = '100';
       this.filterPercentage = 0;
       
-      // Păstrează relativeTo la valoarea curentă dacă suntem în câmpul prezență
       if (field === 'prezenta') {
         this.applyRelativeToEffect();
       }
       
-      // Actualizează element-ul DOM pentru slider
       setTimeout(() => {
         const slider = document.querySelector('.percentage-slider') as HTMLInputElement;
         if (slider) {
@@ -1207,123 +1908,116 @@ getCountyName(countyCode: string): string {
           slider.step = '0.1';
         }
         
-        // Actualizează și etichetele min/max
         const minLabel = document.querySelector('.min-label span');
         const maxLabel = document.querySelector('.max-label span');
         if (minLabel) minLabel.textContent = '0';
         if (maxLabel) maxLabel.textContent = '100';
         
-        // Actualizează maxima sliderului în funcție de relativeTo dacă suntem în modul prezență
         if (field === 'prezenta') {
           this.updateSliderMaxForTurnout();
         }
       }, 0);
     }
     
-    // Actualizează etichetele pentru județe
     if (this.g) {
-      // Recolorează județele
-      this.g.selectAll('.county-path')
-        .attr('fill', (d: GeoFeature) => this.getCountyColor(this.getCountyCode(d)));
-      
-      // Actualizează vizibilitatea numărul de secții dacă este cazul
-      if (previousField !== field && (previousField === 'sectii' || field === 'sectii')) {
-        this.g.selectAll('.county-label')
-          .transition()
-          .duration(300)
-          .attr('y', field === 'sectii' ? -5 : 0);
-        
-        this.g.selectAll('.polling-station-count')
-          .transition()
-          .duration(300)
-          .attr('opacity', field === 'sectii' ? 1 : 0);
-      }
-      
-      // Adaugă sau elimină etichete pentru numărul de votanți
-      if (previousField !== field && (previousField === 'votanti' || field === 'votanti')) {
-        // Găsește sau creează selecția pentru etichetele de votanți
-        let votersLabels = this.g.selectAll('.voters-count');
-        
-        if (field === 'votanti') {
-          // Dacă nu există etichete pentru votanți, creează-le
-          if (votersLabels.empty()) {
-            this.g.selectAll('.county-label-group')
-              .append('text')
-              .attr('class', 'voters-count')
-              .attr('y', 7)
-              .attr('text-anchor', 'middle')
-              .attr('alignment-baseline', 'middle')
-              .attr('font-size', '9px')
-              .attr('fill', '#fff')
-              .attr('pointer-events', 'none')
-              .attr('opacity', 0)
-              .text((d: GeoFeature) => {
-                const countyCode = this.getCountyCode(d);
-                const county = this.countyData[countyCode];
-                if (county && county.totalVoters) {
-                  return this.formatVotersNumber(county.totalVoters);
-                }
-                return '';
-              });
-          }
+      if (this.mapLocation === 'romania') {
+        this.g.selectAll('.county-path')
+          .attr('fill', (d: GeoFeature) => this.getCountyColor(this.getCountyCode(d)));
           
-          // Afișează etichetele pentru votanți
-          this.g.selectAll('.voters-count')
-            .transition()
-            .duration(300)
-            .attr('opacity', 1);
-            
-          // Ajustează poziția etichetei pentru cod județ
+        if (previousField !== field && (previousField === 'sectii' || field === 'sectii')) {
           this.g.selectAll('.county-label')
             .transition()
             .duration(300)
-            .attr('y', -5);
-        } else {
-          // Ascunde etichetele pentru votanți
-          this.g.selectAll('.voters-count')
+            .attr('y', field === 'sectii' ? -5 : 0);
+          
+          this.g.selectAll('.polling-station-count')
             .transition()
             .duration(300)
-            .attr('opacity', 0);
+            .attr('opacity', field === 'sectii' ? 1 : 0);
+        }
+        
+        if (previousField !== field && (previousField === 'votanti' || field === 'votanti')) {
+          let votersLabels = this.g.selectAll('.voters-count');
+          
+          if (field === 'votanti') {
+            if (votersLabels.empty()) {
+              this.g.selectAll('.county-label-group')
+                .append('text')
+                .attr('class', 'voters-count')
+                .attr('y', 7)
+                .attr('text-anchor', 'middle')
+                .attr('alignment-baseline', 'middle')
+                .attr('font-size', '9px')
+                .attr('fill', '#fff')
+                .attr('pointer-events', 'none')
+                .attr('opacity', 0)
+                .text((d: GeoFeature) => {
+                  const countyCode = this.getCountyCode(d);
+                  const county = this.countyData[countyCode];
+                  if (county && county.totalVoters) {
+                    return this.formatVotersNumber(county.totalVoters);
+                  }
+                  return '';
+                });
+            }
             
-          // Resetează poziția etichetei pentru cod județ dacă nu suntem în modul secții
-          if (field !== 'sectii') {
+            this.g.selectAll('.voters-count')
+              .transition()
+              .duration(300)
+              .attr('opacity', 1);
+              
             this.g.selectAll('.county-label')
               .transition()
               .duration(300)
-              .attr('y', 0);
+              .attr('y', -5);
+          } else {
+            this.g.selectAll('.voters-count')
+              .transition()
+              .duration(300)
+              .attr('opacity', 0);
+              
+            if (field !== 'sectii') {
+              this.g.selectAll('.county-label')
+                .transition()
+                .duration(300)
+                .attr('y', 0);
+            }
           }
         }
       }
     }
     
-    // Actualizează textul pentru filtru
     this.updateFilterText();
   }
 
   // Funcție utilitară pentru formatarea numărului de votanți
-formatVotersNumber(value: number): string {
-  if (value >= 1000000) {
-    return (value / 1000000).toFixed(1) + 'M';
-  } else if (value >= 1000) {
-    return (value / 1000).toFixed(0) + 'k';
-  }
-  return value.toString();
-}
-
-updateFilterText(): void {
-  setTimeout(() => {
-    const filterValueElement = document.querySelector('.filter-value span');
-    if (filterValueElement) {
-      if (this.highlightField === 'sectii') {
-        filterValueElement.textContent = `Filtrare: ${Math.round(this.filterPercentage)} secții`;
-      } else if (this.highlightField === 'votanti') {
-        filterValueElement.textContent = `Filtrare: ${this.filterPercentage.toLocaleString()}`;
-      } else {
-        filterValueElement.textContent = `Filtrare: ${this.filterPercentage.toFixed(1)}%`;
-      }
+  formatVotersNumber(value: number): string {
+    if (value >= 1000000) {
+      return (value / 1000000).toFixed(1) + 'M';
+    } else if (value >= 1000) {
+      return (value / 1000).toFixed(0) + 'k';
     }
-  }, 0);
-}
+    return value.toString();
+  }
+  
+  updateFilterText(): void {
+    setTimeout(() => {
+      const filterValueElement = document.querySelector('.filter-value span');
+      if (filterValueElement) {
+        if (this.highlightField === 'sectii') {
+          filterValueElement.textContent = `Filtrare: ${Math.round(this.filterPercentage)} secții`;
+        } else if (this.highlightField === 'votanti') {
+          if (this.mapLocation === 'strainatate') {
+            filterValueElement.textContent = `Filtrare: ${this.filterPercentage} votanți`;
+          } else {
+            filterValueElement.textContent = `Filtrare: ${this.filterPercentage.toLocaleString()} votanți`;
+          }
+        } else {
+          filterValueElement.textContent = `Filtrare: ${this.filterPercentage.toFixed(1)}%`;
+        }
+      }
+    }, 0);
+  }
   applyRelativeToEffect(): void {
     // Verificăm să avem un SVG valid
     if (!this.svg) return;

@@ -443,3 +443,31 @@ class MapInfoView(APIView):
         }
         
         return Response(map_info)
+    
+# Adaugă în MapInfoView
+def get_world_map_info(self):
+    return {
+        'center': {
+            'lat': 10.0,
+            'lng': 0.0
+        },
+        'zoom': 2,
+        'regions': [
+            {'name': 'United States', 'code': 'US', 'voters': 15000, 'percentage': 0.45},
+            {'name': 'Germany', 'code': 'DE', 'voters': 8500, 'percentage': 0.65},
+            {'name': 'France', 'code': 'FR', 'voters': 6800, 'percentage': 0.51},
+            {'name': 'United Kingdom', 'code': 'GB', 'voters': 7200, 'percentage': 0.58},
+            {'name': 'Italy', 'code': 'IT', 'voters': 5900, 'percentage': 0.49},
+            {'name': 'Spain', 'code': 'ES', 'voters': 4800, 'percentage': 0.53}
+            # Adaugă mai multe țări după necesitate
+        ]
+    }
+
+def get(self, request):
+    location = request.query_params.get('location', 'romania')
+    
+    if location == 'strainatate':
+        return Response(self.get_world_map_info())
+    else:
+        # Returnează informațiile existente pentru România
+        return Response(self.map_info)
