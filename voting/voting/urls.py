@@ -11,5 +11,6 @@ urlpatterns = [
     path('api/', include('users.urls')),  
     path('accounts/', include('allauth.urls')),  
     path('api/menu/', include('menu.urls')),
+    path('api/', include('vote.urls')),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT) \
   + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

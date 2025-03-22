@@ -40,7 +40,7 @@ import { AppointmentRejectedComponent } from './appointments/appointment-rejecte
 import { AppointmentErrorComponent } from './appointments/appointment-error.component';
 import { MapComponent } from './map/map.component';
 import { NgxEchartsModule } from 'ngx-echarts';
-
+import { VoteModule } from './vote/vote.module';
 
 import { AuthGuard } from './guards/auth.guard';
 import { ScheduleDialogComponent } from './schedule-dialog/schedule-dialog.component';
@@ -68,7 +68,6 @@ import { ScheduleDialogComponent } from './schedule-dialog/schedule-dialog.compo
   ],
   imports: [
     BrowserModule,
-    AppRoutingModule,
     HttpClientModule,
     FormsModule,
     BrowserAnimationsModule,
@@ -90,10 +89,13 @@ import { ScheduleDialogComponent } from './schedule-dialog/schedule-dialog.compo
     SpinnerModule,
     MatDialogModule,
     MatButtonModule,
+    VoteModule,
     NgxEchartsModule.forRoot({
       echarts: () => import('echarts')
-    })
+    }),
+    AppRoutingModule,
   ],
+  
   providers: [
     { provide: HTTP_INTERCEPTORS, useClass: CsrfInterceptor, multi: true },
     { provide: HTTP_INTERCEPTORS, useClass: AuthInterceptor, multi: true }

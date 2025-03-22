@@ -297,6 +297,42 @@
       transform: scale(1.02);
     }
   }
+  &.disabled {
+    background-color: #6c757d;
+    cursor: not-allowed;
+    opacity: 0.7;
+    
+    &:hover {
+      background-color: #6c757d;
+    }
+  }
+}
+.vote-info {
+  display: flex;
+  flex-direction: column;
+  font-size: 0.85rem;
+  margin-top: 6px;
+  padding: 5px 10px;
+  border-radius: 4px;
+  
+  &.active {
+    color: #28a745;
+    background-color: rgba(40, 167, 69, 0.1);
+  }
+  
+  &.upcoming {
+    color: #007bff;
+    background-color: rgba(0, 123, 255, 0.1);
+  }
+  
+  .vote-type {
+    font-weight: bold;
+  }
+  
+  .vote-timer {
+    margin-top: 2px;
+    font-family: monospace;
+  }
 }
 
 .nav-section {

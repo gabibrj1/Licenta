@@ -46,9 +46,20 @@
     </div>
     <!-- Sectiune de vot -->
     <div class="nav-section vote-section">
-      <a (click)="navigateTo('voteaza')" class="vote-button">
+      <a (click)="navigateToVote()" class="vote-button" [ngClass]="{'active': isVoteActive, 'disabled': !isVoteActive}">
         <i class="fas fa-vote-yea"></i> <span>VOTEAZĂ AICI</span>
       </a>
+    <!-- Afișează tipul de vot activ -->
+    <div *ngIf="isVoteActive" class="vote-info active">
+      <span class="vote-type">{{ getVoteTypeText(activeVoteType) }}</span>
+      <span class="vote-timer">Timp rămas: {{ formatRemainingTime(remainingTime) }}</span>
+    </div>
+  
+    <div *ngIf="!isVoteActive && upcomingVoteType" class="vote-info upcoming">
+      <span class="vote-type">{{ getVoteTypeText(upcomingVoteType) }} - în curând</span>
+      <span class="vote-timer">Începe în: {{ formatRemainingTime(timeUntilStart) }}</span>
+    </div>
+      
     </div>
 
     <!-- Sectiunea de simulare vot-->

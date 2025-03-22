@@ -1,0 +1,83 @@
+<div class="vote-simulation">
+    <h2>Simulare Proces de Vot</h2>
+    
+    <div class="simulation-container">
+      <div class="step-indicator">
+        <div *ngFor="let step of [0, 1, 2, 3]; let i = index"
+             [class.active]="stepIndex >= i"
+             [class.current]="stepIndex === i"
+             class="step-dot">
+          {{ i + 1 }}
+        </div>
+      </div>
+      
+      <!-- Pas 1: Autentificare -->
+      <div *ngIf="stepIndex === 0" class="simulation-step">
+        <h3>Pasul 1: Autentificare</h3>
+        <p>În cadrul procesului real de vot, utilizatorul trebuie să se autentifice folosind:</p>
+        <ul>
+          <li>Scanarea buletinului de identitate</li>
+          <li>Verificare prin recunoaștere facială</li>
+          <li>Autentificare multi-factor</li>
+        </ul>
+        <p>Această simulare vă permite să vă familiarizați cu procesul de vot înainte de alegerile reale.</p>
+        <button (click)="nextStep()" class="btn-primary">Continuă</button>
+      </div>
+      
+      <!-- Pas 2: Selectarea opțiunii de vot -->
+      <div *ngIf="stepIndex === 1" class="simulation-step">
+        <h3>Pasul 2: Selectarea opțiunii de vot</h3>
+        <p>Utilizatorul va vedea buletinul de vot digital specific tipului de alegeri:</p>
+        <ul>
+          <li>Pentru alegeri prezidențiale: lista candidaților prezidențiali</li>
+          <li>Pentru alegeri parlamentare: lista partidelor politice</li>
+          <li>Pentru alegeri locale: lista candidaților locali</li>
+        </ul>
+        <div class="nav-buttons">
+          <button (click)="prevStep()" class="btn-secondary">Înapoi</button>
+          <button (click)="nextStep()" class="btn-primary">Continuă</button>
+        </div>
+      </div>
+      
+      <!-- Pas 3: Verificare și confirmare -->
+      <div *ngIf="stepIndex === 2" class="simulation-step">
+        <h3>Pasul 3: Verificare și confirmare</h3>
+        <p>Înainte de a finaliza votul, utilizatorul are posibilitatea să verifice opțiunea selectată.</p>
+        <p>Sistemul va afișa un mesaj de confirmare pentru a se asigura că opțiunea selectată este cea dorită.</p>
+        <div class="nav-buttons">
+          <button (click)="prevStep()" class="btn-secondary">Înapoi</button>
+          <button (click)="nextStep()" class="btn-primary">Continuă</button>
+        </div>
+      </div>
+      
+      <!-- Pas 4: Confirmare finală -->
+      <div *ngIf="stepIndex === 3" class="simulation-step">
+        <h3>Pasul 4: Confirmare finală</h3>
+        <p>După confirmarea opțiunii, sistemul:</p>
+        <ul>
+          <li>Înregistrează votul în mod anonim</li>
+          <li>Generează un cod de verificare pentru utilizator</li>
+          <li>Afișează un mesaj de confirmare</li>
+        </ul>
+        <p>Utilizatorul poate folosi codul de verificare pentru a confirma ulterior că votul a fost înregistrat corect.</p>
+        <div class="nav-buttons">
+          <button (click)="prevStep()" class="btn-secondary">Înapoi</button>
+          <button (click)="nextStep()" class="btn-primary">Finalizează</button>
+        </div>
+      </div>
+      
+      <!-- Simulare completă -->
+      <div *ngIf="simulationComplete" class="simulation-step simulation-complete">
+        <h3>Simulare completă!</h3>
+        <p>Felicitări! Ați parcurs cu succes simularea procesului de vot.</p>
+        <p>În timpul unui proces real de vot:</p>
+        <ul>
+          <li>Votul dumneavoastră va fi înregistrat în sistem</li>
+          <li>Datele vor fi criptate și stocate în siguranță</li>
+          <li>Confidențialitatea opțiunii dumneavoastră este garantată</li>
+        </ul>
+        <p class="note">Notă: Această simulare are scopul de a vă familiariza cu procesul digital de vot.</p>
+        <button (click)="resetSimulation()" class="btn-primary">Reluați simularea</button>
+      </div>
+    </div>
+  </div>

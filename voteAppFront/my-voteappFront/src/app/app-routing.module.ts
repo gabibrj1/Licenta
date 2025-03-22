@@ -8,6 +8,10 @@ import { MenuComponent } from './menu/menu.component';
 import { ContactComponent } from './contact/contact.component';
 import { ReviewsComponent } from './reviews/reviews.component';
 import { AuthGuard } from './guards/auth.guard';
+import { VoteSimulationComponent } from './vote/vote-simulation/vote-simulation.component';
+import { PresidentialVoteComponent } from './vote/presidential-vote/presidential-vote.component';
+import { ParliamentaryVoteComponent } from './vote/parliamentary-vote/parliamentary-vote.component';
+import { LocalVoteComponent } from './vote/local-vote/local-vote.component';
 
 import { AppointmentConfirmedComponent } from './appointments/appointment-confirmed.component';
 import { AppointmentRejectedComponent } from './appointments/appointment-rejected.component';
@@ -23,6 +27,13 @@ const routes: Routes = [
     children: [
       { path: 'despre/contact', component: ContactComponent },
       { path: 'harta', component: MapComponent},
+      // Rute pentru vot și simulare
+      { path: 'simulare-vot', component: VoteSimulationComponent },
+      { path: 'vot/prezidentiale', component: PresidentialVoteComponent, canActivate: [AuthGuard] },
+      { path: 'vot/parlamentare', component: ParliamentaryVoteComponent, canActivate: [AuthGuard] },
+
+      { path: 'vot/locale', component: LocalVoteComponent, canActivate: [AuthGuard] },
+
       // Aici poți adăuga alte rute pentru conținutul din meniu
       { path: '', redirectTo: '', pathMatch: 'full' } // Modificat: nu mai redirecționăm
     ]
