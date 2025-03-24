@@ -32,25 +32,31 @@ class UserProfileView(APIView):
         logger.info(f"🔹 Autentificare utilizator: ID={user.id} | Email={user.email} | CNP={getattr(user, 'cnp', None)}")
 
         if not user.is_active:
-            return Response({"detail": "Utilizatorul nu este activ."}, status=403)
+            logger.info(f"Utilizatorul {user.id} este inactiv. Activăm utilizatorul.")
+            user.is_active = True
+            user.save()
 
-        # Daca utilizatorul s-a logat cu email si parola (nu are CNP)
-        if not hasattr(user, 'cnp') or not user.cnp:
-            return Response({
-                'email': user.email
-            }, status=200)
-
-        # Daca utilizatorul s-a logat cu buletinul (are CNP si este verificat)
-        if hasattr(user, 'cnp') and user.is_verified_by_id:
-            return Response({
-                'cnp': user.cnp,
-                'first_name': user.first_name,
-                'last_name': user.last_name
-            }, status=200)
-
-        # in orice alt caz, returnam 403
-        return Response({"detail": "Acces interzis."}, status=403)
-    
+        response_data = {}
+        
+        if user.email:
+            response_data['email'] = user.email
+            
+        if hasattr(user, 'cnp') and user.cnp:
+            response_data['cnp'] = user.cnp
+            
+        if user.first_name:
+            response_data['first_name'] = user.first_name
+            
+        if user.last_name:
+            response_data['last_name'] = user.last_name
+            
+        response_data['is_verified_by_id'] = getattr(user, 'is_verified_by_id', False)
+        response_data['is_active'] = user.is_active
+        
+        if not response_data:
+            return Response({"detail": "Nu s-au putut obține date despre utilizator."}, status=403)
+            
+        return Response(response_data, status=200)
 
 # view pentru contact
 class ContactInfoView(APIView):

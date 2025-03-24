@@ -48,45 +48,52 @@ export class MenuComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    this.loadUserProfile();
+    console.log('Inițializare componentă menu...');
     
-    // Update current time every minute
-    interval(60000).pipe(
-      map(() => new Date())
-    ).subscribe(time => {
-      this.currentTime = time;
-    });
-  
-    // Încearcă să încarce datele utilizatorului din localStorage
-    this.loadUserDataFromStorage();
-    
-    // Transmite locația inițială către harta dacă ne aflăm pe pagina de hartă
-    if (this.router.url.includes('/harta')) {
-      this.router.navigate(['menu/harta'], { 
-        queryParams: { location: this.locationFilter },
-        replaceUrl: true
+    // Adăugăm o mică întârziere pentru a ne asigura că tokenurile sunt setate corect
+    setTimeout(() => {
+      this.loadUserProfile();
+      
+      // Update current time every minute
+      interval(60000).pipe(
+        map(() => new Date())
+      ).subscribe(time => {
+        this.currentTime = time;
       });
-    }
-        // Verifică setările de vot la fiecare 30 de secunde
-        this.voteSettingsInterval = interval(1000).pipe(
-          switchMap(() => this.voteSettingsService.getVoteSettings())
-        ).subscribe(
-          (settings) => {
-            this.updateVoteSettings(settings);
-          },
-          (error) => {
-            console.error('Eroare la obținerea setărilor de vot:', error);
-          }
-        );
-            // Verifică setările inițiale
-    this.voteSettingsService.getVoteSettings().subscribe(
-      (settings) => {
-        this.updateVoteSettings(settings);
-      },
-      (error) => {
-        console.error('Eroare la obținerea setărilor de vot:', error);
+    
+      // Încearcă să încarce datele utilizatorului din localStorage
+      this.loadUserDataFromStorage();
+      
+      // Transmite locația inițială către harta dacă ne aflăm pe pagina de hartă
+      if (this.router.url.includes('/harta')) {
+        this.router.navigate(['menu/harta'], { 
+          queryParams: { location: this.locationFilter },
+          replaceUrl: true
+        });
       }
-    );
+      
+      // Verifică setările de vot la fiecare secundă
+      this.voteSettingsInterval = interval(1000).pipe(
+        switchMap(() => this.voteSettingsService.getVoteSettings())
+      ).subscribe(
+        (settings) => {
+          this.updateVoteSettings(settings);
+        },
+        (error) => {
+          console.error('Eroare la obținerea setărilor de vot:', error);
+        }
+      );
+      
+      // Verifică setările inițiale
+      this.voteSettingsService.getVoteSettings().subscribe(
+        (settings) => {
+          this.updateVoteSettings(settings);
+        },
+        (error) => {
+          console.error('Eroare la obținerea setărilor de vot:', error);
+        }
+      );
+    }, 500); // Întârziere de 500ms pentru încărcarea tokenurilor
   }
   ngOnDestroy(): void {
     // Anulează subscription pentru a evita memory leak
@@ -155,35 +162,67 @@ export class MenuComponent implements OnInit {
     }
   }
 
-  private loadUserProfile(): void {
-    // Dacă avem deja date din localStorage, nu mai facem request
-    if (this.userData && (this.userEmail || this.userCNP)) {
-      return;
-    }
+// Updated loadUserProfile method for MenuComponent
 
-    // Încercăm să obținem datele profilului de la API
-    this.authUserService.getUserProfile().subscribe(
-      (data) => {
-        if (data.email) {
-          this.userEmail = data.email;
-          this.userCNP = null;
-          this.firstName = null;
-          this.lastName = null;
-        } else if (data.message) {
-          this.message = data.message;
-        } else if (data.cnp) {
-          // Utilizator logat cu buletinul
-          this.userCNP = data.cnp;
-          this.firstName = data.first_name;
-          this.lastName = data.last_name;
-          this.userEmail = null;
-        }
-      },
-      (error) => {
-        console.error('Eroare la încărcarea profilului:', error);
+private loadUserProfile(): void {
+  console.log('Loading user profile...');
+  
+  // First check if we have data in localStorage
+  this.loadUserDataFromStorage();
+  
+  // Also try to get profile data from API
+  this.authUserService.getUserProfile().subscribe(
+    (data) => {
+      console.log('User profile loaded from API:', data);
+      
+      // Update user data with what we got from API
+      if (data.email) {
+        this.userEmail = data.email;
       }
-    );
-  }
+      
+      if (data.cnp) {
+        this.userCNP = data.cnp;
+        localStorage.setItem('user_cnp', data.cnp); // Ensure this is set for compatibility
+      }
+      
+      if (data.first_name) {
+        this.firstName = data.first_name;
+      }
+      
+      if (data.last_name) {
+        this.lastName = data.last_name;
+      }
+      
+      if (data.message) {
+        this.message = data.message;
+      }
+      
+      // Store or update the full user data
+      const userData = {
+        ...(this.userData || {}),
+        ...(data.email && { email: data.email }),
+        ...(data.cnp && { cnp: data.cnp }),
+        ...(data.first_name && { first_name: data.first_name }),
+        ...(data.last_name && { last_name: data.last_name }),
+        ...(data.is_verified_by_id && { is_verified_by_id: data.is_verified_by_id })
+      };
+      
+      // Only update if we have meaningful data
+      if (Object.keys(userData).length > 0) {
+        this.userData = userData;
+        localStorage.setItem('user_data', JSON.stringify(userData));
+      }
+    },
+    (error) => {
+      console.error('Error loading profile:', error);
+      // If there's an error but we have data from localStorage, we can still show the menu
+      if (!this.userEmail && !this.userCNP) {
+        // No user data available, might need to handle this case
+        console.warn('No user data available from API or localStorage');
+      }
+    }
+  );
+}
 
     // Metodă nouă pentru navigarea către tipul corect de vot
     navigateToVote(): void {

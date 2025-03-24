@@ -758,35 +758,30 @@ class LoginWithIDCardView(APIView):
     
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        # Incarca modelul YOLO pentru detectarea spoofing-ului
         self.model = YOLO(MODEL_PATH)
     
     def detect_spoofing(self, image_array):
-        """Verifica daca imaginea este reala sau falsa folosind YOLO."""
         try:
-            # Redimensionare imagine pentru procesare mai rapidă
             h, w = image_array.shape[:2]
             scale = min(1.0, 640 / max(h, w))
             if scale < 1.0:
                 new_h, new_w = int(h * scale), int(w * scale)
                 image_array = cv2.resize(image_array, (new_w, new_h))
 
-            # Normalizare imagine si detectie spoofing cu YOLO 
             gray = cv2.cvtColor(image_array, cv2.COLOR_RGB2GRAY)
             normalized = cv2.equalizeHist(gray)
             image_array = cv2.cvtColor(normalized, cv2.COLOR_GRAY2RGB)
 
-            # Optimizare inferență YOLO
             results = self.model(image_array, stream=True, verbose=False, conf=0.6)
 
             for r in results:
                 for box in r.boxes:
                     conf = box.conf[0].item()
-                    cls = int(box.cls[0].item())  # 0 = fake, 1 = real
+                    cls = int(box.cls[0].item())
                     
                     logger.info(f"Detectare spoofing - Scor: {conf}, Clasificare: {cls}")
                     
-                    return cls == 1  # Returăm imediat primul rezultat care depășește pragul
+                    return cls == 1
 
             return False
         except Exception as e:
@@ -794,9 +789,7 @@ class LoginWithIDCardView(APIView):
             return False
 
     def detect_and_encode_face(self, image_array):
-        """Detecteaza si extrage encoding-ul fetei."""
         try:
-            # Redimensionează imaginea pentru procesare mai rapidă
             h, w = image_array.shape[:2]
             scale = min(1.0, 480 / max(h, w))
             if scale < 1.0:
@@ -805,7 +798,6 @@ class LoginWithIDCardView(APIView):
             else:
                 small_image = image_array.copy()
             
-            # Folosește doar HOG pentru detectare, care este mai rapid
             face_locations = face_recognition.face_locations(small_image, model="hog")
 
             if len(face_locations) == 0:
@@ -814,7 +806,6 @@ class LoginWithIDCardView(APIView):
             if len(face_locations) > 1:
                 return None, "S-au detectat mai multe fete. Procesul necesita o singura fata."
 
-            # Dacă am redimensionat, ajustăm locațiile fețelor înapoi la dimensiunea originală
             if scale < 1.0:
                 adjusted_locations = []
                 for top, right, bottom, left in face_locations:
@@ -835,14 +826,11 @@ class LoginWithIDCardView(APIView):
             return None, f"Eroare la detectarea fetei: {e}"
 
     def compare_faces(self, id_card_array, live_array):
-        """Compara fata din baza de date cu cea transmisa live dupa verificarea anti-spoofing."""
         try:
-            # Verificarea anti-spoofing pentru imaginea live
             is_real = self.detect_spoofing(live_array)
             if not is_real:
                 return False, "Frauda detectata: folositi o imagine reala!"
             
-            # Obținem encoding-ul pentru ambele imagini
             id_card_encoding, id_card_error = self.detect_and_encode_face(id_card_array)
             if id_card_encoding is None:
                 return False, id_card_error
@@ -851,7 +839,6 @@ class LoginWithIDCardView(APIView):
             if live_encoding is None:
                 return False, live_error
 
-            # Compararea fețelor
             face_distance = np.linalg.norm(id_card_encoding - live_encoding)
             match = face_distance < 0.6
             return match, "Identificare reușită!" if match else "Fetele nu se potrivesc."
@@ -860,65 +847,109 @@ class LoginWithIDCardView(APIView):
             return False, f"Eroare la compararea fețelor: {e}"
 
     def post(self, request):
-        """Autentifică utilizatorul prin CNP + imagine live cu verificare anti-spoofing."""
+        logger.info(f"Cerere POST primită în LoginWithIDCardView")
+        
         cnp = request.data.get('cnp')
         live_image = request.FILES.get('live_image')
+        first_name = request.data.get('first_name')
+        last_name = request.data.get('last_name')
+        id_series = request.data.get('id_series')
         
-        if not cnp or not live_image:
+        is_facial_recognition = live_image is not None
+        is_manual_id_auth = first_name is not None and last_name is not None and id_series is not None
+        
+        auth_type = 'Recunoaștere facială' if is_facial_recognition else 'Manual cu buletin' if is_manual_id_auth else 'Necunoscut'
+        logger.info(f"Tip autentificare: {auth_type}")
+        
+        if not cnp:
             return Response(
-                {"detail": "CNP și imaginea live sunt necesare pentru autentificare."},
+                {"detail": "CNP-ul este necesar pentru autentificare."},
                 status=400
             )
-            
+        
         try:
             user = User.objects.get(cnp=cnp)
+            logger.info(f"Utilizator găsit cu CNP: {cnp}")
+            
+            if not user.is_verified_by_id:
+                return Response({"detail": "Contul nu este verificat prin buletin."}, status=403)
+                
+            if not user.is_active:
+                logger.info(f"Utilizatorul cu CNP: {cnp} este inactiv. Îl activăm.")
+                user.is_active = True
+                user.save()
+                
         except User.DoesNotExist:
             return Response({"detail": "Utilizator inexistent."}, status=401)
-            
-        if not user.is_verified_by_id:
-            return Response({"detail": "Contul nu este verificat prin buletin."}, status=403)
-
-        # Citim imaginea live și optimizăm
-        live_pil = Image.open(io.BytesIO(live_image.read())).convert("RGB")
         
-        # Redimensionează imaginea dacă e prea mare
-        max_size = 1024
-        if max(live_pil.size) > max_size:
-            live_pil.thumbnail((max_size, max_size), Image.LANCZOS)
-            
-        if user.id_card_image:
-            # Citim imaginea din baza de date
-            id_card_path = user.id_card_image.path if default_storage.exists(user.id_card_image.name) else None
-            
-            if not id_card_path:
-                return Response({"detail": "Nu există imaginea de referință în baza de date."}, status=404)
+        if is_facial_recognition:
+            if not live_image:
+                return Response(
+                    {"detail": "Imaginea live este necesară pentru autentificarea cu recunoaștere facială."},
+                    status=400
+                )
                 
-            id_card_pil = Image.open(id_card_path).convert("RGB")
+            live_pil = Image.open(io.BytesIO(live_image.read())).convert("RGB")
             
-            # Redimensionează imaginea de buletin dacă e prea mare
-            if max(id_card_pil.size) > max_size:
-                id_card_pil.thumbnail((max_size, max_size), Image.LANCZOS)
-            
-            # Convertim în array-uri NumPy
-            id_card_array = np.array(id_card_pil)
-            live_array = np.array(live_pil)
-            
-            # Comparăm fețele, inclusiv verificare anti-spoofing
-            match, message = self.compare_faces(id_card_array, live_array)
-            
-            if not match:
-                return Response({"detail": message}, status=401)
+            max_size = 1024
+            if max(live_pil.size) > max_size:
+                live_pil.thumbnail((max_size, max_size), Image.LANCZOS)
                 
-            # Generăm tokeni JWT
-            refresh = RefreshToken.for_user(user)
-            return Response({
-                'refresh': str(refresh),
-                'access': str(refresh.access_token),
-                'cnp': user.cnp,
-                'message': "Autentificare reușită!"
-            }, status=200)
+            if user.id_card_image:
+                id_card_path = user.id_card_image.path if default_storage.exists(user.id_card_image.name) else None
+                
+                if not id_card_path:
+                    return Response({"detail": "Nu există imaginea de referință în baza de date."}, status=404)
+                    
+                id_card_pil = Image.open(id_card_path).convert("RGB")
+                
+                if max(id_card_pil.size) > max_size:
+                    id_card_pil.thumbnail((max_size, max_size), Image.LANCZOS)
+                
+                id_card_array = np.array(id_card_pil)
+                live_array = np.array(live_pil)
+                
+                match, message = self.compare_faces(id_card_array, live_array)
+                
+                if not match:
+                    return Response({"detail": message}, status=401)
+            else:
+                return Response({"detail": "Imaginea de referință lipsește."}, status=404)
+        
+        elif is_manual_id_auth:
+            if user.first_name.lower() != first_name.lower() or user.last_name.lower() != last_name.lower():
+                return Response({"detail": "Numele și prenumele nu corespund cu cele din baza de date."}, status=401)
             
-        return Response({"detail": "Imaginea de referință lipsește."}, status=404)
+            if hasattr(user, 'id_series') and user.id_series and user.id_series != id_series:
+                return Response({"detail": "Seria buletinului nu corespunde cu cea din baza de date."}, status=401)
+        else:
+            return Response(
+                {"detail": "Date insuficiente pentru autentificare."},
+                status=400
+            )
+        
+        refresh = RefreshToken.for_user(user)
+        access_token = str(refresh.access_token)
+        
+        logger.info(f"Autentificare reușită pentru utilizatorul cu CNP {user.cnp}")
+        
+        response_data = {
+            'refresh': str(refresh),
+            'access': access_token,
+            'cnp': user.cnp,
+            'first_name': user.first_name,
+            'last_name': user.last_name,
+            'is_verified_by_id': user.is_verified_by_id,
+            'is_active': user.is_active,
+            'message': "Autentificare reușită!"
+        }
+        
+        if hasattr(user, 'email') and user.email:
+            response_data['email'] = user.email
+        
+        logger.info(f"Răspuns autentificare trimis cu succes pentru CNP: {user.cnp}")
+        
+        return Response(response_data, status=200)
 
 #Endpoint pentru verificarea reCAPTCHA
 class VerifyRecaptchaView(APIView):

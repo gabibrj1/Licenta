@@ -5,7 +5,7 @@ from django.utils.translation import gettext_lazy as _
 
 class VoteSettings(models.Model):
     vote_type = models.CharField(max_length=20, choices=[
-        ('simulare', 'Simulare Vot'),
+        ('simulare', 'Simulare'),
         ('prezidentiale', 'Alegeri Prezidențiale'),
         ('parlamentare', 'Alegeri Parlamentare'),
         ('locale', 'Alegeri Locale'),
@@ -14,25 +14,26 @@ class VoteSettings(models.Model):
     start_datetime = models.DateTimeField()
     end_datetime = models.DateTimeField()
     created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)  # Câmpul adăugat
     
     class Meta:
         verbose_name = "Setări Vot"
         verbose_name_plural = "Setări Vot"
     
     def clean(self):
-        # Verifica daca data de sfarsit este dupa data de inceput
+        # Verifică dacă data de sfârșit este după data de început
         if self.end_datetime <= self.start_datetime:
             raise ValidationError({
                 'end_datetime': _('Ora de sfârșit trebuie să fie după ora de început.')
             })
         
-        # Verifica suprapunerea cu alte sesiuni active
+        # Verifică suprapunerea cu alte sesiuni active
         overlapping_sessions = VoteSettings.objects.filter(
             is_active=True,
-        ).exclude(pk=self.pk)  # Exclude acest obiect dacă exista deja
+        ).exclude(pk=self.pk)  # Exclude acest obiect dacă există deja
         
         for session in overlapping_sessions:
-            # Verifica daca exista suprapunere de intervale
+            # Verifică dacă există suprapunere de intervale
             if (self.start_datetime < session.end_datetime and 
                 self.end_datetime > session.start_datetime):
                 
@@ -44,8 +45,81 @@ class VoteSettings(models.Model):
                 )
     
     def save(self, *args, **kwargs):
-        self.clean()  # Apeleaza metoda de validare inainte de salvare
+        self.clean()  # Apelează metoda de validare înainte de salvare
         super().save(*args, **kwargs)
     
     def __str__(self):
         return f"{self.vote_type} ({self.start_datetime.strftime('%d.%m.%Y, %H:%M')} - {self.end_datetime.strftime('%d.%m.%Y, %H:%M')})"
+    
+# vote/models.py (adaugă aceste modele la codul existent)
+
+class VotingSection(models.Model):
+    """Model pentru secțiile de vot"""
+    section_id = models.CharField(max_length=10, unique=True)
+    name = models.CharField(max_length=100)
+    address = models.CharField(max_length=255)
+    city = models.CharField(max_length=100)
+    county = models.CharField(max_length=50)
+    
+    class Meta:
+        verbose_name = "Secție de Vot"
+        verbose_name_plural = "Secții de Vot"
+    
+    def __str__(self):
+        return f"Secția {self.section_id} - {self.name}, {self.city}, {self.county}"
+
+class LocalCandidate(models.Model):
+    """Model pentru candidații locali"""
+    name = models.CharField(max_length=100)
+    party = models.CharField(max_length=100)
+    position = models.CharField(max_length=50, choices=[
+        ('mayor', 'Primar'),
+        ('councilor', 'Consilier Local'),
+        ('county_president', 'Președinte Consiliu Județean'),
+        ('county_councilor', 'Consilier Județean'),
+    ])
+    county = models.CharField(max_length=50)
+    city = models.CharField(max_length=100)
+    photo_url = models.URLField(blank=True, null=True)
+    
+    class Meta:
+        verbose_name = "Candidat Local"
+        verbose_name_plural = "Candidați Locali"
+    
+    def __str__(self):
+        return f"{self.name} ({self.party}) - {self.get_position_display()}, {self.city}, {self.county}"
+
+
+
+# vote/models.py (corectează definiția pentru LocalVote)
+
+class LocalVote(models.Model):
+    """Model pentru voturile locale înregistrate"""
+    user = models.ForeignKey('users.User', on_delete=models.CASCADE)
+    candidate = models.ForeignKey(LocalCandidate, on_delete=models.CASCADE)
+    voting_section = models.ForeignKey(VotingSection, on_delete=models.CASCADE)
+    vote_datetime = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        verbose_name = "Vot Local"
+        verbose_name_plural = "Voturi Locale"
+        # O constrângere simplă doar pe user și candidate, validarea detaliată va fi în save()
+        unique_together = ('user', 'candidate')
+    
+    def save(self, *args, **kwargs):
+        # Verifică dacă utilizatorul a votat deja pentru această poziție în acest județ
+        if not self.pk:  # Doar pentru înregistrări noi
+            existing_vote = LocalVote.objects.filter(
+                user=self.user,
+                candidate__position=self.candidate.position,
+                candidate__county=self.candidate.county
+            ).exists()
+            
+            if existing_vote:
+                from django.core.exceptions import ValidationError
+                raise ValidationError(f'Utilizatorul a votat deja pentru poziția {self.candidate.get_position_display()} în județul {self.candidate.county}')
+        
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.user} - {self.candidate} - {self.vote_datetime.strftime('%d.%m.%Y, %H:%M')}"

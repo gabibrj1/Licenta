@@ -407,72 +407,151 @@ export class AuthComponent implements OnInit {
     }
   }
 
-  onSubmit(): void {
-    // Verificam daca CAPTCHA a fost completat
-    if (!this.isCaptchaVerified) {
-      this.showErrorMessage('Te rugăm să confirmi că nu ești un robot înainte de a continua.');
-      // Force show captcha challenge again
-      this.showCaptchaChallenge();
+// Replace the onSubmit method in your auth.component.ts file
+
+onSubmit(): void {
+  console.log('onSubmit apelat, tip autentificare:', this.useIdCardAuth ? 'Buletin' : 'Email');
+  
+  if (!this.isCaptchaVerified) {
+    this.showErrorMessage('Te rugăm să confirmi că nu ești un robot înainte de a continua.');
+    this.showCaptchaChallenge();
+    return;
+  }
+  this.isLoading = true;
+
+  if (this.useIdCardAuth) {
+    if (!this.cnp || !this.series || !this.firstName || !this.lastName) {
+      this.showErrorMessage('Toate câmpurile pentru autentificare prin buletin sunt obligatorii.');
+      this.isLoading = false;
       return;
     }
-    this.isLoading = true;
-  
-    // Rest of your onSubmit code remains the same
-    if (this.useIdCardAuth) {
-      // Autentificare prin buletin
-      if (!this.cnp || !this.series || !this.firstName || !this.lastName) {
-        this.showErrorMessage('Toate câmpurile pentru autentificare prin buletin sunt obligatorii.');
-        this.isLoading = false;
-        return;
-      }
-  
-      const idCardAuthData = {
-        cnp: this.cnp,
-        series: this.series,
-        first_name: this.firstName,
-        last_name: this.lastName
-      };
-  
-      this.authService.loginWithIDCard(idCardAuthData).subscribe(
-        (response: any) => {
+
+    const idCardAuthData = {
+      cnp: this.cnp,
+      id_series: this.series,
+      first_name: this.firstName,
+      last_name: this.lastName
+    };
+
+    console.log('Trimit date pentru autentificare cu buletin:', idCardAuthData);
+
+    this.authService.loginWithIDCard(idCardAuthData).subscribe({
+      next: (response: any) => {
+        console.log('Răspuns autentificare cu buletin:', response);
+        
+        console.log('response.access:', response.access ? 'Prezent' : 'Absent');
+        console.log('response.refresh:', response.refresh ? 'Prezent' : 'Absent');
+        console.log('response.cnp:', response.cnp);
+        console.log('response.first_name:', response.first_name);
+        console.log('response.last_name:', response.last_name);
+        console.log('response.is_active:', response.is_active);
+        console.log('response.is_verified_by_id:', response.is_verified_by_id);
+        
+        if (response.access && response.refresh) {
           localStorage.setItem('access_token', response.access);
           localStorage.setItem('refresh_token', response.refresh);
-          this.snackBar.open('Autentificare reușită!', 'Închide', { duration: 3000 });
-          this.router.navigate(['/menu']);
-        },
-        (error) => {
-          console.error('Autentificare eșuată', error);
-          this.showErrorMessage('Autentificarea se poate realiza doar după verificarea feței ');
+          
+          console.log('Tokenuri salvate în localStorage');
+          
+          if (response.cnp) {
+            localStorage.setItem('user_cnp', response.cnp);
+            
+            const userData = {
+              cnp: response.cnp,
+              first_name: response.first_name || '',
+              last_name: response.last_name || '',
+              is_verified_by_id: response.is_verified_by_id || true,
+              is_active: response.is_active || true
+            };
+            
+            localStorage.setItem('user_data', JSON.stringify(userData));
+            console.log('Date utilizator salvate:', userData);
+          }
+          
+          setTimeout(() => {
+            this.isLoading = false;
+            this.showSuccessMessage('Autentificare reușită!');
+            
+            console.log('Navighez către /menu folosind window.location.href');
+            window.location.href = '/menu'; 
+          }, 300);
+        } else {
+          console.error('Lipsesc tokenurile din răspuns', response);
+          this.showErrorMessage('Autentificare eșuată: răspuns invalid de la server');
           this.isLoading = false;
-          //Resetam CAPTCHA in caz de eroare
-          this.resetCaptcha();
         }
-      );
-  
-    } else {
-      // Autentificare standard cu email și parolă
-      if (!this.email || !this.password) {
-        this.showErrorMessage('Te rugăm să introduci email-ul și parola.');
+      },
+      error: (error) => {
+        console.error('Autentificare eșuată', error);
+        
+        if (error.error) {
+          console.error('Detalii eroare:', error.error);
+        }
+        
+        if (error.error?.detail) {
+          this.showErrorMessage(error.error.detail);
+        } else {
+          this.showErrorMessage('Autentificarea a eșuat. Verificați datele introduse sau încercați verificarea facială.');
+        }
+        
         this.isLoading = false;
-        return;
+        this.resetCaptcha();
       }
-  
-      this.authService.login(this.email, this.password).subscribe(
-        (response: any) => {
-          localStorage.setItem('access_token', response.access);
-          localStorage.setItem('refresh_token', response.refresh);
-          this.snackBar.open('Autentificare reușită!', 'Închide', { duration: 3000 });
-          this.router.navigate(['/menu']);
-        },
-        (error) => {
-          console.error('Autentificare eșuată', error);
-          this.showErrorMessage('Autentificarea a eșuat. Verifică email-ul și parola.');
-          this.isLoading = false;
-          this.resetCaptcha();
-        }
-      );
+    });
+  } else {
+    if (!this.email || !this.password) {
+      this.showErrorMessage('Te rugăm să introduci email-ul și parola.');
+      this.isLoading = false;
+      return;
     }
+
+    console.log('Autentificare cu email și parolă:', this.email);
+    
+    this.authService.login(this.email, this.password).subscribe({
+      next: (response: any) => {
+        console.log('Răspuns autentificare cu email:', response);
+        
+        console.log('response.access:', response.access ? 'Prezent' : 'Absent');
+        console.log('response.refresh:', response.refresh ? 'Prezent' : 'Absent');
+        
+        if (response.access && response.refresh) {
+          localStorage.setItem('access_token', response.access);
+          localStorage.setItem('refresh_token', response.refresh);
+          
+          console.log('Tokenuri salvate în localStorage');
+          
+          if (response.user) {
+            localStorage.setItem('user_data', JSON.stringify(response.user));
+            console.log('Date utilizator salvate:', response.user);
+          }
+          
+          setTimeout(() => {
+            this.isLoading = false;
+            this.showSuccessMessage('Autentificare reușită!');
+            
+            console.log('Navighez către /menu folosind window.location.href');
+            window.location.href = '/menu';
+          }, 300);
+        } else {
+          console.error('Lipsesc tokenurile din răspuns', response);
+          this.showErrorMessage('Autentificare eșuată: răspuns invalid de la server');
+          this.isLoading = false;
+        }
+      },
+      error: (error) => {
+        console.error('Autentificare eșuată', error);
+        
+        if (error.error) {
+          console.error('Detalii eroare:', error.error);
+        }
+        
+        this.showErrorMessage('Autentificarea a eșuat. Verifică email-ul și parola.');
+        this.isLoading = false;
+        this.resetCaptcha();
+      }
+    });
   }
+}
   
   // Metodă pentru afișarea mesajelor de eroare
   private showErrorMessage(
@@ -812,100 +891,131 @@ export class AuthComponent implements OnInit {
   }
 
   // Trimite cadrul pentru recunoaștere facială
-  async sendFrameForRecognition(liveImageBlob: Blob): Promise<void> {
-    if (!this.cnp) {
-      console.error("Nu există CNP pentru autentificare.");
-      this.faceMatchMessage = "Introduceți CNP-ul pentru autentificare!";
-      return;
-    }
-  
-    if (this.isProcessingFrame) {
-      return;
-    }
-  
-    this.isProcessingFrame = true;
-  
-    try {
-      const formData = new FormData();
-      formData.append('cnp', this.cnp);
-      formData.append('live_image', liveImageBlob, 'live_capture.jpg');
-  
-      this.faceMatchMessage = "🔄 Se verifică identitatea...";
-      this.cdr.detectChanges();
-  
-      this.authService.loginWithFaceRecognition(formData).subscribe({
-        next: (response) => {
-          console.log("🔍 Răspuns primit de la backend:", response);
-  
-          this.recognitionComplete = true;
-          this.isProcessingFrame = false;
-  
-          // Autentificare reușită
-          this.faceMatched = true;
-          this.faceMatchMessage = "✅ Identificare reușită!";
-          this.faceBoxClass = 'face-match-success';
-          this.resultIcon = '✅';
-          
-          // Salvăm tokenurile și navigăm către meniu
-          localStorage.setItem('access_token', response.access);
-          localStorage.setItem('refresh_token', response.refresh);
-  
-          this.cdr.detectChanges();
-  
-          //După 1 secundă, aplicăm blur și arătăm simbolul rezultatului
-          setTimeout(() => {
-            this.isBlurring = true;  // Activează blur pe video
-            this.showResultIcon = true;
-            this.hideFaceBox = true;
-            this.cdr.detectChanges();
-          }, 1000);
-  
-          //După încă 2 secunde, închidem camera și navigăm către pagina principală
-          setTimeout(() => {
-            this.stopCamera();
-            this.isFaceRecognitionActive = false;
-            this.isBlurring = false;  // Elimină blur-ul
-            this.showResultIcon = false;
-            this.hideFaceBox = false;
-            this.cdr.detectChanges();
-            this.router.navigate(['/menu']);
-          }, 3000);
-        },
-        error: (error) => {
-          console.error("Eroare la recunoaștere:", error);
-          this.faceMatched = false;
-          this.faceMatchMessage = "❌ " + (error.error?.detail || "Eroare la recunoaștere!");
-          this.faceBoxClass = 'face-match-error';
-          this.resultIcon = '❌';
-  
-          setTimeout(() => {
-            this.isBlurring = true;
-            this.showResultIcon = true;
-            this.hideFaceBox = true;
-            this.cdr.detectChanges();
-          }, 1000);
-  
-          setTimeout(() => {
-            this.stopCamera();
-            this.isFaceRecognitionActive = false;
-            this.isBlurring = false;
-            this.showResultIcon = false;
-            this.hideFaceBox = false;
-            this.cdr.detectChanges();
-          }, 3000);
-  
-          this.isProcessingFrame = false;
-          this.cdr.detectChanges();
-        }
-      });
-    } catch (error) {
-      console.error("Eroare la procesarea imaginii:", error);
-      this.faceMatchMessage = "❌ Eroare la procesarea imaginii!";
-      this.isProcessingFrame = false;
-      this.cdr.detectChanges();
-    }
+// Fixed sendFrameForRecognition method for your component
+
+// Replace the sendFrameForRecognition method in your auth.component.ts file
+
+async sendFrameForRecognition(liveImageBlob: Blob): Promise<void> {
+  if (!this.cnp) {
+    console.error("Nu există CNP pentru autentificare.");
+    this.faceMatchMessage = "Introduceți CNP-ul pentru autentificare!";
+    return;
   }
-  // În auth.component.ts adaugă:
+
+  if (this.isProcessingFrame) {
+    return;
+  }
+
+  this.isProcessingFrame = true;
+
+  try {
+    const formData = new FormData();
+    formData.append('cnp', this.cnp);
+    formData.append('live_image', liveImageBlob, 'live_capture.jpg');
+
+    this.faceMatchMessage = "🔄 Se verifică identitatea...";
+    this.cdr.detectChanges();
+
+    console.log("Trimitere imagine pentru recunoaștere facială...");
+    
+    this.authService.loginWithFaceRecognition(formData).subscribe({
+      next: (response) => {
+        console.log("✅ Răspuns primit de la backend:", response);
+
+        this.recognitionComplete = true;
+        this.isProcessingFrame = false;
+
+        this.faceMatched = true;
+        this.faceMatchMessage = "✅ Identificare reușită!";
+        this.faceBoxClass = 'face-match-success';
+        this.resultIcon = '✅';
+        
+        localStorage.setItem('access_token', response.access);
+        localStorage.setItem('refresh_token', response.refresh);
+        
+        if (response.cnp) {
+          localStorage.setItem('user_cnp', response.cnp);
+          
+          const userData = {
+            cnp: response.cnp,
+            first_name: response.first_name || '',
+            last_name: response.last_name || '',
+            is_verified_by_id: response.is_verified_by_id || true,
+            is_active: response.is_active || true
+          };
+          
+          localStorage.setItem('user_data', JSON.stringify(userData));
+          console.log('Date utilizator salvate:', userData);
+        }
+        
+        this.cdr.detectChanges();
+
+        setTimeout(() => {
+          this.isBlurring = true;
+          this.showResultIcon = true;
+          this.hideFaceBox = true;
+          this.cdr.detectChanges();
+        }, 1000);
+
+        setTimeout(() => {
+          this.stopCamera();
+          this.isFaceRecognitionActive = false;
+          this.isBlurring = false;
+          this.showResultIcon = false;
+          this.hideFaceBox = false;
+          this.cdr.detectChanges();
+          
+          console.log("🚀 Navigare către /menu cu tokenuri:", {
+            access: localStorage.getItem('access_token')?.substring(0, 20) + '...',
+            refresh: localStorage.getItem('refresh_token')?.substring(0, 20) + '...',
+            userData: localStorage.getItem('user_data')
+          });
+          
+          window.location.href = '/menu';
+        }, 3000);
+      },
+      error: (error) => {
+        console.error("❌ Eroare la recunoaștere:", error);
+        this.faceMatched = false;
+        
+        let errorMessage = "Eroare la recunoaștere!";
+        if (error.error && error.error.detail) {
+          errorMessage = error.error.detail;
+        } else if (typeof error === 'string') {
+          errorMessage = error;
+        }
+        
+        this.faceMatchMessage = "❌ " + errorMessage;
+        this.faceBoxClass = 'face-match-error';
+        this.resultIcon = '❌';
+
+        setTimeout(() => {
+          this.isBlurring = true;
+          this.showResultIcon = true;
+          this.hideFaceBox = true;
+          this.cdr.detectChanges();
+        }, 1000);
+
+        setTimeout(() => {
+          this.stopCamera();
+          this.isFaceRecognitionActive = false;
+          this.isBlurring = false;
+          this.showResultIcon = false;
+          this.hideFaceBox = false;
+          this.cdr.detectChanges();
+        }, 3000);
+
+        this.isProcessingFrame = false;
+        this.cdr.detectChanges();
+      }
+    });
+  } catch (error) {
+    console.error("Eroare la procesarea imaginii:", error);
+    this.faceMatchMessage = "❌ Eroare la procesarea imaginii!";
+    this.isProcessingFrame = false;
+    this.cdr.detectChanges();
+  }
+}
 
 forgotPassword() {
   // Se verifica intai daca a fost captcha completat
