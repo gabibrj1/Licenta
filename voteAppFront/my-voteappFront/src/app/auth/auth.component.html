@@ -18,7 +18,11 @@
 
       <mat-form-field appearance="fill" *ngIf="!useIdCardAuth">
         <mat-label>Parolă</mat-label>
-        <input matInput type="password" [(ngModel)]="password" name="password" required />
+        <input matInput [type]="showPassword ? 'text' : 'password'" [(ngModel)]="password" name="password" required />
+        <button mat-icon-button matSuffix (click)="togglePasswordVisibility()" type="button" class="password-toggle-btn"
+                [attr.data-tooltip]="showPassword ? 'Ascunde parola' : 'Afișează parola'">
+          <mat-icon>{{ showPassword ? 'visibility_off' : 'visibility' }}</mat-icon>
+        </button>
       </mat-form-field>
 
 

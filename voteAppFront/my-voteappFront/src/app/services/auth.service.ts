@@ -18,34 +18,27 @@ export class AuthService {
 
   // auth clasica (email si parola)
   login(email: string, password: string): Observable<any> {
-    console.log('Login cu email și parolă:', { email });
-    
     return this.http.post(`${this.apiUrl}auth/login/`, { email, password }).pipe(
       tap(response => {
-        console.log('Răspuns login email:', response);
-        this.handleAuthSuccess(response);
+        this.handleAuthSuccess(response, 'email');
       }),
       catchError(this.handleError)
     );
   }
 
   // Metoda centralizată pentru procesarea răspunsurilor de autentificare
-  public handleAuthSuccess(response: any): void {
+  public handleAuthSuccess(response: any, authMethod: 'email' | 'id_card' = 'email'): void {
     console.log('Procesare JWT primite:', response);
     
-    // 1. Salvăm tokenurile
+    // Salvăm metoda de autentificare
+    localStorage.setItem('auth_method', authMethod);
+    
+    // Restul codului rămâne neschimbat
     if (response.access) {
       localStorage.setItem(this.TOKEN_KEY, response.access);
       console.log('Token de acces salvat:', response.access.substring(0, 20) + '...');
     } else {
       console.warn('Lipsește token-ul de acces din răspuns!');
-    }
-    
-    if (response.refresh) {
-      localStorage.setItem(this.REFRESH_TOKEN_KEY, response.refresh);
-      console.log('Token de refresh salvat');
-    } else {
-      console.warn('Lipsește token-ul de refresh din răspuns!');
     }
     
     // 2. Salvăm datele utilizatorului
@@ -133,31 +126,22 @@ export class AuthService {
 
   // Autentificare cu buletin
   loginWithIDCard(data: any): Observable<any> {
-    console.log('Autentificare cu buletin:', data);
-    
     return this.http.post(`${this.apiUrl}login-id-card/`, data).pipe(
       tap(response => {
-        console.log('Răspuns autentificare cu buletin:', response);
-        this.handleAuthSuccess(response);
+        this.handleAuthSuccess(response, 'id_card');
       }),
       catchError(error => {
-        console.error('Eroare autentificare cu buletin:', error);
         return this.handleError(error);
       })
     );
   }
-
-  // Autentificare cu recunoaștere facială
+  
   loginWithFaceRecognition(formData: FormData): Observable<any> {
-    console.log('Autentificare cu recunoaștere facială');
-    
     return this.http.post(`${this.apiUrl}login-id-card/`, formData).pipe(
       tap(response => {
-        console.log('Răspuns recunoaștere facială:', response);
-        this.handleAuthSuccess(response);
+        this.handleAuthSuccess(response, 'id_card');
       }),
       catchError(error => {
-        console.error('Eroare recunoaștere facială:', error);
         return this.handleError(error);
       })
     );

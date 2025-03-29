@@ -58,8 +58,10 @@ class VotingSection(models.Model):
     section_id = models.CharField(max_length=10, unique=True)
     name = models.CharField(max_length=100)
     address = models.CharField(max_length=255)
+    address_desc = models.CharField(max_length=500, verbose_name="Adresă descriptivă", blank=True, null=True)
     city = models.CharField(max_length=100)
     county = models.CharField(max_length=50)
+    locality = models.CharField(max_length=255, verbose_name="Localitate componentă/Sat aparținător", blank=True, null=True)
     
     class Meta:
         verbose_name = "Secție de Vot"

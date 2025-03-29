@@ -9,9 +9,14 @@ from .models import VotingSection, LocalCandidate
 from django.db.models import Q
 import re
 from .models import LocalVote
+from .services import VotingSectionAIService
+import logging
+
+logger = logging.getLogger(__name__)
 
 
-# Replace this view in your vote/views.py file
+# Inițializăm serviciul AI o singură dată pentru a evita încărcarea repetată a modelului
+voting_section_ai = VotingSectionAIService()
 
 class VoteSettingsView(APIView):
     permission_classes = [AllowAny]  # Allow any user to access vote settings, even unauthenticated
@@ -199,7 +204,7 @@ class FindVotingSectionView(APIView):
     permission_classes = [IsAuthenticated]
     
     def post(self, request):
-        """Găsește secția de vot pentru utilizator pe baza adresei"""
+        """Găsește secția de vot pentru utilizator pe baza adresei utilizând AI"""
         # Verifică dacă utilizatorul este autentificat cu buletin
         user = request.user
         if not hasattr(user, 'cnp') or not user.cnp:
@@ -211,44 +216,117 @@ class FindVotingSectionView(APIView):
         address = request.data.get('address', '')
         city = request.data.get('city', '')
         county = request.data.get('county', '')
+        section_selection = request.data.get('section_selection')
         
         if not all([address, city, county]):
             return Response({
                 'error': 'Toate câmpurile sunt obligatorii: adresă, oraș, județ'
             }, status=status.HTTP_400_BAD_REQUEST)
         
-        # Simplifică adresa pentru căutare
-        address_simplified = re.sub(r'[^\w\s]', '', address.lower())
+        # Convertim section_selection la int dacă există
+        if section_selection is not None:
+            try:
+                section_selection = int(section_selection)
+            except (ValueError, TypeError):
+                section_selection = None
         
-        # Căutăm secția de vot potrivită (simplificat)
-        # În realitate, ar trebui să ai un algoritm mai complex sau o bază de date 
-        # care să mapeze adresele la secții de vot
-        voting_section = VotingSection.objects.filter(
-            Q(county__iexact=county) & 
-            Q(city__iexact=city)
-        ).first()
+        # Log intrare în funcție
+        logger.info(f"Căutare secție pentru utilizator {user.id} cu adresa: {county}, {city}, {address}")
+        if section_selection is not None:
+            logger.info(f"Utilizatorul a selectat manual secția cu indexul: {section_selection}")
         
-        if not voting_section:
-            # Dacă nu găsim o secție potrivită, returnăm o secție default pentru acel județ
-            voting_section = VotingSection.objects.filter(county__iexact=county).first()
-            
-        if not voting_section:
+        # Normalizăm județele la formatul de cod (AB, B, etc.)
+        county_uppercase = county.upper()
+        
+        # Apelăm serviciul AI pentru a găsi secția de votare
+        result = voting_section_ai.find_voting_section(
+            county_uppercase, city.upper(), address, section_selection
+        )
+        
+        if result.get('error'):
+            logger.warning(f"Eroare la găsirea secției: {result.get('message')}")
             return Response({
-                'error': 'Nu am putut identifica o secție de vot pentru adresa furnizată.'
+                'error': result.get('message', 'Eroare la găsirea secției de votare')
             }, status=status.HTTP_404_NOT_FOUND)
         
-        # Returnăm informațiile despre secția de vot
-        return Response({
-            'section': {
-                'id': voting_section.id,
-                'section_id': voting_section.section_id,
-                'name': voting_section.name,
-                'address': voting_section.address,
-                'city': voting_section.city,
-                'county': voting_section.county
+        # Verificăm dacă s-au găsit multiple secții de votare
+        if result.get('multiple_sections'):
+            logger.info(f"S-au găsit {len(result.get('sections', []))} secții pentru adresa dată")
+            return Response({
+                'multiple_sections': True,
+                'sections': result.get('sections', []),
+                'street': result.get('street', ''),
+                'method': result.get('method', 'unknown')
+            })
+        
+        if result.get('success'):
+            # Verificăm dacă secția există deja în baza de date
+            section_data = result['section']
+            voting_section = VotingSection.objects.filter(
+                section_id=section_data['section_id'],
+                county=section_data['county'],
+                city=section_data['city']
+            ).first()
+            
+            # Dacă nu există, o creăm
+            if not voting_section:
+                logger.info(f"Creăm secție nouă în baza de date: {section_data['name']}")
+                
+                # Pregătim datele pentru creare
+                section_create_data = {
+                    'section_id': section_data['section_id'],
+                    'name': section_data['name'],
+                    'address': section_data['address'],
+                    'city': section_data['city'],
+                    'county': section_data['county']
+                }
+                
+                # Adăugăm câmpurile opționale dacă există
+                if 'address_desc' in section_data and section_data['address_desc']:
+                    section_create_data['address_desc'] = section_data['address_desc']
+                
+                if 'locality' in section_data and section_data['locality']:
+                    section_create_data['locality'] = section_data['locality']
+                
+                voting_section = VotingSection.objects.create(**section_create_data)
+            
+            # Construim răspunsul
+            response_data = {
+                'section': {
+                    'id': voting_section.id,
+                    'section_id': voting_section.section_id,
+                    'name': voting_section.name,
+                    'address': voting_section.address,
+                    'city': voting_section.city,
+                    'county': voting_section.county,
+                },
+                'method': result.get('method', 'unknown')  # Metoda utilizată pentru identificare
             }
-        })
-
+            
+            # Adăugăm detalii suplimentare dacă există
+            if hasattr(voting_section, 'address_desc') and voting_section.address_desc:
+                response_data['section']['address_desc'] = voting_section.address_desc
+            elif 'address_desc' in section_data and section_data['address_desc']:
+                response_data['section']['address_desc'] = section_data['address_desc']
+                
+            if hasattr(voting_section, 'locality') and voting_section.locality:
+                response_data['section']['locality'] = voting_section.locality
+            elif 'locality' in section_data and section_data['locality']:
+                response_data['section']['locality'] = section_data['locality']
+                
+            # Adăugăm detalii despre strada potrivită dacă există
+            if 'matched_street' in section_data:
+                response_data['matched_street'] = section_data['matched_street']
+            
+            logger.info(f"Secție găsită: {voting_section.name} prin metoda {result.get('method', 'unknown')}")
+            return Response(response_data)
+        
+        # Cazul în care ceva nu a mers bine
+        logger.error(f"Eroare neașteptată la găsirea secției pentru {county}, {city}, {address}")
+        return Response({
+            'error': 'Nu am putut identifica o secție de vot pentru adresa furnizată.'
+        }, status=status.HTTP_404_NOT_FOUND)
+    
 class LocalCandidatesView(APIView):
     permission_classes = [IsAuthenticated]
     

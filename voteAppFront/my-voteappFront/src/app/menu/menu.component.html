@@ -216,8 +216,8 @@
     
     <!-- User Profile Section (Only shows when authenticated) -->
     <div *ngIf="isAuthenticated()" class="user-profile">
-      <!-- Utilizator autentificat cu email și parolă -->
-      <div *ngIf="userEmail" class="user-info">
+      <!-- Dacă authMethod este 'email', afișăm doar informațiile de email -->
+      <div *ngIf="authMethod === 'email' && userEmail" class="user-info">
         <i class="fas fa-user-circle"></i>
         <div class="user-details">
           <p class="user-email">{{ userEmail }}</p>
@@ -226,7 +226,7 @@
       </div>
       
       <!-- Utilizator autentificat cu CNP/buletin -->
-      <div *ngIf="userCNP" class="user-info">
+      <div *ngIf="authMethod === 'id_card' && userCNP" class="user-info">
         <i class="fas fa-id-card"></i>
         <div class="user-details">
           <p class="user-name">{{ lastName }} {{ firstName }}</p>
@@ -234,6 +234,7 @@
           <p class="user-type">Autentificare prin buletin</p>
         </div>
       </div>
+      
       
       <!-- Autentificare socială -->
       <div *ngIf="message" class="user-info">

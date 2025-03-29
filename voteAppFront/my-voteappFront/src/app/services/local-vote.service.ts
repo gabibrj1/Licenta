@@ -17,12 +17,20 @@ export class LocalVoteService {
   checkEligibility(): Observable<any> {
     return this.http.get(`${this.apiUrl}vote/local/eligibility/`);
   }
+  
   checkUserVoteStatus(): Observable<any> {
     return this.http.get(`${this.apiUrl}vote/local/check-status/`);
   }
 
   // Găsește secția de vot pe baza adresei
-  findVotingSection(data: { address: string, city: string, county: string }): Observable<any> {
+  findVotingSection(data: { 
+    address: string, 
+    city: string, 
+    county: string,
+    section_selection?: number 
+  }): Observable<any> {
+    // Adăugăm logging pentru depanare
+    console.log('Trimitem cerere de identificare secție cu datele:', data);
     return this.http.post(`${this.apiUrl}vote/local/find-section/`, data);
   }
 

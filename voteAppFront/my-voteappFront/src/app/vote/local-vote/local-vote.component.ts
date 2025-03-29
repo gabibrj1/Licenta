@@ -1,7 +1,7 @@
 // src/app/vote/local-vote/local-vote.component.ts
 
 import { Component, OnInit } from '@angular/core';
-import { FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { FormBuilder, FormGroup, Validators, AbstractControl } from '@angular/forms';
 import { Router } from '@angular/router';
 import { LocalVoteService } from '../../services/local-vote.service';
 
@@ -21,6 +21,12 @@ export class LocalVoteComponent implements OnInit {
   isLoading = false;
   error = '';
   selectedCandidates: any = {};
+  method: string = ''; // Adăugare proprietate pentru metoda de identificare
+  countyExamples: string[] = ['B', 'CJ', 'IS', 'CT', 'TM', 'BV']; // Exemple de județe prescurtate
+  multipleSections: any[] = []; // Lista de secții multiple
+  streetName: string = ''; // Strada pentru care există multiple secții
+  showMultipleSections = false; // Flag pentru afișarea paginii de selecție a secției
+  matchedStreet: string = ''; // Strada potrivită în caz de potrivire parțială
 
   constructor(
     private localVoteService: LocalVoteService,
@@ -28,10 +34,43 @@ export class LocalVoteComponent implements OnInit {
     private router: Router
   ) {
     this.addressForm = this.fb.group({
-      address: ['', Validators.required],
-      city: ['', Validators.required],
-      county: ['', Validators.required]
+      county: ['', [Validators.required, Validators.maxLength(2), this.countyValidator]],
+      city: ['', [Validators.required]],
+      address: ['', [Validators.required, this.addressValidator]]
     });
+
+    // Transformă input-ul pentru județ și localitate în litere mari la schimbare
+    this.addressForm.get('county')?.valueChanges.subscribe(value => {
+      if (value) {
+        this.addressForm.get('county')?.setValue(value.toUpperCase(), { emitEvent: false });
+      }
+    });
+
+    this.addressForm.get('city')?.valueChanges.subscribe(value => {
+      if (value) {
+        this.addressForm.get('city')?.setValue(value.toUpperCase(), { emitEvent: false });
+      }
+    });
+  }
+
+  // Validator pentru județ
+  countyValidator(control: AbstractControl): {[key: string]: any} | null {
+    const value = control.value;
+    if (value && !/^[A-Z]{1,2}$/.test(value)) {
+      return { 'invalidCounty': true };
+    }
+    return null;
+  }
+
+  // Validator pentru adresă (fără prescurtări)
+  addressValidator(control: AbstractControl): {[key: string]: any} | null {
+    const value = control.value;
+    const abbreviations = /\b(str|nr|bl|sc|ap|et)\b/i;
+    
+    if (value && abbreviations.test(value)) {
+      return { 'abbreviationsNotAllowed': true };
+    }
+    return null;
   }
 
   ngOnInit(): void {
@@ -69,19 +108,82 @@ export class LocalVoteComponent implements OnInit {
       }
     );
   }
+  selectSection(sectionIndex: number): void {
+    this.isLoading = true;
+    
+    // Adaugăm section_selection la obiectul trimis către backend
+    const requestData = {
+      ...this.addressForm.value,
+      section_selection: sectionIndex
+    };
+    
+    this.localVoteService.findVotingSection(requestData).subscribe(
+      (response) => {
+        this.isLoading = false;
+        this.votingSection = response.section;
+        this.method = response.method;
+        
+        if (response.matched_street) {
+          this.matchedStreet = response.matched_street;
+        }
+        
+        this.showMultipleSections = false;
+        console.log('Secție selectată manual:', this.votingSection.name);
+      },
+      (error) => {
+        this.isLoading = false;
+        this.error = error.error?.error || 'A apărut o eroare la selectarea secției de vot.';
+        console.error('Error selecting voting section:', error);
+      }
+    );
+  }
+  
+  backToAddressForm(): void {
+    this.showMultipleSections = false;
+    this.currentStep = 2;
+  }
 
   submitAddress(): void {
     if (this.addressForm.valid) {
       this.isLoading = true;
+      this.error = ''; // Resetăm mesajul de eroare
+      this.method = ''; // Resetăm metoda de identificare
+      this.matchedStreet = ''; // Resetăm strada potrivită
+      this.multipleSections = []; // Resetăm lista de secții multiple
+      this.showMultipleSections = false; // Resetăm flag-ul pentru multiple secții
+      
       this.localVoteService.findVotingSection(this.addressForm.value).subscribe(
         (response) => {
           this.isLoading = false;
+          
+          // Verificăm dacă avem multiple secții
+          if (response.multiple_sections) {
+            this.multipleSections = response.sections;
+            this.streetName = response.street;
+            this.method = response.method;
+            this.showMultipleSections = true;
+            this.currentStep = 3; // Păstrăm pasul 3, dar cu afișare diferită
+            console.log('Multiple secții găsite:', this.multipleSections.length);
+            return;
+          }
+          
+          // Avem o singură secție
           this.votingSection = response.section;
+          this.method = response.method; // Salvează metoda de identificare
+          
+          // Salvează strada potrivită dacă există
+          if (response.matched_street) {
+            this.matchedStreet = response.matched_street;
+          }
+          
+          // Adaugă logging pentru metoda AI folosită
+          console.log('Metoda AI folosită pentru identificare:', response.method);
+          
           this.currentStep = 3; // Trecem la pasul de afișare a secției de vot
         },
         (error) => {
           this.isLoading = false;
-          this.error = error.error.error || 'A apărut o eroare la căutarea secției de vot.';
+          this.error = error.error?.error || 'A apărut o eroare la căutarea secției de vot.';
           console.error('Error finding voting section:', error);
         }
       );
@@ -150,9 +252,11 @@ export class LocalVoteComponent implements OnInit {
   redirectToIDRegistration(): void {
     this.router.navigate(['/auth'], { queryParams: { mode: 'id_card' }});
   }
+
   get objectKeys() {
     return Object.keys;
   }
+
   getPositionLabel(positionKey: string): string {
     const positionLabels: {[key: string]: string} = {
       'mayor': 'Primar',
@@ -164,4 +268,31 @@ export class LocalVoteComponent implements OnInit {
     return positionLabels[positionKey] || positionKey;
   }
   
+  // Helper pentru a afișa numele metodei într-un format mai prietenos
+// Helper pentru a afișa numele metodei într-un format mai prietenos
+getMethodName(methodCode: string): string {
+  const methodNames: {[key: string]: string} = {
+    'direct_lookup_exact': 'căutare directă',
+    'direct_lookup_normalized': 'căutare normalizată',
+    'direct_lookup_partial': 'potrivire parțială',
+    'direct_lookup_exact_multiple': 'căutare directă (multiple secții)',
+    'direct_lookup_normalized_multiple': 'căutare normalizată (multiple secții)',
+    'direct_lookup_partial_multiple': 'potrivire parțială (multiple secții)',
+    'direct_lookup_exact_selected': 'secție selectată manual',
+    'direct_lookup_normalized_selected': 'secție selectată manual',
+    'direct_lookup_partial_selected': 'secție selectată manual',
+    'direct_lookup': 'căutare directă',
+    'ml_model': 'model de inteligență artificială',
+    'fallback': 'metodă alternativă',
+    'unknown': 'metodă necunoscută'
+  };
+  
+  return methodNames[methodCode] || 'metodă necunoscută';
+}
+
+  // Metoda care returnează un județ aleator din lista de exemple
+  getRandomCountyExample(): string {
+    const randomIndex = Math.floor(Math.random() * this.countyExamples.length);
+    return this.countyExamples[randomIndex];
+  }
 }

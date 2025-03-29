@@ -22,6 +22,7 @@ export class MenuComponent implements OnInit {
   lastName: string | null = null;
   userCNP: string | null = null;
   userData: any = null;
+  authMethod: 'email' | 'id_card' = 'email';
   
   // UI state
   currentView: string = 'prezenta';
@@ -132,22 +133,45 @@ export class MenuComponent implements OnInit {
   private loadUserDataFromStorage(): void {
     // Verificăm dacă avem CNP în localStorage (autentificare cu buletin)
     const userCNP = localStorage.getItem('user_cnp');
-    if (userCNP) {
-      this.userCNP = userCNP;
-      
-      // Încercăm să obținem datele utilizatorului din localStorage
-      const userDataStr = localStorage.getItem('user_data');
-      if (userDataStr) {
-        try {
-          this.userData = JSON.parse(userDataStr);
-          this.firstName = this.userData.first_name || '';
-          this.lastName = this.userData.last_name || '';
-        } catch (e) {
-          console.error('Eroare la parsarea datelor utilizatorului:', e);
+    const lastAuthMethod = localStorage.getItem('auth_method');
+    
+    // Setăm metoda de autentificare conform ultimei metode folosite
+    if (lastAuthMethod) {
+      this.authMethod = lastAuthMethod as 'email' | 'id_card';
+    } else {
+      // Determinăm metoda din datele existente
+      this.authMethod = userCNP ? 'id_card' : 'email';
+    }
+    
+    // Încărcăm datele în funcție de metoda de autentificare
+    if (this.authMethod === 'id_card') {
+      if (userCNP) {
+        this.userCNP = userCNP;
+        this.userEmail = null; // Resetăm email-ul
+        
+        // Încercăm să obținem datele utilizatorului din localStorage
+        const userDataStr = localStorage.getItem('user_data');
+        if (userDataStr) {
+          try {
+            this.userData = JSON.parse(userDataStr);
+            this.firstName = this.userData.first_name || '';
+            this.lastName = this.userData.last_name || '';
+            // Eliminăm email-ul din userData dacă există
+            if (this.userData.email) {
+              delete this.userData.email;
+            }
+          } catch (e) {
+            console.error('Eroare la parsarea datelor utilizatorului:', e);
+          }
         }
       }
     } else {
-      // Dacă nu avem CNP, verificăm dacă există un email de utilizator în localStorage
+      // Metoda email - resetăm datele de buletin
+      this.userCNP = null;
+      this.firstName = null;
+      this.lastName = null;
+      
+      // Încercăm să obținem email-ul din localStorage
       const userDataStr = localStorage.getItem('user_data');
       if (userDataStr) {
         try {
@@ -161,6 +185,7 @@ export class MenuComponent implements OnInit {
       }
     }
   }
+  
 
 // Updated loadUserProfile method for MenuComponent
 
@@ -175,51 +200,58 @@ private loadUserProfile(): void {
     (data) => {
       console.log('User profile loaded from API:', data);
       
-      // Update user data with what we got from API
-      if (data.email) {
-        this.userEmail = data.email;
-      }
-      
-      if (data.cnp) {
-        this.userCNP = data.cnp;
-        localStorage.setItem('user_cnp', data.cnp); // Ensure this is set for compatibility
-      }
-      
-      if (data.first_name) {
-        this.firstName = data.first_name;
-      }
-      
-      if (data.last_name) {
-        this.lastName = data.last_name;
-      }
-      
-      if (data.message) {
-        this.message = data.message;
-      }
-      
-      // Store or update the full user data
-      const userData = {
-        ...(this.userData || {}),
-        ...(data.email && { email: data.email }),
-        ...(data.cnp && { cnp: data.cnp }),
-        ...(data.first_name && { first_name: data.first_name }),
-        ...(data.last_name && { last_name: data.last_name }),
-        ...(data.is_verified_by_id && { is_verified_by_id: data.is_verified_by_id })
-      };
-      
-      // Only update if we have meaningful data
-      if (Object.keys(userData).length > 0) {
-        this.userData = userData;
-        localStorage.setItem('user_data', JSON.stringify(userData));
+      // Filtrăm datele în funcție de metoda de autentificare
+      if (this.authMethod === 'email') {
+        // Pentru autentificare cu email, păstrăm doar email-ul
+        if (data.email) {
+          this.userEmail = data.email;
+          
+          // Resetăm datele de buletin
+          this.userCNP = null;
+          this.firstName = null;
+          this.lastName = null;
+          
+          // Construim obiectul de date utilizator doar cu email
+          const userData = {
+            email: data.email,
+            is_active: data.is_active || true
+          };
+          
+          this.userData = userData;
+          localStorage.setItem('user_data', JSON.stringify(userData));
+        }
+      } else {
+        // Pentru autentificare cu buletin, păstrăm doar datele de buletin
+        if (data.cnp) {
+          this.userCNP = data.cnp;
+          this.userEmail = null; // Resetăm email-ul
+          
+          if (data.first_name) {
+            this.firstName = data.first_name;
+          }
+          
+          if (data.last_name) {
+            this.lastName = data.last_name;
+          }
+          
+          // Construim obiectul de date utilizator fără email
+          const userData = {
+            cnp: data.cnp,
+            first_name: data.first_name || '',
+            last_name: data.last_name || '',
+            is_verified_by_id: data.is_verified_by_id || true,
+            is_active: data.is_active || true
+          };
+          
+          this.userData = userData;
+          localStorage.setItem('user_data', JSON.stringify(userData));
+          localStorage.setItem('user_cnp', data.cnp);
+        }
       }
     },
     (error) => {
       console.error('Error loading profile:', error);
-      // If there's an error but we have data from localStorage, we can still show the menu
-      if (!this.userEmail && !this.userCNP) {
-        // No user data available, might need to handle this case
-        console.warn('No user data available from API or localStorage');
-      }
+      // Dacă există eroare, ne bazăm doar pe datele din localStorage
     }
   );
 }

@@ -27,6 +27,7 @@ export class AuthComponent implements OnInit {
   capturedImage: string | null = null;
   uploadedImageName: string | null = null;
   isLoading: boolean = false;
+  showPassword: boolean = false;
 
   // proprietati reCAPTCHA
   captchaResponse: string | null = null;
@@ -455,6 +456,7 @@ onSubmit(): void {
           
           if (response.cnp) {
             localStorage.setItem('user_cnp', response.cnp);
+            localStorage.setItem('auth_method', 'id_card'); 
             
             const userData = {
               cnp: response.cnp,
@@ -932,6 +934,7 @@ async sendFrameForRecognition(liveImageBlob: Blob): Promise<void> {
         
         localStorage.setItem('access_token', response.access);
         localStorage.setItem('refresh_token', response.refresh);
+        localStorage.setItem('auth_method', 'id_card');
         
         if (response.cnp) {
           localStorage.setItem('user_cnp', response.cnp);
@@ -1015,6 +1018,9 @@ async sendFrameForRecognition(liveImageBlob: Blob): Promise<void> {
     this.isProcessingFrame = false;
     this.cdr.detectChanges();
   }
+}
+togglePasswordVisibility() {
+  this.showPassword = !this.showPassword;
 }
 
 forgotPassword() {
