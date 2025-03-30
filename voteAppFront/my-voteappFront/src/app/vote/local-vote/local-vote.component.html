@@ -136,40 +136,47 @@
   </div>
 </div>
   
-  <!-- Pasul 4: Buletinul de vot -->
-  <div *ngIf="currentStep === 4" class="vote-container">
-    <h3>Buletinul de vot local</h3>
-    
-    <div *ngIf="candidates" class="ballot">
-      <div *ngFor="let positionKey of objectKeys(candidates)" class="position-section">
-        <h4>{{ getPositionLabel(positionKey) }}</h4>
-        <div class="candidates-grid">
-          <div *ngFor="let candidate of candidates[positionKey]" 
-               class="candidate-card" 
-               [class.selected]="selectedCandidates[positionKey] === candidate.id"
-               (click)="selectCandidate(positionKey, candidate.id)">
-            <div class="candidate-photo">
-              <img *ngIf="candidate.photo_url" [src]="candidate.photo_url" alt="{{ candidate.name }}">
-              <div *ngIf="!candidate.photo_url" class="no-photo">
-                <i class="fas fa-user"></i>
-              </div>
+<!-- Pasul 4: Buletinul de vot -->
+<div *ngIf="currentStep === 4" class="vote-container">
+  <h3>Buletinul de vot local</h3>
+  
+  <!-- Adaugă un mesaj de debug -->
+  <div *ngIf="!candidates || objectKeys(candidates).length === 0" class="error-text">
+    Nu există candidați pentru această localitate sau datele nu au fost încărcate corect.
+    <pre>{{ error }}</pre>
+  </div>
+  
+  <div *ngIf="candidates && objectKeys(candidates).length > 0" class="ballot">
+    <div *ngFor="let positionKey of objectKeys(candidates)" class="position-section">
+      <h4>{{ getPositionLabel(positionKey) }}</h4>
+      <p>Candidați: {{ candidates[positionKey].length }}</p> <!-- Adaugă acest rând -->
+      <div class="candidates-grid">
+        <div *ngFor="let candidate of candidates[positionKey]" 
+             class="candidate-card" 
+             [class.selected]="selectedCandidates[positionKey] === candidate.id"
+             (click)="selectCandidate(positionKey, candidate.id)">
+          <div class="candidate-photo">
+            <img *ngIf="candidate.photo_url" [src]="candidate.photo_url" alt="{{ candidate.name }}">
+            <div *ngIf="!candidate.photo_url" class="no-photo">
+              <i class="fas fa-user"></i>
             </div>
-            <div class="candidate-info">
-              <p class="candidate-name">{{ candidate.name }}</p>
-              <p class="candidate-party">{{ candidate.party }}</p>
-              <div class="vote-checkbox">
-                <i class="fas" [ngClass]="{'fa-check-circle': selectedCandidates[positionKey] === candidate.id, 'fa-circle': selectedCandidates[positionKey] !== candidate.id}"></i>
-              </div>
+          </div>
+          <div class="candidate-info">
+            <p class="candidate-name">{{ candidate.name }}</p>
+            <p class="candidate-party">{{ candidate.party }}</p>
+            <div class="vote-checkbox">
+              <i class="fas" [ngClass]="{'fa-check-circle': selectedCandidates[positionKey] === candidate.id, 'fa-circle': selectedCandidates[positionKey] !== candidate.id}"></i>
             </div>
           </div>
         </div>
       </div>
-      
-      <div class="submit-vote">
-        <button class="btn-primary" (click)="submitVote()" [disabled]="objectKeys(selectedCandidates).length === 0">
-          Finalizează votul
-        </button>
-      </div>
+    </div>
+    
+    <div class="submit-vote">
+      <button class="btn-primary" (click)="submitVote()" [disabled]="objectKeys(selectedCandidates).length === 0">
+        Finalizează votul
+      </button>
     </div>
   </div>
+</div>
 </div>

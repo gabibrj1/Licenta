@@ -189,28 +189,39 @@ export class LocalVoteComponent implements OnInit {
       );
     }
   }
-
-  confirmVotingSection(): void {
-    if (this.votingSection) {
-      this.isLoading = true;
-      // Obținem candidații pentru această locație
-      this.localVoteService.getCandidates(
-        this.votingSection.county, 
-        this.votingSection.city
-      ).subscribe(
-        (response) => {
-          this.isLoading = false;
-          this.candidates = response.positions;
+// În local-vote.component.ts
+confirmVotingSection(): void {
+  if (this.votingSection) {
+    this.isLoading = true;
+    console.log("Se încarcă candidații pentru:", this.votingSection.county, this.votingSection.city);
+    
+    // Adaugă logging pentru a vedea cererea
+    this.localVoteService.getCandidates(
+      this.votingSection.county, 
+      this.votingSection.city
+    ).subscribe(
+      (response) => {
+        this.isLoading = false;
+        console.log("Răspuns candidați:", response); // Adaugă acest log
+        this.candidates = response.positions;
+        
+        // Verifică dacă există candidați
+        if (Object.keys(this.candidates || {}).length === 0) {
+          this.error = "Nu există candidați înregistrați pentru această localitate.";
+          console.warn("Nu s-au găsit candidați");
+        } else {
           this.currentStep = 4; // Trecem la buletinul de vot
-        },
-        (error) => {
-          this.isLoading = false;
-          this.error = 'A apărut o eroare la încărcarea candidaților.';
-          console.error('Error loading candidates:', error);
         }
-      );
-    }
+      },
+      (error) => {
+        this.isLoading = false;
+        this.error = 'A apărut o eroare la încărcarea candidaților: ' + 
+                     (error.error?.error || error.message || JSON.stringify(error));
+        console.error('Error loading candidates:', error);
+      }
+    );
   }
+}
 
   selectCandidate(position: string, candidateId: number): void {
     this.selectedCandidates[position] = candidateId;

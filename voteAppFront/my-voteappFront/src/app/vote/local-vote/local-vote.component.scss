@@ -328,6 +328,17 @@
       }
     }
   }
+
+  .female-svg-icon {
+    width: 40px;
+    height: 40px;
+    fill: rgba(255, 255, 255, 0.5); /* Aceeași culoare ca iconița masculină */
+  }
+  
+  /* Optional: Animație la hover */
+  .candidate-card:hover .female-svg-icon {
+    fill: rgba(255, 255, 255, 0.7);
+  }
   
   // Stiluri specifice pentru formularul de adresă (pagina din screenshot)
   .confirmarea-adresei {

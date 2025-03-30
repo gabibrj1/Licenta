@@ -11,4 +11,4 @@ urlpatterns = [
     path('vote/local/candidates/', LocalCandidatesView.as_view(), name='local-candidates'),
     path('vote/local/submit/', SubmitLocalVoteView.as_view(), name='submit-local-vote'),
     path('vote/local/check-status/', CheckUserVoteStatusView.as_view(), name='check-user-vote-status'),
-]
+] 

@@ -35,13 +35,15 @@ export class LocalVoteService {
   }
 
   // Obține candidații pentru o anumită locație și poziție
-  getCandidates(county: string, city: string, position?: string): Observable<any> {
-    let url = `${this.apiUrl}vote/local/candidates/?county=${county}&city=${city}`;
-    if (position) {
-      url += `&position=${position}`;
-    }
-    return this.http.get(url);
+// În LocalVoteService
+getCandidates(county: string, city: string, position?: string): Observable<any> {
+  let url = `${this.apiUrl}vote/local/candidates/?county=${encodeURIComponent(county)}&city=${encodeURIComponent(city)}`;
+  if (position) {
+    url += `&position=${encodeURIComponent(position)}`;
   }
+  console.log("URL cerere candidați:", url); // Adaugă acest log
+  return this.http.get(url);
+}
 
   // Trimite votul
   submitVote(data: { candidate_id: number, voting_section_id: number }): Observable<any> {
