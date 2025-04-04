@@ -88,7 +88,7 @@ class Command(BaseCommand):
         ]
         
         prenume_femei = [
-            "Maria", "Elena", "Ana", "Ioana", "Mihaela", "Andreea", "Cristina", "Daniela", 
+            "Paula","Maria", "Elena", "Ana", "Ioana", "Mihaela", "Andreea", "Cristina", "Daniela", 
             "Alexandra", "Adriana", "Nicoleta", "Simona", "Georgiana", "Florentina", "Monica", 
             "Alina", "Gabriela", "Diana", "Roxana", "Laura", "Carmen", "Raluca", "Iuliana", 
             "Oana", "Claudia", "Mădălina", "Camelia", "Mirela", "Luminița", "Florina", "Ramona"
@@ -96,7 +96,7 @@ class Command(BaseCommand):
         
         # Nume de familie românești
         nume_familie = [
-            "Popa", "Popescu", "Pop", "Radu", "Dumitru", "Stan", "Stoica", "Gheorghe", 
+            "Miron", "Popa", "Popescu", "Pop", "Radu", "Dumitru", "Stan", "Stoica", "Gheorghe", 
             "Matei", "Ciobanu", "Ionescu", "Rusu", "Constantin", "Dinu", "Mihai", "Ilie", 
             "Moldovan", "Florescu", "Bălan", "Diaconu", "Cojocaru", "Mazilu", "Drăghici", 
             "Tudor", "Iordache", "Lupescu", "Enache", "Marin", "Nistor", "Dumitrescu",

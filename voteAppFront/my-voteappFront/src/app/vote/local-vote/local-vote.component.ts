@@ -1,9 +1,9 @@
-// src/app/vote/local-vote/local-vote.component.ts
-
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ViewChild, ElementRef, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, AbstractControl } from '@angular/forms';
 import { Router } from '@angular/router';
 import { LocalVoteService } from '../../services/local-vote.service';
+import { VoteMonitoringService } from '../../services/vote-monitoring.service';
+import * as faceapi from 'face-api.js';
 
 @Component({
   selector: 'app-local-vote',
@@ -28,10 +28,43 @@ export class LocalVoteComponent implements OnInit {
   showMultipleSections = false; // Flag pentru afișarea paginii de selecție a secției
   matchedStreet: string = ''; // Strada potrivită în caz de potrivire parțială
 
+  // Pentru monitorizarea video
+  @ViewChild('videoElement', { static: false }) videoElement!: ElementRef<HTMLVideoElement>;
+  videoStream: MediaStream | null = null;
+  isMonitoringActive = false;
+  faceDetectionInterval: any = null;
+  videoCaptureInterval: any = null;
+  showMonitoringWarning = false;
+  faceDetected = false;
+  faceBox: any = null;
+  faceMatchMessage = '';
+  faceBoxClass = 'face-box-default';
+  isProcessingFrame = false;
+  securityViolation = false;
+  lastVerificationTime = 0;
+  verificationInterval = 10000; // Verifică la fiecare 10 secunde
+  consecutiveFailures = 0;
+  maxConsecutiveFailures = 3;
+  showSecurityAlert = false;
+
+  // Timer pentru vot
+  timeRemaining: number = 300;
+  voteTimerInterval: any = null;
+  formattedTimeRemaining: string = '05:00';
+  isTimerWarning: boolean = false; // Pentru stilizare galbenă
+  isTimerDanger: boolean = false; // Pentru stilizare roșie
+  isTimerFlashing: boolean = false; // Pentru animație flash
+  showTimerAlert: boolean = false; // Pentru alertele de timp rămas
+  timerAlertMessage: string = '';
+  
+
+
   constructor(
     private localVoteService: LocalVoteService,
+    private voteMonitoringService: VoteMonitoringService,
     private fb: FormBuilder,
-    private router: Router
+    private router: Router,
+    private cdr: ChangeDetectorRef
   ) {
     this.addressForm = this.fb.group({
       county: ['', [Validators.required, Validators.maxLength(2), this.countyValidator]],
@@ -53,6 +86,100 @@ export class LocalVoteComponent implements OnInit {
     });
   }
 
+  // Metodă pentru pornirea timer-ului de vot
+startVoteTimer(): void {
+  // Resetăm timer-ul și stările asociate
+  this.timeRemaining = 300; // 5 minute în secunde
+  this.formattedTimeRemaining = '05:00';
+  this.isTimerWarning = false;
+  this.isTimerDanger = false;
+  this.isTimerFlashing = false;
+  this.showTimerAlert = false;
+  
+  // Pornim intervalul pentru actualizarea timer-ului
+  this.voteTimerInterval = setInterval(() => {
+    this.timeRemaining--;
+    this.updateTimerDisplay();
+    
+    // Verificăm diferite praguri de timp pentru a actualiza stările
+    if (this.timeRemaining === 60) { // 1 minut rămas
+      this.showTimerNotification('Mai aveți 1 minut pentru a finaliza votul!');
+    } else if (this.timeRemaining === 30) { // 30 secunde rămase
+      this.showTimerNotification('Atenție! Mai aveți doar 30 de secunde!');
+    } else if (this.timeRemaining === 10) { // 10 secunde rămase
+      this.showTimerNotification('10 secunde rămase!');
+      this.isTimerFlashing = true;
+    } else if (this.timeRemaining <= 0) { // Timpul a expirat
+      this.handleExpiredTimer();
+    }
+    
+    // Actualizăm stilurile în funcție de timpul rămas
+    this.updateTimerStyles();
+    
+    this.cdr.detectChanges();
+  }, 1000);
+}
+
+// Metodă pentru oprirea timer-ului
+stopVoteTimer(): void {
+  if (this.voteTimerInterval) {
+    clearInterval(this.voteTimerInterval);
+    this.voteTimerInterval = null;
+  }
+}
+
+// Metodă pentru actualizarea afișării timer-ului în format MM:SS
+updateTimerDisplay(): void {
+  const minutes = Math.floor(this.timeRemaining / 60);
+  const seconds = this.timeRemaining % 60;
+  this.formattedTimeRemaining = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+}
+
+// Metodă pentru actualizarea stilurilor timer-ului în funcție de timpul rămas
+updateTimerStyles(): void {
+  if (this.timeRemaining <= 60) { // Sub 1 minut
+    this.isTimerWarning = false;
+    this.isTimerDanger = true;
+  } else if (this.timeRemaining <= 120) { // Sub 2 minute
+    this.isTimerWarning = true;
+    this.isTimerDanger = false;
+  } else {
+    this.isTimerWarning = false;
+    this.isTimerDanger = false;
+  }
+}
+
+// Metodă pentru afișarea notificărilor de timer
+showTimerNotification(message: string): void {
+  this.showTimerAlert = true;
+  this.timerAlertMessage = message;
+  
+  // Ascunde notificarea după 3 secunde
+  setTimeout(() => {
+    this.showTimerAlert = false;
+    this.cdr.detectChanges();
+  }, 3000);
+}
+
+// Metodă pentru gestionarea expirării timer-ului
+handleExpiredTimer(): void {
+  this.stopVoteTimer();
+  this.error = 'Timpul pentru completarea buletinului de vot a expirat.';
+  
+  // Afișăm un mesaj de alertă
+  alert('Timpul alocat pentru vot a expirat. Veți fi redirecționat înapoi la pagina principală.');
+  
+  // Redirecționăm utilizatorul către pagina principală
+  setTimeout(() => {
+    this.router.navigate(['/menu'], { 
+      queryParams: { 
+        vote_expired: true
+      } 
+    });
+  }, 1000);
+}
+
+
   // Validator pentru județ
   countyValidator(control: AbstractControl): {[key: string]: any} | null {
     const value = control.value;
@@ -61,6 +188,27 @@ export class LocalVoteComponent implements OnInit {
     }
     return null;
   }
+  async waitForVideoElement(): Promise<boolean> {
+    if (this.videoElement) {
+      return true;
+    }
+    
+    // Așteaptă maxim 2 secunde pentru ca elementul să fie disponibil
+    return new Promise((resolve) => {
+      let attempts = 0;
+      const checkInterval = setInterval(() => {
+        attempts++;
+        if (this.videoElement) {
+          clearInterval(checkInterval);
+          resolve(true);
+        } else if (attempts > 20) { // 20 * 100ms = 2 secunde
+          clearInterval(checkInterval);
+          resolve(false);
+        }
+      }, 100);
+    });
+  }
+  
 
   // Validator pentru adresă (fără prescurtări)
   addressValidator(control: AbstractControl): {[key: string]: any} | null {
@@ -73,7 +221,8 @@ export class LocalVoteComponent implements OnInit {
     return null;
   }
 
-  ngOnInit(): void {
+  async ngOnInit() {
+    await this.loadFaceDetectionModels();
     this.checkEligibility();
     this.localVoteService.checkUserVoteStatus().subscribe(
       (response) => {
@@ -87,6 +236,299 @@ export class LocalVoteComponent implements OnInit {
         console.error('Error checking vote status:', error);
       }
     );
+  }
+    
+  async loadFaceDetectionModels(): Promise<void> {
+    try {
+      console.log("Încărcăm modelele Face API pentru monitorizarea votului...");
+      await faceapi.nets.tinyFaceDetector.loadFromUri('./assets/models/tiny_face_detector');
+      await faceapi.nets.ssdMobilenetv1.loadFromUri('./assets/models/ssd_mobilenetv1');
+      console.log("Modelele Face API au fost încărcate cu succes!");
+    } catch (error) {
+      console.error("Eroare la încărcarea modelelor Face API:", error);
+      throw error;
+    }
+  }
+
+  // Metoda pentru afisarea avertismentului de monitorizare
+  showMonitoringConsent(): void {
+    this.showMonitoringWarning = true;
+  }
+  
+  // Metodă pentru începerea monitorizării
+  startVoteMonitoring(): void {
+    console.log("startVoteMonitoring apelat");
+    this.isMonitoringActive = true;
+    
+    // Verificare existență element video
+    console.log("videoElement există:", !!this.videoElement);
+    if (this.videoElement) {
+      console.log("videoElement nativeElement:", !!this.videoElement.nativeElement);
+    }
+    
+    this.startCamera();
+  }
+  
+  // Metodă pentru refuzarea monitorizării
+  refuseMonitoring(): void {
+    this.showMonitoringWarning = false;
+    this.router.navigate(['/menu']);
+  }
+  
+  async startCamera(): Promise<void> {
+    console.log("startCamera apelat");
+    if (!navigator.mediaDevices?.getUserMedia) {
+      console.error("Camera nu este suportată pe acest dispozitiv.");
+      return;
+    }
+
+    const videoElementAvailable = await this.waitForVideoElement();
+    if (!videoElementAvailable) {
+      console.error("Elementul video nu a devenit disponibil după așteptare");
+      return;
+    }
+    
+
+    try {
+      console.log("Pornim camera pentru monitorizarea votului...");
+      this.faceDetected = false;
+      this.faceMatchMessage = '🔍 Se verifică identitatea...';
+      this.faceBoxClass = 'face-box-default';
+      this.isProcessingFrame = false;
+      this.consecutiveFailures = 0;
+
+      this.videoStream = await navigator.mediaDevices.getUserMedia({ 
+        video: { 
+          width: { ideal: 640 },
+          height: { ideal: 480 },
+          facingMode: 'user'
+        } 
+      });
+      console.log("Stream video obținut:", !!this.videoStream);
+      if (this.videoStream) {
+        const video = this.videoElement.nativeElement;
+        video.srcObject = this.videoStream;
+        video.onloadedmetadata = () => {
+          video.play();
+          this.detectFaces();
+          this.startContinuousVerification();
+        };
+        console.log("Camera a fost pornită cu succes pentru monitorizare!");
+      }
+    } catch (error) {
+      console.error("Eroare la pornirea camerei pentru monitorizare:", error);
+    }
+  }
+  
+  detectFaces(): void {
+    if (!this.videoElement?.nativeElement) {
+      console.error("Eroare: videoElement nu este disponibil pentru detecție!");
+      return;
+    }
+
+    const video = this.videoElement.nativeElement;
+    const detectionOptions = new faceapi.TinyFaceDetectorOptions({
+      inputSize: 416,
+      scoreThreshold: 0.3
+    });
+
+    this.faceDetectionInterval = window.setInterval(async () => {
+      if (!this.isMonitoringActive) {
+        this.stopFaceDetection();
+        return;
+      }
+      
+      try {
+        const detections = await faceapi.detectAllFaces(video, detectionOptions);
+
+        if (detections && detections.length > 0) {
+          if (detections.length > 1) {
+            this.faceDetected = false;
+            this.faceMatchMessage = '⚠️ S-au detectat multiple fețe! Aceasta este o încălcare de securitate.';
+            this.faceBoxClass = 'face-match-error';
+            this.securityViolation = true;
+            this.showSecurityAlert = true;
+            this.consecutiveFailures++;
+            
+            if (this.consecutiveFailures >= this.maxConsecutiveFailures) {
+              this.handleSecurityViolation('multiple_faces');
+            }
+            
+            this.cdr.detectChanges();
+            return;
+          }
+
+          const detection = detections[0];
+          this.faceDetected = true;
+          const videoRect = video.getBoundingClientRect();
+
+          const scaleX = videoRect.width / video.videoWidth;
+          const scaleY = videoRect.height / video.videoHeight;
+
+          this.faceBox = {
+            top: detection.box.y * scaleY,
+            left: detection.box.x * scaleX,
+            width: detection.box.width * scaleX,
+            height: detection.box.height * scaleY
+          };
+
+          if (!this.isProcessingFrame && this.needsVerification()) {
+            this.captureAndVerifyFrame();
+          }
+        } else {
+          this.faceDetected = false;
+          this.faceMatchMessage = '🔍 Nu se detectează o față în cadru...';
+          this.consecutiveFailures++;
+          
+          if (this.consecutiveFailures >= this.maxConsecutiveFailures) {
+            this.handleSecurityViolation('no_face');
+          }
+        }
+
+        this.cdr.detectChanges();
+      } catch (error) {
+        console.error("Eroare la detecția feței:", error);
+      }
+    }, 500);
+  }
+  
+  needsVerification(): boolean {
+    const now = Date.now();
+    if (now - this.lastVerificationTime > this.verificationInterval) {
+      this.lastVerificationTime = now;
+      return true;
+    }
+    return false;
+  }
+  
+  startContinuousVerification(): void {
+    // Verificare imediată inițială
+    setTimeout(() => {
+      this.captureAndVerifyFrame();
+    }, 2000);
+  }
+  
+  async captureAndVerifyFrame(): Promise<void> {
+    if (this.isProcessingFrame) return;
+    this.isProcessingFrame = true;
+    
+    const canvas = document.createElement('canvas');
+    const video = this.videoElement.nativeElement;
+    
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    
+    const ctx = canvas.getContext('2d');
+    if (!ctx || !video) {
+      this.isProcessingFrame = false;
+      return;
+    }
+    
+    try {
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      canvas.toBlob((blob) => {
+        if (!blob) {
+          this.isProcessingFrame = false;
+          return;
+        }
+        
+        this.verifyIdentity(blob);
+      }, 'image/jpeg', 0.9);
+    } catch (e) {
+      console.error("Eroare la capturarea cadrului:", e);
+      this.isProcessingFrame = false;
+    }
+  }
+  
+  verifyIdentity(imageBlob: Blob): void {
+    this.faceMatchMessage = '🔄 Se verifică identitatea...';
+    this.cdr.detectChanges();
+    
+    this.voteMonitoringService.verifyVoterIdentity(imageBlob).subscribe({
+      next: (response) => {
+        this.isProcessingFrame = false;
+        
+        if (response.num_faces > 1) {
+          this.faceMatchMessage = '⚠️ S-au detectat multiple fețe! Aceasta este o încălcare de securitate.';
+          this.faceBoxClass = 'face-match-error';
+          this.securityViolation = true;
+          this.showSecurityAlert = true;
+          this.consecutiveFailures++;
+          
+          if (this.consecutiveFailures >= this.maxConsecutiveFailures) {
+            this.handleSecurityViolation('multiple_faces');
+          }
+        } else if (response.match) {
+          this.faceMatchMessage = '✅ Identitate verificată';
+          this.faceBoxClass = 'face-match-success';
+          this.securityViolation = false;
+          this.showSecurityAlert = false;
+          this.consecutiveFailures = 0;
+        } else {
+          this.faceMatchMessage = '❌ ' + response.message;
+          this.faceBoxClass = 'face-match-error';
+          this.consecutiveFailures++;
+          
+          if (this.consecutiveFailures >= this.maxConsecutiveFailures) {
+            this.handleSecurityViolation('identity_mismatch');
+          }
+        }
+        
+        this.cdr.detectChanges();
+      },
+      error: (error) => {
+        console.error('Eroare la verificarea identității:', error);
+        this.faceMatchMessage = '❌ Eroare la verificarea identității';
+        this.isProcessingFrame = false;
+        this.cdr.detectChanges();
+      }
+    });
+  }
+  
+  handleSecurityViolation(type: string): void {
+    // Oprește procesul de vot și redirecționează
+    this.stopCamera();
+    this.error = 'Încălcare de securitate detectată. Sesiunea de vot a fost întreruptă.';
+    
+    setTimeout(() => {
+      this.router.navigate(['/menu'], { 
+        queryParams: { 
+          security_violation: true,
+          violation_type: type
+        } 
+      });
+    }, 3000);
+  }
+  
+  stopFaceDetection(): void {
+    if (this.faceDetectionInterval !== null) {
+      clearInterval(this.faceDetectionInterval);
+      this.faceDetectionInterval = null;
+    }
+  }
+  
+  stopCamera(): void {
+    console.log("Oprim camera de monitorizare...");
+    
+    this.stopFaceDetection();
+    
+    if (this.videoCaptureInterval) {
+      clearInterval(this.videoCaptureInterval);
+      this.videoCaptureInterval = null;
+    }
+  
+    if (this.videoStream) {
+      this.videoStream.getTracks().forEach(track => track.stop());
+      this.videoStream = null;
+    }
+  
+    if (this.videoElement?.nativeElement) {
+      this.videoElement.nativeElement.srcObject = null;
+    }
+    
+    this.isMonitoringActive = false;
+    this.faceDetected = false;
+    console.log("Camera de monitorizare oprită!");
   }
 
   checkEligibility(): void {
@@ -189,38 +631,52 @@ export class LocalVoteComponent implements OnInit {
       );
     }
   }
-// În local-vote.component.ts
+
+// Cand confirmam sectia de vot si trecem la buletinul de vot, initiem monitorizarea
 confirmVotingSection(): void {
   if (this.votingSection) {
     this.isLoading = true;
-    console.log("Se încarcă candidații pentru:", this.votingSection.county, this.votingSection.city);
     
-    // Adaugă logging pentru a vedea cererea
     this.localVoteService.getCandidates(
       this.votingSection.county, 
       this.votingSection.city
-    ).subscribe(
-      (response) => {
+    ).subscribe({
+      next: (response) => {
         this.isLoading = false;
-        console.log("Răspuns candidați:", response); // Adaugă acest log
         this.candidates = response.positions;
         
-        // Verifică dacă există candidați
         if (Object.keys(this.candidates || {}).length === 0) {
           this.error = "Nu există candidați înregistrați pentru această localitate.";
-          console.warn("Nu s-au găsit candidați");
         } else {
-          this.currentStep = 4; // Trecem la buletinul de vot
+          // Afișăm avertismentul de monitorizare înainte de a începe votul
+          this.showMonitoringConsent();
         }
       },
-      (error) => {
+      error: (error) => {
         this.isLoading = false;
         this.error = 'A apărut o eroare la încărcarea candidaților: ' + 
-                     (error.error?.error || error.message || JSON.stringify(error));
-        console.error('Error loading candidates:', error);
+                    (error.error?.error || error.message || JSON.stringify(error));
       }
-    );
+    });
   }
+}
+// Cand utilizatorul aproba monitorizarea; trecem la buletinul de vot
+acceptMonitoring(): void {
+  console.log("acceptMonitoring apelat");
+  this.showMonitoringWarning = false;
+  this.currentStep = 4; // Trecem la buletinul de vot
+  setTimeout(() => {
+    console.log("Start monitorizare video după delay");
+    this.startVoteMonitoring();
+
+    // Pornim timer-ul de vot
+    this.startVoteTimer();
+  }, 500);
+}
+
+ngOnDestroy(): void {
+  this.stopCamera();
+  this.stopVoteTimer(); 
 }
 
   selectCandidate(position: string, candidateId: number): void {
@@ -232,6 +688,9 @@ confirmVotingSection(): void {
       this.error = 'Trebuie să selectați cel puțin un candidat.';
       return;
     }
+
+    // Optim timer ul de vot
+    this.stopVoteTimer();
     
     this.isLoading = true;
     

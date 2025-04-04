@@ -41,6 +41,7 @@ import { AppointmentErrorComponent } from './appointments/appointment-error.comp
 import { MapComponent } from './map/map.component';
 import { NgxEchartsModule } from 'ngx-echarts';
 import { VoteModule } from './vote/vote.module';
+import { VoteMonitoringService } from './services/vote-monitoring.service'; 
 
 import { AuthGuard } from './guards/auth.guard';
 import { ScheduleDialogComponent } from './schedule-dialog/schedule-dialog.component';
@@ -98,7 +99,8 @@ import { ScheduleDialogComponent } from './schedule-dialog/schedule-dialog.compo
   
   providers: [
     { provide: HTTP_INTERCEPTORS, useClass: CsrfInterceptor, multi: true },
-    { provide: HTTP_INTERCEPTORS, useClass: AuthInterceptor, multi: true }
+    { provide: HTTP_INTERCEPTORS, useClass: AuthInterceptor, multi: true },
+    VoteMonitoringService  
   ],
   bootstrap: [AppComponent]
 })

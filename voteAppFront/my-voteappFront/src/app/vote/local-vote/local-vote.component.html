@@ -74,109 +74,170 @@
   </div>
 
   <!-- Pasul 3A: Alegere între multiple secții de vot -->
-<div *ngIf="currentStep === 3 && showMultipleSections" class="vote-container">
-  <h3>Selectați secția de vot</h3>
-  
-  <div class="multiple-sections-info">
-    <p>Am găsit mai multe secții de votare pentru {{ streetName }}.</p>
-    <p>Vă rugăm să selectați secția care corespunde adresei dumneavoastră:</p>
-  </div>
-  
-  <div class="sections-list">
-    <div *ngFor="let section of multipleSections" class="section-option">
-      <div class="section-details">
-        <h4>{{ section.name }}</h4>
-        <p><strong>Secția:</strong> {{ section.section_id }}</p>
-        <p><strong>Adresă:</strong> {{ section.address }}</p>
-        <p *ngIf="section.address_desc"><strong>Adresă detaliată:</strong> {{ section.address_desc }}</p>
-        <p *ngIf="section.locality"><strong>Localitate componentă:</strong> {{ section.locality }}</p>
-        <p *ngIf="section.street"><strong>Arteră:</strong> {{ section.street }}</p>
+  <div *ngIf="currentStep === 3 && showMultipleSections" class="vote-container">
+    <h3>Selectați secția de vot</h3>
+    
+    <div class="multiple-sections-info">
+      <p>Am găsit mai multe secții de votare pentru {{ streetName }}.</p>
+      <p>Vă rugăm să selectați secția care corespunde adresei dumneavoastră:</p>
+    </div>
+    
+    <div class="sections-list">
+      <div *ngFor="let section of multipleSections" class="section-option">
+        <div class="section-details">
+          <h4>{{ section.name }}</h4>
+          <p><strong>Secția:</strong> {{ section.section_id }}</p>
+          <p><strong>Adresă:</strong> {{ section.address }}</p>
+          <p *ngIf="section.address_desc"><strong>Adresă detaliată:</strong> {{ section.address_desc }}</p>
+          <p *ngIf="section.locality"><strong>Localitate componentă:</strong> {{ section.locality }}</p>
+          <p *ngIf="section.street"><strong>Arteră:</strong> {{ section.street }}</p>
+        </div>
+        <button class="btn-primary" (click)="selectSection(section.index)">Selectează această secție</button>
       </div>
-      <button class="btn-primary" (click)="selectSection(section.index)">Selectează această secție</button>
+    </div>
+    
+    <div class="button-group">
+      <button class="btn-secondary" (click)="backToAddressForm()">Înapoi la adresă</button>
     </div>
   </div>
   
-  <div class="button-group">
-    <button class="btn-secondary" (click)="backToAddressForm()">Înapoi la adresă</button>
+  <!-- Pasul 3B: Afișare secție de vot -->
+  <div *ngIf="currentStep === 3 && !showMultipleSections && votingSection" class="vote-container">
+    <h3>Secția de vot</h3>
+    
+    <div class="voting-section">
+      <p>Pe baza adresei furnizate, secția dumneavoastră de vot este:</p>
+      <div class="section-details">
+        <p><strong>Secția:</strong> {{ votingSection.section_id }}</p>
+        <p><strong>Nume:</strong> {{ votingSection.name }}</p>
+        <p><strong>Adresă:</strong> {{ votingSection.address }}</p>
+        <p *ngIf="votingSection.address_desc"><strong>Adresă detaliată:</strong> {{ votingSection.address_desc }}</p>
+        <p><strong>Localitate:</strong> {{ votingSection.city }}</p>
+        <p><strong>Județ:</strong> {{ votingSection.county }}</p>
+        <p *ngIf="votingSection.locality"><strong>Localitate componentă/Sat aparținător:</strong> {{ votingSection.locality }}</p>
+        
+        <!-- Informații despre strada potrivită dacă există -->
+        <p *ngIf="matchedStreet" class="matched-street">
+          <strong>Strada identificată:</strong> {{ matchedStreet }}
+        </p>
+        
+        <!-- Informații despre metoda de identificare -->
+        <p *ngIf="method" class="identification-method">
+          <small>Identificat prin: {{ getMethodName(method) }}</small>
+        </p>
+      </div>
+    </div>
+    
+    <p>Vă rugăm să confirmați că aceasta este secția de vot corectă pentru a continua.</p>
+    
+    <div class="button-group">
+      <button class="btn-secondary" (click)="currentStep = 2">Modifică adresa</button>
+      <button class="btn-primary" (click)="confirmVotingSection()">Confirmă secția de vot</button>
+    </div>
   </div>
-</div>
-  
-<!-- Pasul 3B: Afișare secție de vot -->
-<div *ngIf="currentStep === 3 && !showMultipleSections && votingSection" class="vote-container">
-  <h3>Secția de vot</h3>
-  
-  <div class="voting-section">
-    <p>Pe baza adresei furnizate, secția dumneavoastră de vot este:</p>
-    <div class="section-details">
-      <p><strong>Secția:</strong> {{ votingSection.section_id }}</p>
-      <p><strong>Nume:</strong> {{ votingSection.name }}</p>
-      <p><strong>Adresă:</strong> {{ votingSection.address }}</p>
-      <p *ngIf="votingSection.address_desc"><strong>Adresă detaliată:</strong> {{ votingSection.address_desc }}</p>
-      <p><strong>Localitate:</strong> {{ votingSection.city }}</p>
-      <p><strong>Județ:</strong> {{ votingSection.county }}</p>
-      <p *ngIf="votingSection.locality"><strong>Localitate componentă/Sat aparținător:</strong> {{ votingSection.locality }}</p>
+
+  <!-- Avertisment de monitorizare video -->
+  <div *ngIf="showMonitoringWarning" class="monitoring-warning-overlay">
+    <div class="monitoring-warning-box">
+      <h3>Avertisment: Monitorizare video</h3>
+      <p>Pentru securitatea procesului de vot, acest modul va utiliza camera pentru:</p>
+      <ul>
+        <li>Verificarea continuă a identității dvs. (comparare cu imaginea buletinului)</li>
+        <li>Detectarea prezenței mai multor persoane</li>
+        <li>Prevenirea fraudei și a tentativelor de spoofing</li>
+      </ul>
+      <p>Imaginile sunt procesate doar local și nu sunt stocate.</p>
+      <p class="warning-text">Dacă sunt detectate încălcări de securitate (persoane multiple, identitate neconfirmată), procesul de vot va fi întrerupt automat.</p>
       
-      <!-- Informații despre strada potrivită dacă există -->
-      <p *ngIf="matchedStreet" class="matched-street">
-        <strong>Strada identificată:</strong> {{ matchedStreet }}
-      </p>
-      
-      <!-- Informații despre metoda de identificare -->
-      <p *ngIf="method" class="identification-method">
-        <small>Identificat prin: {{ getMethodName(method) }}</small>
-      </p>
+      <div class="button-group">
+        <button class="btn-secondary" (click)="refuseMonitoring()">Refuz (Ieșire)</button>
+        <button class="btn-primary" (click)="acceptMonitoring()">Accept monitorizarea</button>
+      </div>
     </div>
   </div>
   
-  <p>Vă rugăm să confirmați că aceasta este secția de vot corectă pentru a continua.</p>
-  
-  <div class="button-group">
-    <button class="btn-secondary" (click)="currentStep = 2">Modifică adresa</button>
-    <button class="btn-primary" (click)="confirmVotingSection()">Confirmă secția de vot</button>
-  </div>
-</div>
-  
-<!-- Pasul 4: Buletinul de vot -->
-<div *ngIf="currentStep === 4" class="vote-container">
-  <h3>Buletinul de vot local</h3>
-  
-  <!-- Adaugă un mesaj de debug -->
-  <div *ngIf="!candidates || objectKeys(candidates).length === 0" class="error-text">
-    Nu există candidați pentru această localitate sau datele nu au fost încărcate corect.
-    <pre>{{ error }}</pre>
+  <!-- Pasul 4: Buletinul de vot -->
+  <div *ngIf="currentStep === 4" class="vote-container">
+    <h3>Buletinul de vot local</h3>
+
+      <!-- Timer-ul de vot -->
+  <div class="vote-timer" [ngClass]="{'timer-warning': isTimerWarning, 'timer-danger': isTimerDanger, 'timer-flash': isTimerFlashing}">
+    <i class="fas fa-clock"></i>
+    <span>Timp rămas: {{ formattedTimeRemaining }}</span>
   </div>
   
-  <div *ngIf="candidates && objectKeys(candidates).length > 0" class="ballot">
-    <div *ngFor="let positionKey of objectKeys(candidates)" class="position-section">
-      <h4>{{ getPositionLabel(positionKey) }}</h4>
-      <p>Candidați: {{ candidates[positionKey].length }}</p> <!-- Adaugă acest rând -->
-      <div class="candidates-grid">
-        <div *ngFor="let candidate of candidates[positionKey]" 
-             class="candidate-card" 
-             [class.selected]="selectedCandidates[positionKey] === candidate.id"
-             (click)="selectCandidate(positionKey, candidate.id)">
-          <div class="candidate-photo">
-            <img *ngIf="candidate.photo_url" [src]="candidate.photo_url" alt="{{ candidate.name }}">
-            <div *ngIf="!candidate.photo_url" class="no-photo">
-              <i class="fas fa-user"></i>
+  <!-- Alerte timer -->
+  <div *ngIf="showTimerAlert" class="timer-alert">
+    <i class="fas fa-exclamation-triangle"></i>
+    <span>{{ timerAlertMessage }}</span>
+  </div>
+    
+    <!-- Adaugă un mesaj de debug -->
+    <div *ngIf="!candidates || objectKeys(candidates).length === 0" class="error-text">
+      Nu există candidați pentru această localitate sau datele nu au fost încărcate corect.
+      <pre>{{ error }}</pre>
+    </div>
+    
+    <div class="voting-layout">
+      <!-- Zona de buletin de vot -->
+      <div class="ballot-container">
+        <div *ngIf="candidates && objectKeys(candidates).length > 0" class="ballot">
+          <div *ngFor="let positionKey of objectKeys(candidates)" class="position-section">
+            <h4>{{ getPositionLabel(positionKey) }}</h4>
+            <p>Candidați: {{ candidates[positionKey].length }}</p>
+            <div class="candidates-grid">
+              <div *ngFor="let candidate of candidates[positionKey]" 
+                  class="candidate-card" 
+                  [class.selected]="selectedCandidates[positionKey] === candidate.id"
+                  (click)="selectCandidate(positionKey, candidate.id)">
+                <div class="candidate-photo">
+                  <img *ngIf="candidate.photo_url" [src]="candidate.photo_url" alt="{{ candidate.name }}">
+                  <div *ngIf="!candidate.photo_url" class="no-photo">
+                    <i class="fas fa-user"></i>
+                  </div>
+                </div>
+                <div class="candidate-info">
+                  <p class="candidate-name">{{ candidate.name }}</p>
+                  <p class="candidate-party">{{ candidate.party }}</p>
+                  <div class="vote-checkbox">
+                    <i class="fas" [ngClass]="{'fa-check-circle': selectedCandidates[positionKey] === candidate.id, 'fa-circle': selectedCandidates[positionKey] !== candidate.id}"></i>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
-          <div class="candidate-info">
-            <p class="candidate-name">{{ candidate.name }}</p>
-            <p class="candidate-party">{{ candidate.party }}</p>
-            <div class="vote-checkbox">
-              <i class="fas" [ngClass]="{'fa-check-circle': selectedCandidates[positionKey] === candidate.id, 'fa-circle': selectedCandidates[positionKey] !== candidate.id}"></i>
-            </div>
+          
+          <div class="submit-vote">
+            <button class="btn-primary" (click)="submitVote()" [disabled]="objectKeys(selectedCandidates).length === 0">
+              Finalizează votul
+            </button>
           </div>
         </div>
       </div>
     </div>
+  </div>
+
+  <!-- Componenta de monitorizare video - un singur element, nu duplicat -->
+  <div *ngIf="isMonitoringActive" class="video-monitoring-container">
+    <div class="video-wrapper">
+      <video #videoElement autoplay playsinline [class.blurred]="showSecurityAlert"></video>
+      
+      <div *ngIf="faceDetected && !showSecurityAlert" 
+          class="face-box" 
+          [ngClass]="faceBoxClass"
+          [ngStyle]="{'top.px': faceBox?.top, 'left.px': faceBox?.left, 'width.px': faceBox?.width, 'height.px': faceBox?.height}">
+      </div>
+      
+      <div class="face-status-message" [ngClass]="faceBoxClass">
+        {{ faceMatchMessage }}
+      </div>
+    </div>
     
-    <div class="submit-vote">
-      <button class="btn-primary" (click)="submitVote()" [disabled]="objectKeys(selectedCandidates).length === 0">
-        Finalizează votul
-      </button>
+    <div *ngIf="showSecurityAlert" class="security-alert">
+      <i class="fas fa-exclamation-triangle"></i>
+      <h4>Alertă de securitate</h4>
+      <p>S-a detectat o potențială încălcare a procesului de vot.</p>
+      <p>{{ faceMatchMessage }}</p>
     </div>
   </div>
-</div>
 </div>

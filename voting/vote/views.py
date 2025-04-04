@@ -9,8 +9,13 @@ from .models import VotingSection, LocalCandidate
 from django.db.models import Q
 import re
 from .models import LocalVote
-from .services import VotingSectionAIService
+from .services_old import VotingSectionAIService
 import logging
+from .services.vote_monitoring import VoteMonitoringService
+from django.contrib.auth import get_user_model
+from django.core.files.storage import default_storage
+import numpy as np
+from PIL import Image
 
 logger = logging.getLogger(__name__)
 
@@ -453,3 +458,68 @@ class CheckUserVoteStatusView(APIView):
             'has_voted': False,
             'message': 'Nu ați votat încă în acest scrutin.'
         })
+    
+User = get_user_model()
+
+class VoteMonitoringView(APIView):
+    permission_classes = [IsAuthenticated]
+    
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.monitoring_service = VoteMonitoringService()
+    
+    def post(self, request):
+        """Primește imagini pentru monitorizarea votului și verifică identitatea utilizatorului"""
+        print("POST primit în VoteMonitoringView")
+        user = request.user
+        live_image = request.FILES.get('live_image')
+        
+        if not live_image:
+            return Response(
+                {"error": "Imaginea live este necesară pentru monitorizarea"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Verificăm dacă utilizatorul are imagine de buletin stocată
+        if not user.id_card_image:
+            return Response(
+                {"error": "Nu există imagine de referință pentru acest utilizator"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+            
+        try:
+            # Încărcăm imaginea de referință din buletin
+            id_card_path = user.id_card_image.path if default_storage.exists(user.id_card_image.name) else None
+            if not id_card_path:
+                return Response({"error": "Nu există imaginea de referință în baza de date."}, status=404)
+                
+            # Pregătim imaginea de buletin
+            id_card_image = Image.open(id_card_path).convert("RGB")
+            id_card_array = np.array(id_card_image)
+            
+            # Extragem encoding-ul feței din buletin
+            reference_encoding, error, _ = self.monitoring_service.detect_and_encode_face(id_card_array)
+            if reference_encoding is None:
+                return Response({"error": error}, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Citim imaginea live
+            live_image_data = live_image.read()
+            
+            # Verificăm identitatea
+            match, message, num_faces = self.monitoring_service.verify_voter_identity(
+                reference_encoding, 
+                live_image_data
+            )
+            
+            return Response({
+                "match": match,
+                "message": message,
+                "num_faces": num_faces
+            }, status=status.HTTP_200_OK)
+                
+        except Exception as e:
+            logger.error(f"Eroare în monitorizarea votului: {e}")
+            return Response(
+                {"error": f"Eroare în procesarea imaginii: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )

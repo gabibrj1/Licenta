@@ -7,7 +7,7 @@ import { ParliamentaryVoteComponent } from './parliamentary-vote/parliamentary-v
 import { LocalVoteComponent } from './local-vote/local-vote.component';
 import { VoteSimulationComponent } from './vote-simulation/vote-simulation.component';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
-
+import { VoteMonitoringService } from '../services/vote-monitoring.service';
 
 @NgModule({
   declarations: [
@@ -21,6 +21,9 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms';
     VoteRoutingModule,
     FormsModule,
     ReactiveFormsModule
-  ]
+  ],
+  providers: [
+    VoteMonitoringService
+  ],
 })
 export class VoteModule { }

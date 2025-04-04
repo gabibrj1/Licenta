@@ -1,6 +1,6 @@
 from django.urls import path
 from .views import VoteSettingsView, AdminVoteSettingsView
-from .views import UserVotingEligibilityView, FindVotingSectionView, LocalCandidatesView, SubmitLocalVoteView, CheckUserVoteStatusView
+from .views import UserVotingEligibilityView, FindVotingSectionView, LocalCandidatesView, SubmitLocalVoteView, CheckUserVoteStatusView,VoteMonitoringView
 
 urlpatterns = [
     path('vote-settings/', VoteSettingsView.as_view(), name='vote-settings'),
@@ -11,4 +11,5 @@ urlpatterns = [
     path('vote/local/candidates/', LocalCandidatesView.as_view(), name='local-candidates'),
     path('vote/local/submit/', SubmitLocalVoteView.as_view(), name='submit-local-vote'),
     path('vote/local/check-status/', CheckUserVoteStatusView.as_view(), name='check-user-vote-status'),
+    path('vote/monitoring/', VoteMonitoringView.as_view(), name='vote-monitoring'),
 ] 
