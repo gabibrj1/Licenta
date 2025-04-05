@@ -42,7 +42,7 @@ export class LocalVoteComponent implements OnInit {
   isProcessingFrame = false;
   securityViolation = false;
   lastVerificationTime = 0;
-  verificationInterval = 10000; // Verifică la fiecare 10 secunde
+  verificationInterval = 4000; // Verifică la fiecare 4 secunde
   consecutiveFailures = 0;
   maxConsecutiveFailures = 3;
   showSecurityAlert = false;
@@ -56,6 +56,18 @@ export class LocalVoteComponent implements OnInit {
   isTimerFlashing: boolean = false; // Pentru animație flash
   showTimerAlert: boolean = false; // Pentru alertele de timp rămas
   timerAlertMessage: string = '';
+
+  stampSound: HTMLAudioElement | null = null;
+
+  // Dialog de confirmare
+  showConfirmDialog = false;
+  candidatesForConfirmation: any[] = [];
+  contactInfo = '';
+  sendReceiptEmail = true;
+  receiptMethod = 'email';
+  confirmationInProgress = false;
+  isContactInfoValid = false;
+  
   
 
 
@@ -66,6 +78,7 @@ export class LocalVoteComponent implements OnInit {
     private router: Router,
     private cdr: ChangeDetectorRef
   ) {
+    this.loadStampSound();
     this.addressForm = this.fb.group({
       county: ['', [Validators.required, Validators.maxLength(2), this.countyValidator]],
       city: ['', [Validators.required]],
@@ -85,6 +98,27 @@ export class LocalVoteComponent implements OnInit {
       }
     });
   }
+
+  // Metodă pentru a încărca sunetul de ștampilă
+loadStampSound(): void {
+  try {
+    this.stampSound = new Audio();
+    this.stampSound.src = './assets/sounds/stamp-sound.mp3'; // Asigură-te că acest fișier există
+    this.stampSound.load();
+  } catch (error) {
+    console.error('Eroare la încărcarea sunetului de ștampilă:', error);
+  }
+}
+
+// Metodă pentru a reda sunetul de ștampilă
+playStampSound(): void {
+  if (this.stampSound) {
+    this.stampSound.currentTime = 0;
+    this.stampSound.play().catch(error => {
+      console.error('Eroare la redarea sunetului de ștampilă:', error);
+    });
+  }
+}
 
   // Metodă pentru pornirea timer-ului de vot
 startVoteTimer(): void {
@@ -678,46 +712,161 @@ ngOnDestroy(): void {
   this.stopCamera();
   this.stopVoteTimer(); 
 }
-
-  selectCandidate(position: string, candidateId: number): void {
+selectCandidate(position: string, candidateId: number): void {
+  // Verificăm dacă alegem același candidat sau unul diferit
+  const isToggle = this.selectedCandidates[position] === candidateId;
+  
+  if (isToggle) {
+    // Dacă este același candidat, anulăm selecția (un-vote)
+    delete this.selectedCandidates[position];
+  } else {
+    // Selectăm un candidat nou
     this.selectedCandidates[position] = candidateId;
+    
+    // Redăm sunetul de ștampilă
+    this.playStampSound();
+    
+    // Efect de vibrație ușoară pentru feedback tactil (opțional, pentru dispozitive mobile)
+    if (navigator.vibrate) {
+      navigator.vibrate(50);
+    }
+  }
+  
+  // Forțăm detectarea schimbărilor pentru a actualiza interfața imediat
+  this.cdr.detectChanges();
+}
+
+submitVote(): void {
+  if (Object.keys(this.selectedCandidates).length === 0) {
+    this.error = 'Trebuie să selectați cel puțin un candidat.';
+    return;
   }
 
-  submitVote(): void {
-    if (Object.keys(this.selectedCandidates).length === 0) {
-      this.error = 'Trebuie să selectați cel puțin un candidat.';
+  // Extragem informațiile despre candidații selectați pentru confirmare
+  this.candidatesForConfirmation = [];
+  
+  Object.keys(this.selectedCandidates).forEach(positionKey => {
+    const candidateId = this.selectedCandidates[positionKey];
+    const candidateList = this.candidates[positionKey];
+    const candidate = candidateList.find((c: any) => c.id === candidateId);
+    
+    if (candidate) {
+      this.candidatesForConfirmation.push({
+        id: candidate.id,
+        name: candidate.name,
+        party: candidate.party,
+        position: this.getPositionLabel(positionKey),
+        position_key: positionKey
+      });
+    }
+  });
+  
+  // Arată dialogul de confirmare cu detaliile candidaților
+  this.showConfirmDialog = true;
+  
+  // Oprim timer-ul când afișăm dialogul de confirmare
+  this.stopVoteTimer();
+}
+validateContactInfo(): void {
+  if (this.receiptMethod === 'email') {
+    // Verifică email-ul
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    this.isContactInfoValid = emailRegex.test(this.contactInfo);
+  } else if (this.receiptMethod === 'sms') {
+    // Verifică numărul de telefon (simplificat)
+    this.isContactInfoValid = this.contactInfo.length >= 10;
+  } else {
+    this.isContactInfoValid = false;
+  }
+}
+// Adaugă metoda de confirmare finală
+confirmFinalVote(): void {
+  // Validează informațiile de contact dacă se dorește primirea confirmării
+  if (this.sendReceiptEmail) {
+    this.validateContactInfo();
+    if (!this.isContactInfoValid) {
+      if (this.receiptMethod === 'email') {
+        this.error = 'Vă rugăm să introduceți o adresă de email validă.';
+      } else {
+        this.error = 'Vă rugăm să introduceți un număr de telefon valid.';
+      }
       return;
     }
-
-    // Optim timer ul de vot
-    this.stopVoteTimer();
-    
-    this.isLoading = true;
-    
-    // Procesează voturile pentru fiecare poziție
-    const promises = Object.keys(this.selectedCandidates).map(position => {
-      const candidateId = this.selectedCandidates[position];
-      
-      return this.localVoteService.submitVote({
-        candidate_id: candidateId,
-        voting_section_id: this.votingSection.id
-      }).toPromise();
-    });
-    
-    Promise.all(promises)
-      .then(responses => {
-        this.isLoading = false;
-        // Afișează un mesaj de succes
-        alert('Votul dumneavoastră a fost înregistrat cu succes!');
-        // Redirecționează către pagina principală
-        this.router.navigate(['/menu']);
-      })
-      .catch(error => {
-        this.isLoading = false;
-        this.error = error.error?.error || 'A apărut o eroare la înregistrarea votului.';
-        console.error('Error submitting vote:', error);
-      });
   }
+
+  this.confirmationInProgress = true;
+  this.error = '';
+  
+  // Ne asigurăm că transmitem și detaliul despre poziție (primar, consilier)
+  const candidatesToSend = this.candidatesForConfirmation.map(candidate => ({
+    id: candidate.id,
+    position_key: candidate.position_key, // Folosit în backend pentru a identifica poziția
+    name: candidate.name,
+    party: candidate.party
+  }));
+  
+  // Pregătește datele pentru cerere
+  const requestData = {
+    candidates: candidatesToSend,
+    voting_section_id: this.votingSection.id,
+    send_receipt: this.sendReceiptEmail,
+    receipt_method: this.receiptMethod,
+    contact_info: this.sendReceiptEmail ? this.contactInfo : ''
+  };
+  
+  console.log('Trimit datele pentru confirmare:', requestData);
+  
+  this.localVoteService.confirmVoteAndSendReceipt(requestData).subscribe({
+    next: (response) => {
+      this.confirmationInProgress = false;
+      this.showConfirmDialog = false;
+      
+      // Afișează un mesaj de succes
+      let message = 'Votul dumneavoastră a fost înregistrat cu succes!';
+      if (this.sendReceiptEmail) {
+        if (this.receiptMethod === 'email') {
+          message += ' O confirmare a fost trimisă la adresa de email furnizată.';
+        } else {
+          message += ' O confirmare va fi trimisă prin SMS (serviciu momentan indisponibil).';
+        }
+      }
+      
+      // Adaugă și mesajele de eroare, dacă există
+      if (response.errors && response.errors.length > 0) {
+        message += '\n\nAtenție: ' + response.errors.join('\n');
+      }
+      
+      alert(message);
+      
+      // Redirecționează către pagina principală
+      this.router.navigate(['/menu']);
+    },
+    error: (error) => {
+      this.confirmationInProgress = false;
+      this.error = error.error?.error || 'A apărut o eroare la înregistrarea votului.';
+      if (error.error?.errors && error.error.errors.length > 0) {
+        this.error += '\n' + error.error.errors.join('\n');
+      }
+      console.error('Error submitting vote:', error);
+    }
+  });
+}
+// Metoda pentru anularea confirmării
+cancelConfirmation(): void {
+  this.showConfirmDialog = false;
+  this.candidatesForConfirmation = [];
+  this.error = '';
+  
+  // Repornim timer-ul dacă anulăm confirmarea
+  this.startVoteTimer();
+}
+updateReceiptMethod(method: string): void {
+  this.receiptMethod = method;
+  this.contactInfo = ''; // resetăm informațiile de contact
+  this.isContactInfoValid = false;
+}
+
+
 
   redirectToIDRegistration(): void {
     this.router.navigate(['/auth'], { queryParams: { mode: 'id_card' }});

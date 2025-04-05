@@ -49,4 +49,26 @@ getCandidates(county: string, city: string, position?: string): Observable<any> 
   submitVote(data: { candidate_id: number, voting_section_id: number }): Observable<any> {
     return this.http.post(`${this.apiUrl}vote/local/submit/`, data);
   }
+  confirmVoteAndSendReceipt(data: { 
+    candidates: Array<any>, 
+    voting_section_id: number,
+    send_receipt: boolean,
+    receipt_method: string,
+    contact_info: string 
+  }): Observable<any> {
+    return this.http.post(`${this.apiUrl}vote/local/confirm-and-send/`, data);
+  }
+    // Metodă nouă pentru descărcarea PDF-ului cu confirmarea votului
+    downloadVoteReceiptPDF(voteReference: string): Observable<Blob> {
+      const url = `${this.apiUrl}vote/local/receipt-pdf/?vote_reference=${encodeURIComponent(voteReference)}`;
+      return this.http.get(url, {
+        responseType: 'blob'
+      });
+    }
+      // Helper pentru a deschide PDF-ul într-o nouă fereastră sau a-l descărca
+  openVoteReceiptPDF(voteReference: string): void {
+    const url = `${this.apiUrl}vote/local/receipt-pdf/?vote_reference=${encodeURIComponent(voteReference)}`;
+    window.open(url, '_blank');
+  }
+  
 }

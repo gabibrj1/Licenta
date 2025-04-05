@@ -1,6 +1,7 @@
 from django.urls import path
 from .views import VoteSettingsView, AdminVoteSettingsView
 from .views import UserVotingEligibilityView, FindVotingSectionView, LocalCandidatesView, SubmitLocalVoteView, CheckUserVoteStatusView,VoteMonitoringView
+from .views import ConfirmVoteAndSendReceiptView, GenerateVoteReceiptPDFView
 
 urlpatterns = [
     path('vote-settings/', VoteSettingsView.as_view(), name='vote-settings'),
@@ -12,4 +13,7 @@ urlpatterns = [
     path('vote/local/submit/', SubmitLocalVoteView.as_view(), name='submit-local-vote'),
     path('vote/local/check-status/', CheckUserVoteStatusView.as_view(), name='check-user-vote-status'),
     path('vote/monitoring/', VoteMonitoringView.as_view(), name='vote-monitoring'),
+    path('vote/local/confirm-and-send/', ConfirmVoteAndSendReceiptView.as_view(), name='confirm-vote-and-send'),
+    path('vote/local/receipt-pdf/', GenerateVoteReceiptPDFView.as_view(), name='generate-vote-receipt-pdf'),    
+
 ] 

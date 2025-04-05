@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; }
+        .header { background-color: #007bff; color: white; padding: 10px; text-align: center; }
+        .section { margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid #eee; }
+        .vote-info { background-color: #f9f9f9; padding: 15px; border-radius: 5px; }
+        .candidate-item { margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid #eee; }
+        .candidate-item:last-child { margin-bottom: 0; padding-bottom: 0; border-bottom: none; }
+        .download-btn { display: inline-block; background-color: #0080ff; color: white !important; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin-top: 15px;font-weight: 500;
+        box-shadow: none; border: none; text-align: center; width: 100%; max-width: 320px;}
+        .download-btn:hover { background-color: #0070e0; }
+        .footer { font-size: 12px; color: #777; text-align: center; margin-top: 30px; }
+        .warning { color: #ff0000; font-weight: bold; }
+        .reference { font-size: 24px; font-weight: bold; color: #007bff; text-align: center; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>SmartVote - Confirmare Vot</h1>
+        </div>
+        
+        <div class="section">
+            <h2>Bună ziua, {{ user_name }}</h2>
+            <p>Vă mulțumim pentru participarea la procesul electoral. Votul dumneavoastră a fost înregistrat cu succes.</p>
+            <p class="reference">Referință vot: {{ vote_reference }}</p>
+            <p>Data și ora: {{ vote_datetime }}</p>
+        </div>
+        
+        <div class="section vote-info">
+            <h3>Candidați votați:</h3>
+            {% for candidate in candidates %}
+            <div class="candidate-item">
+                <p><strong>{{ candidate.position }}:</strong> {{ candidate.name }}</p>
+                <p><strong>Partid:</strong> {{ candidate.party }}</p>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <div class="section">
+            <h3>Secția de votare:</h3>
+            <p><strong>Număr secție:</strong> {{ section_id }}</p>
+            <p><strong>Nume secție:</strong> {{ section_name }}</p>
+            <p><strong>Adresă:</strong> {{ section_address }}</p>
+            <p><strong>Localitate:</strong> {{ section_city }}</p>
+            <p><strong>Județ:</strong> {{ section_county }}</p>
+            
+            <div style="text-align: center; margin-top: 20px;">
+                <a href="{{ download_url }}" class="download-btn">Descarcă confirmarea în format PDF</a>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p class="warning">ATENȚIE: Acest mesaj este generat automat și confidențial. Vă rugăm să nu răspundeți la acest email.</p>
+            <p>Toate drepturile rezervate &copy; SmartVote 2024</p>
+        </div>
+    </div>
+</body>
+</html>

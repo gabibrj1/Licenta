@@ -12,6 +12,7 @@ import { VoteSimulationComponent } from './vote/vote-simulation/vote-simulation.
 import { PresidentialVoteComponent } from './vote/presidential-vote/presidential-vote.component';
 import { ParliamentaryVoteComponent } from './vote/parliamentary-vote/parliamentary-vote.component';
 import { LocalVoteComponent } from './vote/local-vote/local-vote.component';
+import { VoteReceiptComponent } from './components/vote-receipt/vote-receipt.component';
 
 import { AppointmentConfirmedComponent } from './appointments/appointment-confirmed.component';
 import { AppointmentRejectedComponent } from './appointments/appointment-rejected.component';
@@ -46,6 +47,9 @@ const routes: Routes = [
   { path: 'appointment-rejected', component: AppointmentRejectedComponent },
   { path: 'appointment-error', component: AppointmentErrorComponent },
   { path: 'harta', component: MapComponent },
+
+  // Adăugăm ruta pentru confirmarea de vot
+  { path: 'vote-receipt', component: VoteReceiptComponent, canActivate: [AuthGuard] },
   
 
   { path: '**', redirectTo: '/auth'} //redirect pt rute inexistente

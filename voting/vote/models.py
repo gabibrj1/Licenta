@@ -97,10 +97,12 @@ class LocalCandidate(models.Model):
 
 class LocalVote(models.Model):
     """Model pentru voturile locale înregistrate"""
+   
     user = models.ForeignKey('users.User', on_delete=models.CASCADE)
     candidate = models.ForeignKey(LocalCandidate, on_delete=models.CASCADE)
     voting_section = models.ForeignKey(VotingSection, on_delete=models.CASCADE)
     vote_datetime = models.DateTimeField(auto_now_add=True)
+    vote_reference = models.CharField(max_length=20, blank=True, null=True)  # Adăugat câmp pentru referință unică
     
     class Meta:
         verbose_name = "Vot Local"

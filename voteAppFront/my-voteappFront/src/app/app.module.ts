@@ -45,6 +45,7 @@ import { VoteMonitoringService } from './services/vote-monitoring.service';
 
 import { AuthGuard } from './guards/auth.guard';
 import { ScheduleDialogComponent } from './schedule-dialog/schedule-dialog.component';
+import { VoteReceiptComponent } from './components/vote-receipt/vote-receipt.component';
 
 @NgModule({
   declarations: [
@@ -65,7 +66,8 @@ import { ScheduleDialogComponent } from './schedule-dialog/schedule-dialog.compo
     AppointmentConfirmedComponent,
     AppointmentRejectedComponent,
     AppointmentErrorComponent,
-    MapComponent
+    MapComponent,
+    VoteReceiptComponent
   ],
   imports: [
     BrowserModule,

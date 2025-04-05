@@ -136,25 +136,46 @@
     </div>
   </div>
 
-  <!-- Avertisment de monitorizare video -->
-  <div *ngIf="showMonitoringWarning" class="monitoring-warning-overlay">
-    <div class="monitoring-warning-box">
+<!-- Avertisment de monitorizare video -->
+<div *ngIf="showMonitoringWarning" class="monitoring-warning-overlay">
+  <div class="monitoring-warning-box">
+    <div class="warning-header">
+      <i class="fas fa-video"></i>
       <h3>Avertisment: Monitorizare video</h3>
-      <p>Pentru securitatea procesului de vot, acest modul va utiliza camera pentru:</p>
+    </div>
+    
+    <div class="warning-content">
+      <p class="intro-text">Pentru securitatea procesului de vot, acest modul va utiliza camera pentru:</p>
       <ul>
-        <li>Verificarea continuă a identității dvs. (comparare cu imaginea buletinului)</li>
-        <li>Detectarea prezenței mai multor persoane</li>
-        <li>Prevenirea fraudei și a tentativelor de spoofing</li>
+        <li><i class="fas fa-id-card"></i> Verificarea continuă a identității dvs. (comparare cu imaginea buletinului)</li>
+        <li><i class="fas fa-users"></i> Detectarea prezenței mai multor persoane</li>
+        <li><i class="fas fa-shield-alt"></i> Prevenirea fraudei și a tentativelor de spoofing</li>
       </ul>
-      <p>Imaginile sunt procesate doar local și nu sunt stocate.</p>
-      <p class="warning-text">Dacă sunt detectate încălcări de securitate (persoane multiple, identitate neconfirmată), procesul de vot va fi întrerupt automat.</p>
       
-      <div class="button-group">
-        <button class="btn-secondary" (click)="refuseMonitoring()">Refuz (Ieșire)</button>
-        <button class="btn-primary" (click)="acceptMonitoring()">Accept monitorizarea</button>
+      <div class="lighting-notice">
+        <i class="fas fa-lightbulb pulse-icon"></i>
+        <p>Pentru o detectare optimă, asigurați-vă că vă aflați într-un spațiu cu lumină neutră. Lumina prea puternică sau prea slabă poate afecta acuratețea detecției, deoarece modelul de recunoaștere facială este sensibil la condițiile de iluminare.</p>
       </div>
+      
+      <div class="privacy-notice">
+        <p><i class="fas fa-lock"></i> Imaginile sunt procesate doar local și nu sunt stocate.</p>
+      </div>
+      
+      <p class="warning-text">
+        <i class="fas fa-exclamation-triangle"></i> Dacă sunt detectate încălcări de securitate (persoane multiple, identitate neconfirmată), procesul de vot va fi întrerupt automat.
+      </p>
+    </div>
+    
+    <div class="button-group">
+      <button class="btn-secondary btn-refuse" (click)="refuseMonitoring()">
+        <i class="fas fa-times-circle"></i> Refuz (Ieșire)
+      </button>
+      <button class="btn-primary btn-accept" (click)="acceptMonitoring()">
+        <i class="fas fa-check-circle"></i> Accept monitorizarea
+      </button>
     </div>
   </div>
+</div>
   
   <!-- Pasul 4: Buletinul de vot -->
   <div *ngIf="currentStep === 4" class="vote-container">
@@ -203,6 +224,14 @@
                     <i class="fas" [ngClass]="{'fa-check-circle': selectedCandidates[positionKey] === candidate.id, 'fa-circle': selectedCandidates[positionKey] !== candidate.id}"></i>
                   </div>
                 </div>
+
+                <div class="vote-stamp" *ngIf="selectedCandidates[positionKey] === candidate.id">
+                  <svg viewBox="0 0 100 100" class="stamp-svg">
+                    <circle cx="50" cy="50" r="45" class="stamp-circle" />
+                    <text x="50" y="55" text-anchor="middle" class="stamp-text">VOTAT</text>
+                  </svg>
+                </div>
+
               </div>
             </div>
           </div>
@@ -238,6 +267,83 @@
       <h4>Alertă de securitate</h4>
       <p>S-a detectat o potențială încălcare a procesului de vot.</p>
       <p>{{ faceMatchMessage }}</p>
+    </div>
+  </div>
+</div>
+<!-- Dialog de confirmare vot -->
+<div *ngIf="showConfirmDialog" class="confirm-vote-overlay">
+  <div class="confirm-vote-dialog">
+    <div class="dialog-header">
+      <h3>Confirmați votul dumneavoastră</h3>
+    </div>
+    
+    <div class="dialog-content">
+      <p>Sunteți pe cale să votați pentru:</p>
+      
+      <div class="vote-summary">
+        <div *ngFor="let candidate of candidatesForConfirmation" class="candidate-summary">
+          <p><strong>{{ candidate.position }}:</strong> {{ candidate.name }} ({{ candidate.party }})</p>
+        </div>
+      </div>
+      
+      <p>Secția de votare: {{ votingSection?.name }} ({{ votingSection?.section_id }})</p>
+      
+      <!-- Mesaj de eroare dacă există -->
+      <div *ngIf="error" class="error-message">
+        <p>{{ error }}</p>
+      </div>
+      
+      <div class="receipt-options">
+        <div class="form-check">
+          <input type="checkbox" id="sendReceiptEmail" [(ngModel)]="sendReceiptEmail" class="form-check-input">
+          <label for="sendReceiptEmail" class="form-check-label">
+            Doresc să primesc o confirmare cu detaliile votului
+          </label>
+        </div>
+        
+        <div *ngIf="sendReceiptEmail" class="receipt-method mt-2">
+          <div class="receipt-type">
+            <div class="form-check">
+              <input type="radio" id="receiptEmail" name="receiptMethod" value="email" 
+                    [(ngModel)]="receiptMethod" class="form-check-input" 
+                    (change)="updateReceiptMethod('email')">
+              <label for="receiptEmail" class="form-check-label">
+                Prin email
+              </label>
+            </div>
+            
+            <div class="form-check disabled">
+              <input type="radio" id="receiptSMS" name="receiptMethod" value="sms" 
+                    [(ngModel)]="receiptMethod" class="form-check-input" 
+                    (change)="updateReceiptMethod('sms')" [disabled]="true">
+              <label for="receiptSMS" class="form-check-label text-muted">
+                Prin SMS (indisponibil momentan)
+              </label>
+            </div>
+          </div>
+          
+          <div class="contact-info-input">
+            <input type="text" 
+                   [placeholder]="receiptMethod === 'email' ? 'Introduceți adresa de email' : 'Introduceți numărul de telefon'" 
+                   [(ngModel)]="contactInfo" 
+                   (input)="validateContactInfo()"
+                   class="form-control"
+                   [ngClass]="{'is-invalid': !isContactInfoValid && contactInfo}">
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="dialog-footer">
+      <button class="btn-secondary" (click)="cancelConfirmation()" [disabled]="confirmationInProgress">
+        Anulează
+      </button>
+      <button class="btn-primary" (click)="confirmFinalVote()" [disabled]="confirmationInProgress || (sendReceiptEmail && !isContactInfoValid && contactInfo)">
+        <span *ngIf="confirmationInProgress">
+          <i class="fas fa-spinner fa-spin"></i> Se procesează...
+        </span>
+        <span *ngIf="!confirmationInProgress">Confirm votul</span>
+      </button>
     </div>
   </div>
 </div>
