@@ -1,12 +1,241 @@
 <div class="presidential-vote">
-    <h2>Vot Prezidențial</h2>
+  <h2>Vot Prezidențial</h2>
+  
+  <div *ngIf="isLoading" class="loading">
+    <p>Se încarcă...</p>
+  </div>
+  
+  <div *ngIf="error" class="error">
+    <p>{{ error }}</p>
+  </div>
+  
+  <!-- Pasul 1: Verificare eligibilitate -->
+  <div *ngIf="currentStep === 1" class="vote-container">
+    <h3>Verificare eligibilitate</h3>
     
-    <div class="vote-container">
-      <p>Selectați candidatul pentru care doriți să votați:</p>
+    <div *ngIf="!isEligible && authType === 'email'" class="auth-warning">
+      <p>Pentru a participa la votul prezidențial, trebuie să vă autentificați folosind buletinul.</p>
+      <p>Această metodă de vot necesită verificarea identității prin buletin pentru a vă confirma eligibilitatea.</p>
+      <button class="btn-primary" (click)="redirectToIDRegistration()">Înregistrare cu buletin</button>
+    </div>
+    
+    <div *ngIf="isEligible && userInfo" class="user-info">
+      <p><strong>CNP:</strong> {{ userInfo.cnp }}</p>
+      <p><strong>Nume:</strong> {{ userInfo.last_name }} {{ userInfo.first_name }}</p>
       
-      <div class="candidates-list">
-        <!-- Aici va fi lista de candidați -->
-        <p>Componenta este în curs de dezvoltare...</p>
+      <p>Sunteți eligibil pentru a vota la alegerile prezidențiale.</p>
+      
+      <div *ngIf="candidates && candidates.length > 0" class="candidate-preview">
+        <p>În acest tur de alegeri prezidențiale, veți putea vota unul dintre cei {{ candidates.length }} candidați.</p>
+        <button class="btn-primary" (click)="proceedToVoting()">Continuați către vot</button>
+      </div>
+      
+      <div *ngIf="candidates && candidates.length === 0" class="no-candidates-error">
+        <p>În acest moment nu există candidați înregistrați pentru alegerile prezidențiale.</p>
       </div>
     </div>
   </div>
+
+  <!-- Avertisment de monitorizare video -->
+  <div *ngIf="showMonitoringWarning" class="monitoring-warning-overlay">
+    <div class="monitoring-warning-box">
+      <div class="warning-header">
+        <i class="fas fa-video"></i>
+        <h3>Avertisment: Monitorizare video</h3>
+      </div>
+      
+      <div class="warning-content">
+        <p class="intro-text">Pentru securitatea procesului de vot, acest modul va utiliza camera pentru:</p>
+        <ul>
+          <li><i class="fas fa-id-card"></i> Verificarea continuă a identității dvs. (comparare cu imaginea buletinului)</li>
+          <li><i class="fas fa-users"></i> Detectarea prezenței mai multor persoane</li>
+          <li><i class="fas fa-shield-alt"></i> Prevenirea fraudei și a tentativelor de spoofing</li>
+        </ul>
+        
+        <div class="lighting-notice">
+          <i class="fas fa-lightbulb pulse-icon"></i>
+          <p>Pentru o detectare optimă, asigurați-vă că vă aflați într-un spațiu cu lumină neutră. Lumina prea puternică sau prea slabă poate afecta acuratețea detecției, deoarece modelul de recunoaștere facială este sensibil la condițiile de iluminare.</p>
+        </div>
+        
+        <div class="privacy-notice">
+          <p><i class="fas fa-lock"></i> Imaginile sunt procesate doar local și nu sunt stocate.</p>
+        </div>
+        
+        <p class="warning-text">
+          <i class="fas fa-exclamation-triangle"></i> Dacă sunt detectate încălcări de securitate (persoane multiple, identitate neconfirmată), procesul de vot va fi întrerupt automat.
+        </p>
+      </div>
+      
+      <div class="button-group">
+        <button class="btn-secondary btn-refuse" (click)="refuseMonitoring()">
+          <i class="fas fa-times-circle"></i> Refuz (Ieșire)
+        </button>
+        <button class="btn-primary btn-accept" (click)="acceptMonitoring()">
+          <i class="fas fa-check-circle"></i> Accept monitorizarea
+        </button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Pasul 2: Buletinul de vot prezidențial -->
+  <div *ngIf="currentStep === 2" class="vote-container">
+    <h3>Buletin de vot pentru alegerile prezidențiale</h3>
+
+    <!-- Timer-ul de vot -->
+    <div class="vote-timer" [ngClass]="{'timer-warning': isTimerWarning, 'timer-danger': isTimerDanger, 'timer-flash': isTimerFlashing}">
+      <i class="fas fa-clock"></i>
+      <span>Timp rămas: {{ formattedTimeRemaining }}</span>
+    </div>
+    
+    <!-- Alerte timer -->
+    <div *ngIf="showTimerAlert" class="timer-alert">
+      <i class="fas fa-exclamation-triangle"></i>
+      <span>{{ timerAlertMessage }}</span>
+    </div>
+    
+    <div class="voting-instructions">
+      <p>Selectați <strong>un singur candidat</strong> pentru funcția de Președinte al României.</p>
+    </div>
+    
+    <div class="voting-layout">
+      <!-- Zona de buletin de vot -->
+      <div class="ballot-container">
+        <div *ngIf="candidates && candidates.length > 0" class="ballot">
+          <div class="candidates-grid">
+            <div *ngFor="let candidate of candidates" 
+                class="candidate-card" 
+                [class.selected]="selectedCandidate === candidate.id"
+                (click)="selectCandidate(candidate.id)">
+              <div class="candidate-photo">
+                <img *ngIf="candidate.photo_url" [src]="candidate.photo_url" alt="{{ candidate.name }}">
+                <div *ngIf="!candidate.photo_url" class="no-photo">
+                  <i class="fas fa-user"></i>
+                </div>
+              </div>
+              <div class="candidate-info">
+                <p class="candidate-name">{{ candidate.name }}</p>
+                <p class="candidate-party">{{ candidate.party }}</p>
+                <div class="vote-checkbox">
+                  <i class="fas" [ngClass]="{'fa-check-circle': selectedCandidate === candidate.id, 'fa-circle': selectedCandidate !== candidate.id}"></i>
+                </div>
+              </div>
+
+              <div class="vote-stamp" *ngIf="selectedCandidate === candidate.id">
+                <svg viewBox="0 0 100 100" class="stamp-svg">
+                  <circle cx="50" cy="50" r="45" class="stamp-circle" />
+                  <text x="50" y="55" text-anchor="middle" class="stamp-text">VOTAT</text>
+                </svg>
+              </div>
+            </div>
+          </div>
+          
+          <div class="submit-vote">
+            <button class="btn-primary" (click)="submitVote()" [disabled]="selectedCandidate === null">
+              Finalizează votul
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Componenta de monitorizare video -->
+  <div *ngIf="isMonitoringActive" class="video-monitoring-container">
+    <div class="video-wrapper">
+      <video #videoElement autoplay playsinline [class.blurred]="showSecurityAlert"></video>
+      
+      <div *ngIf="faceDetected && !showSecurityAlert" 
+          class="face-box" 
+          [ngClass]="faceBoxClass"
+          [ngStyle]="{'top.px': faceBox?.top, 'left.px': faceBox?.left, 'width.px': faceBox?.width, 'height.px': faceBox?.height}">
+      </div>
+      
+      <div class="face-status-message" [ngClass]="faceBoxClass">
+        {{ faceMatchMessage }}
+      </div>
+    </div>
+    
+    <div *ngIf="showSecurityAlert" class="security-alert">
+      <i class="fas fa-exclamation-triangle"></i>
+      <h4>Alertă de securitate</h4>
+      <p>S-a detectat o potențială încălcare a procesului de vot.</p>
+      <p>{{ faceMatchMessage }}</p>
+    </div>
+  </div>
+
+  <!-- Dialog de confirmare vot -->
+  <div *ngIf="showConfirmDialog" class="confirm-vote-overlay">
+    <div class="confirm-vote-dialog">
+      <div class="dialog-header">
+        <h3>Confirmați votul dumneavoastră</h3>
+      </div>
+      
+      <div class="dialog-content">
+        <p>Sunteți pe cale să votați pentru:</p>
+        
+        <div class="vote-summary">
+          <div *ngIf="candidateForConfirmation" class="candidate-summary">
+            <p><strong>Președinte al României:</strong> {{ candidateForConfirmation.name }} ({{ candidateForConfirmation.party }})</p>
+          </div>
+        </div>
+        
+        <!-- Mesaj de eroare dacă există -->
+        <div *ngIf="error" class="error-message">
+          <p>{{ error }}</p>
+        </div>
+        
+        <div class="receipt-options">
+          <div class="form-check">
+            <input type="checkbox" id="sendReceiptEmail" [(ngModel)]="sendReceiptEmail" class="form-check-input">
+            <label for="sendReceiptEmail" class="form-check-label">
+              Doresc să primesc o confirmare cu detaliile votului
+            </label>
+          </div>
+          
+          <div *ngIf="sendReceiptEmail" class="receipt-method mt-2">
+            <div class="receipt-type">
+              <div class="form-check">
+                <input type="radio" id="receiptEmail" name="receiptMethod" value="email" 
+                      [(ngModel)]="receiptMethod" class="form-check-input" 
+                      (change)="updateReceiptMethod('email')">
+                <label for="receiptEmail" class="form-check-label">
+                  Prin email
+                </label>
+              </div>
+              
+              <div class="form-check disabled">
+                <input type="radio" id="receiptSMS" name="receiptMethod" value="sms" 
+                      [(ngModel)]="receiptMethod" class="form-check-input" 
+                      (change)="updateReceiptMethod('sms')" [disabled]="true">
+                <label for="receiptSMS" class="form-check-label text-muted">
+                  Prin SMS (indisponibil momentan)
+                </label>
+              </div>
+            </div>
+            
+            <div class="contact-info-input">
+              <input type="text" 
+                     [placeholder]="receiptMethod === 'email' ? 'Introduceți adresa de email' : 'Introduceți numărul de telefon'" 
+                     [(ngModel)]="contactInfo" 
+                     (input)="validateContactInfo()"
+                     class="form-control"
+                     [ngClass]="{'is-invalid': !isContactInfoValid && contactInfo}">
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="dialog-footer">
+        <button class="btn-secondary" (click)="cancelConfirmation()" [disabled]="confirmationInProgress">
+          Anulează
+        </button>
+        <button class="btn-primary" (click)="confirmFinalVote()" [disabled]="confirmationInProgress || (sendReceiptEmail && !isContactInfoValid && contactInfo)">
+          <span *ngIf="confirmationInProgress">
+            <i class="fas fa-spinner fa-spin"></i> Se procesează...
+          </span>
+          <span *ngIf="!confirmationInProgress">Confirm votul</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

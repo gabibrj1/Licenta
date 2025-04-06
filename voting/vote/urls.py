@@ -2,7 +2,7 @@ from django.urls import path
 from .views import VoteSettingsView, AdminVoteSettingsView
 from .views import UserVotingEligibilityView, FindVotingSectionView, LocalCandidatesView, SubmitLocalVoteView, CheckUserVoteStatusView,VoteMonitoringView
 from .views import ConfirmVoteAndSendReceiptView, GenerateVoteReceiptPDFView
-
+from .views import UserPresidentialVotingEligibilityView, PresidentialCandidatesView, CheckPresidentialVoteStatusView, SubmitPresidentialVoteView, GeneratePresidentialVoteReceiptPDFView
 urlpatterns = [
     path('vote-settings/', VoteSettingsView.as_view(), name='vote-settings'),
     path('admin/vote-settings/', AdminVoteSettingsView.as_view(), name='admin-vote-settings'),
@@ -15,5 +15,10 @@ urlpatterns = [
     path('vote/monitoring/', VoteMonitoringView.as_view(), name='vote-monitoring'),
     path('vote/local/confirm-and-send/', ConfirmVoteAndSendReceiptView.as_view(), name='confirm-vote-and-send'),
     path('vote/local/receipt-pdf/', GenerateVoteReceiptPDFView.as_view(), name='generate-vote-receipt-pdf'),    
+    path('vote/presidential/eligibility/', UserPresidentialVotingEligibilityView.as_view(), name='presidential-eligibility'),
+    path('vote/presidential/candidates/', PresidentialCandidatesView.as_view(), name='presidential-candidates'),
+    path('vote/presidential/check-status/', CheckPresidentialVoteStatusView.as_view(), name='check-presidential-vote-status'),
+    path('vote/presidential/submit/', SubmitPresidentialVoteView.as_view(), name='submit-presidential-vote'),
+    path('vote/presidential/receipt-pdf/', GeneratePresidentialVoteReceiptPDFView.as_view(), name='generate-presidential-vote-receipt-pdf'),
 
 ] 

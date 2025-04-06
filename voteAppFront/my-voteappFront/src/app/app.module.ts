@@ -42,6 +42,7 @@ import { MapComponent } from './map/map.component';
 import { NgxEchartsModule } from 'ngx-echarts';
 import { VoteModule } from './vote/vote.module';
 import { VoteMonitoringService } from './services/vote-monitoring.service'; 
+import { PresidentialVoteService } from './services/presidential-vote.service';
 
 import { AuthGuard } from './guards/auth.guard';
 import { ScheduleDialogComponent } from './schedule-dialog/schedule-dialog.component';
@@ -102,7 +103,8 @@ import { VoteReceiptComponent } from './components/vote-receipt/vote-receipt.com
   providers: [
     { provide: HTTP_INTERCEPTORS, useClass: CsrfInterceptor, multi: true },
     { provide: HTTP_INTERCEPTORS, useClass: AuthInterceptor, multi: true },
-    VoteMonitoringService  
+    VoteMonitoringService,
+    PresidentialVoteService
   ],
   bootstrap: [AppComponent]
 })

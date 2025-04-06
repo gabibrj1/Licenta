@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import VoteSettings, VotingSection, LocalCandidate, LocalVote
+from .models import VoteSettings, VotingSection, LocalCandidate, LocalVote, PresidentialCandidate, PresidentialVote
 from django import forms
 from django.core.exceptions import ValidationError  
 
@@ -59,4 +59,25 @@ class LocalVoteAdmin(admin.ModelAdmin):
         # Preîncărcăm relațiile pentru a evita query-uri multiple
         return super().get_queryset(request).select_related(
             'user', 'candidate', 'voting_section'
+        )
+
+@admin.register(PresidentialCandidate)
+class PresidentialCandidateAdmin(admin.ModelAdmin):
+    list_display = ('name', 'party', 'order_nr')  # Modificat din 'order' în 'order_nr'
+    search_fields = ('name', 'party')
+    list_filter = ('party',)
+    ordering = ('order_nr', 'name')  # Modificat din 'order' în 'order_nr'
+
+@admin.register(PresidentialVote)
+class PresidentialVoteAdmin(admin.ModelAdmin):
+    list_display = ('user', 'candidate', 'vote_datetime', 'vote_reference')
+    search_fields = ('user__email', 'user__cnp', 'user__first_name', 'user__last_name', 'candidate__name', 'vote_reference')
+    list_filter = ('vote_datetime', 'candidate')
+    readonly_fields = ('user', 'candidate', 'vote_datetime', 'vote_reference')
+    date_hierarchy = 'vote_datetime'
+    
+    def get_queryset(self, request):
+        # Preîncărcăm relațiile pentru a evita query-uri multiple
+        return super().get_queryset(request).select_related(
+            'user', 'candidate'
         )

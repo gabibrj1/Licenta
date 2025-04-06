@@ -1,0 +1,916 @@
+.presidential-vote {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 20px;
+    
+    h2 {
+      color: #3498db;
+      text-align: center;
+      margin-bottom: 30px;
+      font-weight: 600;
+      font-size: 2rem;
+    }
+    
+    h3 {
+      color: #3498db;
+      margin-bottom: 20px;
+      font-weight: 500;
+      font-size: 1.5rem;
+    }
+    
+    .loading {
+      text-align: center;
+      margin: 20px 0;
+      color: #fff;
+    }
+    
+    .error {
+      background-color: #f8d7da;
+      color: #721c24;
+      padding: 15px;
+      border-radius: 4px;
+      margin: 15px 0;
+      font-weight: 500;
+    }
+    
+    .vote-container {
+      background-color: rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+      padding: 30px;
+      margin-bottom: 20px;
+      backdrop-filter: blur(5px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    .auth-warning {
+      text-align: center;
+      color: #fff;
+      
+      p {
+        margin-bottom: 15px;
+        font-size: 1.1rem;
+      }
+    }
+    
+    .user-info {
+      background-color: rgba(52, 152, 219, 0.1);
+      padding: 20px;
+      border-radius: 5px;
+      margin-bottom: 20px;
+      border-left: 4px solid #3498db;
+      
+      p {
+        margin: 10px 0;
+        color: #fff;
+        font-size: 1.1rem;
+        
+        strong {
+          color: #3498db;
+          margin-right: 5px;
+        }
+      }
+    }
+    
+    .candidate-preview {
+      background-color: rgba(255, 255, 255, 0.05);
+      padding: 15px;
+      border-radius: 5px;
+      margin-top: 20px;
+      
+      p {
+        margin-bottom: 15px;
+      }
+      
+      button {
+        display: block;
+        margin: 0 auto;
+      }
+    }
+    
+    .voting-instructions {
+      text-align: center;
+      margin-bottom: 25px;
+      padding: 15px;
+      background-color: rgba(52, 152, 219, 0.1);
+      border-radius: 5px;
+      border-left: 4px solid #3498db;
+      
+      p {
+        color: #fff;
+        font-size: 1.1rem;
+        margin: 0;
+        
+        strong {
+          color: #3498db;
+        }
+      }
+    }
+    
+    .button-group {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 30px;
+      gap: 15px;
+    }
+    
+    .btn-primary {
+      background-color: #3498db;
+      color: white;
+      border: none;
+      padding: 12px 25px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.2s ease;
+      font-size: 1rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      
+      &:hover {
+        background-color: #2980b9;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      }
+      
+      &:active {
+        transform: translateY(0);
+      }
+      
+      &:disabled {
+        background-color: rgba(52, 152, 219, 0.5);
+        cursor: not-allowed;
+        transform: none;
+        box-shadow: none;
+      }
+    }
+    
+    .btn-secondary {
+      background-color: rgba(255, 255, 255, 0.1);
+      color: #fff;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      padding: 12px 25px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: all 0.2s ease;
+      font-size: 1rem;
+      
+      &:hover {
+        background-color: rgba(255, 255, 255, 0.2);
+        transform: translateY(-2px);
+      }
+      
+      &:active {
+        transform: translateY(0);
+      }
+    }
+    
+    // Stiluri specifice pentru buletinul de vot prezidențial
+    .ballot {
+      margin-top: 25px;
+      
+      .candidates-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+        gap: 25px;
+      }
+      
+      .candidate-card {
+        background-color: rgba(255, 255, 255, 0.05);
+        border: 2px solid rgba(255, 255, 255, 0.1);
+        border-radius: 8px;
+        padding: 20px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        position: relative;
+        min-height: 250px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        
+        &:hover {
+          border-color: rgba(52, 152, 219, 0.5);
+          background-color: rgba(255, 255, 255, 0.1);
+          transform: translateY(-5px);
+          box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        &.selected {
+          border-color: #3498db;
+          background-color: rgba(52, 152, 219, 0.2);
+          transform: translateY(-5px);
+          box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+          animation: stamp-animation 0.4s ease-out;
+        }
+        
+        @keyframes stamp-animation {
+          0% {
+            transform: scale(1);
+          }
+          40% {
+            transform: scale(0.95);
+          }
+          70% {
+            transform: scale(1.02);
+          }
+          100% {
+            transform: scale(1);
+          }
+        }
+  
+        .vote-stamp {
+          position: absolute;
+          bottom: 15px;
+          right: 15px;
+          width: 60px;
+          height: 60px;
+          z-index: 2;
+          animation: stamp-appear 0.5s ease-out;
+          transform-origin: center;
+          filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.4));
+        }
+  
+        @keyframes stamp-appear {
+          0% {
+            opacity: 0;
+            transform: scale(0) rotate(-45deg);
+          }
+          70% {
+            opacity: 1;
+            transform: scale(1.2) rotate(0deg);
+          }
+          100% {
+            transform: scale(1) rotate(0deg);
+          }
+        }
+  
+        .stamp-svg {
+          width: 100%;
+          height: 100%;
+        }
+  
+        .stamp-circle {
+          fill: rgba(52, 152, 219, 0.9);
+          stroke: #ffffff;
+          stroke-width: 2px;
+        }
+  
+        .stamp-text {
+          fill: #ffffff;
+          font-family: Arial, sans-serif;
+          font-weight: bold;
+          font-size: 20px;
+        }
+        
+        .candidate-photo {
+          width: 120px;
+          height: 120px;
+          margin: 0 auto 15px;
+          overflow: hidden;
+          border-radius: 50%;
+          border: 3px solid rgba(255, 255, 255, 0.2);
+          
+          img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+          }
+          
+          .no-photo {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: rgba(255, 255, 255, 0.1);
+            
+            i {
+              font-size: 48px;
+              color: rgba(255, 255, 255, 0.5);
+            }
+          }
+        }
+        
+        .candidate-info {
+          text-align: center;
+          color: #fff;
+          width: 100%;
+          
+          .candidate-name {
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 1.25rem;
+          }
+          
+          .candidate-party {
+            font-size: 0.95rem;
+            color: rgba(255, 255, 255, 0.7);
+            font-style: italic;
+            margin-bottom: 15px;
+            min-height: 40px;
+          }
+          
+          .vote-checkbox {
+            margin-top: 15px;
+            
+            i {
+              font-size: 24px;
+              color: #3498db;
+              transition: all 0.2s ease;
+              
+              &.fa-check-circle {
+                color: #2ecc71;
+                transform: scale(1.2);
+              }
+            }
+          }
+        }
+      }
+      
+      .submit-vote {
+        margin-top: 40px;
+        text-align: center;
+        
+        button {
+          padding: 15px 40px;
+          font-size: 1.1rem;
+        }
+      }
+    }
+  
+    // Stiluri pentru componenta de monitorizare video
+    .video-monitoring-container {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      width: 240px;
+      background-color: rgba(0, 0, 0, 0.1);
+      border-radius: 8px;
+      padding: 4px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+      z-index: 900;
+      border: 1px solid rgba(52, 152, 219, 0.5);
+    }
+  
+    .video-wrapper {
+      position: relative;
+      width: 100%;
+      height: 0;
+      padding-bottom: 75%; /* 4:3 aspect ratio */
+      overflow: hidden;
+      border-radius: 6px;
+    }
+  
+    .video-wrapper video {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+  
+    .video-wrapper video.blurred {
+      filter: blur(8px);
+    }
+  
+    /* Stiluri pentru cutia de detecție a feței */
+    .face-box {
+      position: absolute;
+      border: 3px solid;
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
+  
+    .face-box-default {
+      border-color: rgba(255, 255, 255, 0.8);
+    }
+  
+    .face-match-success {
+      border-color: #4CAF50;
+      color: #4CAF50;
+    }
+  
+    .face-match-error {
+      border-color: #FF5722;
+      color: #FF5722;
+    }
+  
+    .face-status-message {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background-color: rgba(0, 0, 0, 0.7);
+      color: white;
+      padding: 4px 8px;
+      font-size: 12px;
+      text-align: center;
+    }
+  
+    /* Stiluri pentru alerta de securitate */
+    .security-alert {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(220, 53, 69, 0.9);
+      color: white;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 10px;
+      border-radius: 6px;
+    }
+  
+    .security-alert i {
+      font-size: 32px;
+      margin-bottom: 10px;
+    }
+  
+    .security-alert h4 {
+      margin: 0 0 10px;
+    }
+  
+    .security-alert p {
+      margin: 0 0 5px;
+      font-size: 12px;
+    }
+  
+    // Avertisment de monitorizare video
+    .monitoring-warning-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.8);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+      backdrop-filter: blur(5px);
+      animation: fadeIn 0.3s ease-in-out;
+    }
+  
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+  
+    .monitoring-warning-box {
+      background-color: rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      padding: 25px;
+      width: 90%;
+      max-width: 600px;
+      max-height: 85vh;
+      overflow-y: auto;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #fff;
+      animation: slideUp 0.4s ease-out;
+    }
+  
+    @keyframes slideUp {
+      from { transform: translateY(30px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+  
+    .warning-header {
+      display: flex;
+      align-items: center;
+      margin-bottom: 20px;
+      padding-bottom: 15px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+      
+      i {
+        font-size: 24px;
+        color: #e74c3c;
+        margin-right: 15px;
+        animation: pulse 2s infinite;
+      }
+      
+      h3 {
+        color: #e74c3c;
+        margin: 0;
+        font-size: 1.6rem;
+        font-weight: 600;
+      }
+    }
+  
+    .warning-content {
+      margin-bottom: 25px;
+      
+      .intro-text {
+        font-size: 1.1rem;
+        margin-bottom: 15px;
+      }
+      
+      ul {
+        list-style: none;
+        padding: 0;
+        margin: 0 0 20px 0;
+        
+        li {
+          margin-bottom: 12px;
+          display: flex;
+          align-items: center;
+          
+          i {
+            color: #3498db;
+            margin-right: 10px;
+            font-size: 18px;
+            width: 20px;
+            text-align: center;
+          }
+        }
+      }
+    }
+  
+    .lighting-notice {
+      background-color: rgba(52, 152, 219, 0.2);
+      border-left: 4px solid #3498db;
+      padding: 15px;
+      margin: 20px 0;
+      border-radius: 4px;
+      display: flex;
+      align-items: flex-start;
+      
+      i {
+        color: #3498db;
+        font-size: 20px;
+        margin-right: 12px;
+        margin-top: 2px;
+      }
+      
+      p {
+        margin: 0;
+        line-height: 1.5;
+      }
+    }
+  
+    .privacy-notice {
+      background-color: rgba(46, 204, 113, 0.2);
+      border-left: 4px solid #2ecc71;
+      padding: 15px;
+      margin: 20px 0;
+      border-radius: 4px;
+      
+      p {
+        margin: 0;
+        display: flex;
+        align-items: center;
+        
+        i {
+          color: #2ecc71;
+          margin-right: 10px;
+          font-size: 18px;
+        }
+      }
+    }
+  
+    .warning-text {
+      background-color: rgba(231, 76, 60, 0.2);
+      border-left: 4px solid #e74c3c;
+      padding: 15px;
+      margin: 20px 0 25px;
+      border-radius: 4px;
+      font-weight: 500;
+      display: flex;
+      align-items: flex-start;
+      
+      i {
+        color: #e74c3c;
+        margin-right: 10px;
+        font-size: 18px;
+        margin-top: 2px;
+      }
+    }
+  
+    // Butoane specifice pentru avertisment de monitorizare
+    .btn-refuse {
+      background-color: rgba(231, 76, 60, 0.2);
+      color: #fff;
+      border: 1px solid rgba(231, 76, 60, 0.5);
+      padding: 12px 25px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: all 0.3s ease;
+      font-size: 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 150px;
+      
+      i {
+        margin-right: 8px;
+      }
+      
+      &:hover {
+        background-color: rgba(231, 76, 60, 0.3);
+        border-color: rgba(231, 76, 60, 0.7);
+        transform: translateY(-2px);
+      }
+      
+      &:active {
+        transform: translateY(0);
+      }
+    }
+  
+    .btn-accept {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 200px;
+      
+      i {
+        margin-right: 8px;
+      }
+    }
+  
+    // Animații pentru iconuri
+    .pulse-icon {
+      animation: pulse 2s infinite;
+    }
+  
+    @keyframes pulse {
+      0% {
+        transform: scale(1);
+        opacity: 1;
+      }
+      50% {
+        transform: scale(1.1);
+        opacity: 0.8;
+      }
+      100% {
+        transform: scale(1);
+        opacity: 1;
+      }
+    }
+  
+    /* Stiluri pentru timer */
+    .vote-timer {
+      background-color: rgba(52, 152, 219, 0.1);
+      border-radius: 6px;
+      padding: 10px 15px;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+      color: #fff;
+      border: 1px solid rgba(52, 152, 219, 0.3);
+      transition: all 0.3s ease;
+      
+      i {
+        margin-right: 10px;
+        color: #3498db;
+      }
+    }
+  
+    .timer-warning {
+      background-color: rgba(243, 156, 18, 0.2);
+      border-color: rgba(243, 156, 18, 0.4);
+      
+      i {
+        color: #f39c12;
+      }
+    }
+  
+    .timer-danger {
+      background-color: rgba(231, 76, 60, 0.2);
+      border-color: rgba(231, 76, 60, 0.4);
+      
+      i {
+        color: #e74c3c;
+      }
+    }
+  
+    .timer-flash {
+      animation: flash-animation 1s infinite;
+    }
+  
+    @keyframes flash-animation {
+      0% {
+        background-color: rgba(231, 76, 60, 0.2);
+      }
+      50% {
+        background-color: rgba(231, 76, 60, 0.5);
+      }
+      100% {
+        background-color: rgba(231, 76, 60, 0.2);
+      }
+    }
+  
+    .timer-alert {
+      background-color: rgba(231, 76, 60, 0.8);
+      color: white;
+      padding: 10px 15px;
+      margin-bottom: 20px;
+      border-radius: 6px;
+      text-align: center;
+      font-weight: 500;
+      animation: alert-appear 0.5s ease-in-out;
+      
+      i {
+        margin-right: 10px;
+      }
+    }
+  
+    @keyframes alert-appear {
+      0% {
+        transform: translateY(-20px);
+        opacity: 0;
+      }
+      100% {
+        transform: translateY(0);
+        opacity: 1;
+      }
+    }
+  
+    /* Stiluri pentru dialog de confirmare */
+    .confirm-vote-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.8);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+      backdrop-filter: blur(5px);
+      animation: fadeIn 0.3s ease-in-out;
+    }
+  
+    .confirm-vote-dialog {
+      background-color: rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      width: 90%;
+      max-width: 500px;
+      overflow: hidden;
+      color: #fff;
+      animation: slideUp 0.4s ease-out;
+    }
+  
+    .dialog-header {
+      background-color: #007bff;
+      padding: 15px 20px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+  
+    .dialog-header h3 {
+      margin: 0;
+      font-size: 1.4rem;
+      color: white;
+      font-weight: 600;
+      text-align: center;
+    }
+  
+    .dialog-content {
+      padding: 20px;
+    }
+  
+    .vote-summary {
+      background-color: rgba(255, 255, 255, 0.1);
+      padding: 15px;
+      border-radius: 5px;
+      margin: 15px 0;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+  
+    .candidate-summary {
+      padding: 10px;
+      background-color: rgba(52, 152, 219, 0.1);
+      border-radius: 4px;
+      
+      p {
+        margin: 0;
+        font-size: 1.1rem;
+      }
+      
+      strong {
+        color: #3498db;
+        margin-right: 5px;
+      }
+    }
+  
+    .receipt-options {
+      margin-top: 20px;
+      padding-top: 15px;
+      border-top: 1px solid rgba(255, 255, 255, 0.2);
+    }
+  
+    .form-check {
+      display: block;
+      margin-bottom: 0.5rem;
+      position: relative;
+      padding-left: 1.8rem;
+    }
+  
+    .form-check-input {
+      position: absolute;
+      margin-top: 0.25rem;
+      margin-left: -1.8rem;
+    }
+  
+    .form-check-label {
+      margin-bottom: 0;
+    }
+  
+    .receipt-method {
+      margin-top: 10px;
+      margin-left: 1.8rem;
+      background-color: rgba(255, 255, 255, 0.05);
+      padding: 10px;
+      border-radius: 5px;
+    }
+  
+    .receipt-type {
+      margin-bottom: 10px;
+    }
+  
+    .contact-info-input {
+      margin-top: 10px;
+    }
+  
+    .contact-info-input input {
+      width: 100%;
+      padding: 10px;
+      border-radius: 4px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      background-color: rgba(255, 255, 255, 0.9);
+      color: #333;
+    }
+  
+    .contact-info-input input.is-invalid {
+      border-color: #dc3545;
+    }
+  
+    .error-message {
+      background-color: rgba(220, 53, 69, 0.2);
+      border-left: 4px solid #dc3545;
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 4px;
+    }
+  
+    .error-message p {
+      margin: 0;
+      color: #dc3545;
+    }
+  
+    .dialog-footer {
+      padding: 15px 20px;
+      background-color: rgba(0, 0, 0, 0.2);
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+  
+    .disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+  
+    .text-muted {
+      color: rgba(255, 255, 255, 0.6);
+    }
+  
+    // Adaptare pentru ecrane mai mici
+    @media (max-width: 768px) {
+      .candidates-grid {
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      }
+      
+      .candidate-card {
+        min-height: 220px;
+        
+        .candidate-photo {
+          width: 100px;
+          height: 100px;
+        }
+        
+        .candidate-info {
+          .candidate-name {
+            font-size: 1.1rem;
+          }
+          
+          .candidate-party {
+            font-size: 0.9rem;
+            min-height: 30px;
+          }
+        }
+      }
+    }
+  }
