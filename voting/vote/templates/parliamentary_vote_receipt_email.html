@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Confirmare Vot Parlamentar - SmartVote</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            margin: 0;
+            padding: 0;
+            background-color: #f9f9f9;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #ffffff;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        .header {
+            background-color: #007bff;
+            color: white;
+            padding: 15px;
+            text-align: center;
+            border-radius: 4px 4px 0 0;
+            margin: -20px -20px 20px;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+        .section {
+            margin-bottom: 25px;
+        }
+        .vote-details {
+            background-color: #f5f5f5;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+        .vote-details p {
+            margin: 5px 0;
+        }
+        .download-btn {
+            display: inline-block;
+            background-color: #0080ff;
+            color: white;
+            padding: 10px 20px;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+            margin-top: 15px;
+        }
+        .download-btn:hover {
+            background-color: #0066cc;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            color: #666;
+            font-size: 12px;
+        }
+        .logo {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .logo img {
+            max-width: 150px;
+            height: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>SmartVote - Confirmare Vot Parlamentar</h1>
+        </div>
+        
+        <div class="section">
+            <h2>Bună ziua, {{ user_name }}</h2>
+            <p>Vă mulțumim pentru participarea la procesul electoral. Votul dumneavoastră pentru alegerea Parlamentului României a fost înregistrat cu succes.</p>
+        </div>
+        
+        <div class="vote-details">
+            <h3>Detalii vot:</h3>
+            <p><strong>Referință vot:</strong> {{ vote_reference }}</p>
+            <p><strong>Data și ora:</strong> {{ vote_datetime }}</p>
+            <p><strong>Partid votat:</strong> {{ party.name }} {% if party.abbreviation %}({{ party.abbreviation }}){% endif %}</p>
+        </div>
+        
+        <div class="section">
+            <p>Pentru a descărca o copie PDF a acestei confirmări de vot, vă rugăm să accesați butonul de mai jos:</p>
+            <div style="text-align: center;">
+                <a href="{{ download_url }}" class="download-btn">Descarcă confirmarea în format PDF</a>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>Acest email este generat automat și confidențial. Vă rugăm să nu răspundeți la acest email.</p>
+            <p>© 2024 SmartVote. Toate drepturile rezervate.</p>
+        </div>
+    </div>
+</body>
+</html>

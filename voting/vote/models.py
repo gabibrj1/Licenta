@@ -172,3 +172,48 @@ class PresidentialVote(models.Model):
 
     def __str__(self):
         return f"{self.user} - {self.candidate} - {self.vote_datetime.strftime('%d.%m.%Y, %H:%M')}"
+    
+
+class ParliamentaryParty(models.Model):
+    """Model pentru partidele parlamentare"""
+    name = models.CharField(max_length=100)
+    abbreviation = models.CharField(max_length=20, blank=True, null=True)
+    logo_url = models.URLField(blank=True, null=True)
+    description = models.TextField(blank=True, null=True)
+    order_nr = models.IntegerField(default=0)  # Pentru controlul ordinii de afișare
+    
+    class Meta:
+        verbose_name = "Partid Parlamentar"
+        verbose_name_plural = "Partide Parlamentare"
+        ordering = ['order_nr', 'name']
+    
+    def __str__(self):
+        return f"{self.name} ({self.abbreviation})" if self.abbreviation else self.name
+
+class ParliamentaryVote(models.Model):
+    """Model pentru voturile parlamentare înregistrate"""
+    user = models.ForeignKey('users.User', on_delete=models.CASCADE)
+    party = models.ForeignKey(ParliamentaryParty, on_delete=models.CASCADE)
+    vote_datetime = models.DateTimeField(auto_now_add=True)
+    vote_reference = models.CharField(max_length=20, blank=True, null=True)
+    
+    class Meta:
+        verbose_name = "Vot Parlamentar"
+        verbose_name_plural = "Voturi Parlamentare"
+        unique_together = ('user', 'vote_reference')
+    
+    def save(self, *args, **kwargs):
+        # Verifică dacă utilizatorul a votat deja
+        if not self.pk:  # Doar pentru înregistrări noi
+            existing_vote = ParliamentaryVote.objects.filter(
+                user=self.user
+            ).exists()
+            
+            if existing_vote:
+                from django.core.exceptions import ValidationError
+                raise ValidationError('Utilizatorul a votat deja în acest scrutin parlamentar')
+        
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.user} - {self.party} - {self.vote_datetime.strftime('%d.%m.%Y, %H:%M')}"

@@ -3,6 +3,7 @@ from .views import VoteSettingsView, AdminVoteSettingsView
 from .views import UserVotingEligibilityView, FindVotingSectionView, LocalCandidatesView, SubmitLocalVoteView, CheckUserVoteStatusView,VoteMonitoringView
 from .views import ConfirmVoteAndSendReceiptView, GenerateVoteReceiptPDFView
 from .views import UserPresidentialVotingEligibilityView, PresidentialCandidatesView, CheckPresidentialVoteStatusView, SubmitPresidentialVoteView, GeneratePresidentialVoteReceiptPDFView
+from .views import UserParliamentaryVotingEligibilityView, ParliamentaryPartiesView, CheckParliamentaryVoteStatusView, SubmitParliamentaryVoteView, GenerateParliamentaryVoteReceiptPDFView
 urlpatterns = [
     path('vote-settings/', VoteSettingsView.as_view(), name='vote-settings'),
     path('admin/vote-settings/', AdminVoteSettingsView.as_view(), name='admin-vote-settings'),
@@ -20,5 +21,10 @@ urlpatterns = [
     path('vote/presidential/check-status/', CheckPresidentialVoteStatusView.as_view(), name='check-presidential-vote-status'),
     path('vote/presidential/submit/', SubmitPresidentialVoteView.as_view(), name='submit-presidential-vote'),
     path('vote/presidential/receipt-pdf/', GeneratePresidentialVoteReceiptPDFView.as_view(), name='generate-presidential-vote-receipt-pdf'),
+    path('vote/parliamentary/eligibility/', UserParliamentaryVotingEligibilityView.as_view(), name='parliamentary-eligibility'),
+    path('vote/parliamentary/parties/', ParliamentaryPartiesView.as_view(), name='parliamentary-parties'),
+    path('vote/parliamentary/check-status/', CheckParliamentaryVoteStatusView.as_view(), name='check-parliamentary-vote-status'),
+    path('vote/parliamentary/submit/', SubmitParliamentaryVoteView.as_view(), name='submit-parliamentary-vote'),
+    path('vote/parliamentary/receipt-pdf/', GenerateParliamentaryVoteReceiptPDFView.as_view(), name='generate-parliamentary-vote-receipt-pdf'),
 
 ] 

@@ -37,7 +37,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 from django.shortcuts import get_object_or_404
 import os
-from .models import PresidentialVote, PresidentialCandidate
+from .models import PresidentialVote, PresidentialCandidate, ParliamentaryVote, ParliamentaryParty
 from django.db import connection
 
 
@@ -1350,6 +1350,423 @@ class GeneratePresidentialVoteReceiptPDFView(APIView):
         
         candidate_table = Table(data, style=table_style)
         elements.append(candidate_table)
+        elements.append(Spacer(1, 0.25 * inch))
+        
+        # Avertisment și footer
+        elements.append(Paragraph("ATENȚIE: Acest document este confidențial și servește drept confirmare a votului dumneavoastră.", styles['NormalRomanian']))
+        elements.append(Spacer(1, 0.1 * inch))
+        elements.append(Paragraph("Toate drepturile rezervate © SmartVote 2024", styles['CenterNormal']))
+        
+        # Generează PDF-ul
+        doc.build(elements)
+
+#view pentru alegerile parlamentare
+class UserParliamentaryVotingEligibilityView(APIView):
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        """Verifică eligibilitatea utilizatorului pentru vot parlamentar"""
+        user = request.user
+        
+        # Verifică dacă utilizatorul este autentificat cu buletin (are CNP)
+        if not hasattr(user, 'cnp') or not user.cnp or not user.is_verified_by_id:
+            return Response({
+                'eligible': False,
+                'message': 'Pentru a participa la votul parlamentar, trebuie să vă autentificați folosind buletinul.',
+                'auth_type': 'email'
+            }, status=status.HTTP_200_OK)
+        
+        # Utilizatorul este autentificat cu buletin
+        return Response({
+            'eligible': True,
+            'message': 'Sunteți eligibil pentru a participa la votul parlamentar.',
+            'auth_type': 'id_card',
+            'user_info': {
+                'cnp': user.cnp,
+                'first_name': user.first_name,
+                'last_name': user.last_name
+            }
+        }, status=status.HTTP_200_OK)
+
+class ParliamentaryPartiesView(APIView):
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        """Obține lista de partide parlamentare"""
+        try:
+            # Verifică ce nume de coloană este folosit pentru ordinea partidelor
+            with connection.cursor() as cursor:
+                cursor.execute("DESCRIBE vote_parliamentaryparty")
+                columns = [col[0] for col in cursor.fetchall()]
+                
+                # Determină numele corect al coloanei pentru sortare
+                order_column = 'order_nr' if 'order_nr' in columns else 'order'
+            
+            # Construim query-ul utilizând ORM în funcție de coloana disponibilă
+            query = ParliamentaryParty.objects.all()
+            
+            # Adăugăm criteriul de ordonare în funcție de coloana existentă
+            if order_column in columns:
+                query = query.order_by(order_column)
+            
+            # Extragem valorile necesare
+            parties = query.values(
+                'id', 'name', 'abbreviation', 'logo_url', 'description'
+            )
+            
+            return Response({
+                'parties': parties
+            })
+            
+        except Exception as e:
+            # Log pentru debugging
+            logger.error(f"Eroare la obținerea partidelor parlamentare: {str(e)}")
+            
+            # Încearcă o abordare mai simplă, fără ordonare
+            try:
+                parties = ParliamentaryParty.objects.all().values(
+                    'id', 'name', 'abbreviation', 'logo_url', 'description'
+                )
+                
+                return Response({
+                    'parties': parties
+                })
+            except Exception as fallback_error:
+                logger.error(f"Eroare la fallback pentru partidele parlamentare: {str(fallback_error)}")
+                return Response({
+                    'error': 'Nu s-au putut obține partidele parlamentare',
+                    'detail': str(e)
+                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class CheckParliamentaryVoteStatusView(APIView):
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        """Verifică dacă utilizatorul a votat deja la alegerile parlamentare"""
+        user = request.user
+        
+        # Verifică dacă utilizatorul este autentificat cu buletin
+        if not hasattr(user, 'cnp') or not user.cnp:
+            return Response({
+                'has_voted': False,
+                'message': 'Utilizatorul nu este autentificat cu buletinul.'
+            })
+        
+        # Verifică dacă utilizatorul a votat deja
+        existing_vote = ParliamentaryVote.objects.filter(user=user).first()
+        
+        if existing_vote:
+            return Response({
+                'has_voted': True,
+                'message': 'Ați votat deja în acest scrutin parlamentar.',
+                'party_name': existing_vote.party.name,
+                'abbreviation': existing_vote.party.abbreviation
+            })
+        
+        return Response({
+            'has_voted': False,
+            'message': 'Nu ați votat încă în acest scrutin parlamentar.'
+        })
+
+class SubmitParliamentaryVoteView(APIView):
+    permission_classes = [IsAuthenticated]
+    
+    def post(self, request):
+        """Înregistrează votul parlamentar și trimite confirmarea, dacă este solicitată"""
+        user = request.user
+        party_id = request.data.get('party_id')
+        send_receipt = request.data.get('send_receipt', False)
+        receipt_method = request.data.get('receipt_method', 'email')
+        contact_info = request.data.get('contact_info', '')
+        
+        # Verifică dacă utilizatorul este autentificat cu buletin
+        if not hasattr(user, 'cnp') or not user.cnp:
+            return Response({
+                'error': 'Autentificare cu buletin necesară pentru a vota'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Verifică dacă utilizatorul a votat deja
+        existing_vote = ParliamentaryVote.objects.filter(user=user).first()
+        if existing_vote:
+            return Response({
+                'error': 'Ați votat deja în acest scrutin parlamentar'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        if not party_id:
+            return Response({
+                'error': 'Trebuie să selectați un partid'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            party = ParliamentaryParty.objects.get(pk=party_id)
+        except ParliamentaryParty.DoesNotExist:
+            return Response({
+                'error': 'Partidul selectat nu există'
+            }, status=status.HTTP_404_NOT_FOUND)
+        
+        # Validăm informațiile de contact dacă utilizatorul a solicitat confirmarea
+        if send_receipt:
+            if receipt_method == 'email':
+                if not contact_info or '@' not in contact_info:
+                    return Response({
+                        'error': 'Pentru a primi confirmarea prin email, trebuie să furnizați o adresă de email validă.'
+                    }, status=status.HTTP_400_BAD_REQUEST)
+            elif receipt_method == 'sms':
+                if not contact_info or len(contact_info) < 10:
+                    return Response({
+                        'error': 'Pentru a primi confirmarea prin SMS, trebuie să furnizați un număr de telefon valid.'
+                    }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Generăm un ID unic pentru vot
+        vote_reference = str(uuid.uuid4())[:8].upper()
+        
+        # Înregistrăm votul
+        try:
+            vote = ParliamentaryVote.objects.create(
+                user=user,
+                party=party,
+                vote_reference=vote_reference
+            )
+            
+            # Trimite chitanța de vot dacă utilizatorul a solicitat
+            if send_receipt:
+                try:
+                    if receipt_method == 'email':
+                        email_success = self.send_vote_receipt_email(user, vote, contact_info)
+                        if not email_success:
+                            return Response({
+                                'message': 'Votul a fost înregistrat, dar confirmarea prin email nu a putut fi trimisă.',
+                                'vote_reference': vote_reference
+                            }, status=status.HTTP_201_CREATED)
+                except Exception as e:
+                    logger.error(f"Eroare trimitere confirmare: {str(e)}")
+                    return Response({
+                        'message': 'Votul a fost înregistrat, dar a apărut o eroare la trimiterea confirmării.',
+                        'vote_reference': vote_reference
+                    }, status=status.HTTP_201_CREATED)
+            
+            return Response({
+                'message': 'Votul dvs. a fost înregistrat cu succes!',
+                'vote_reference': vote_reference
+            }, status=status.HTTP_201_CREATED)
+            
+        except ValidationError as e:
+            return Response({
+                'error': str(e)
+            }, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response({
+                'error': f'A apărut o eroare la înregistrarea votului: {str(e)}'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    def send_vote_receipt_email(self, user, vote, email):
+        """Trimite email cu chitanța pentru vot parlamentar"""
+        try:
+            # Data și ora curentă
+            vote_datetime = vote.vote_datetime.strftime("%d-%m-%Y %H:%M:%S")
+            
+            # Pregătim datele pentru template
+            party_info = {
+                'name': vote.party.name,
+                'abbreviation': vote.party.abbreviation if vote.party.abbreviation else ""
+            }
+
+            # Construim URL-ul pentru descărcarea PDF-ului 
+            from django.urls import reverse
+            from django.conf import settings
+            
+            backend_url = settings.BACKEND_URL.rstrip('/')  # Eliminăm trailing slash dacă există
+            pdf_url = f"{backend_url}{reverse('generate-parliamentary-vote-receipt-pdf')}?vote_reference={vote.vote_reference}"
+           
+            context = {
+                'user_name': f"{user.first_name} {user.last_name}",
+                'vote_reference': vote.vote_reference,
+                'vote_datetime': vote_datetime,
+                'party': party_info,
+                'download_url': pdf_url  # Adăugăm URL-ul de descărcare PDF
+            }
+            
+            # Renderizăm template-ul pentru email
+            try:
+                html_message = render_to_string('parliamentary_vote_receipt_email.html', context)
+            except Exception as template_error:
+                # Fallback la un mesaj HTML simplu
+                logger.error(f"Eroare la găsirea template-ului: {template_error}")
+                html_message = f"""
+                <html>
+                <head>
+                    <style>
+                        body {{ font-family: Arial, sans-serif; line-height: 1.6; }}
+                        .container {{ max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; }}
+                        .header {{ background-color: #007bff; color: white; padding: 10px; text-align: center; }}
+                        .download-btn {{ display: inline-block; background-color: #0080ff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; }}
+                    </style>
+                </head>
+                <body>
+                    <div class="container">
+                        <div class="header">
+                            <h1>SmartVote - Confirmare Vot Parlamentar</h1>
+                        </div>
+                        
+                        <div class="section">
+                            <h2>Bună ziua, {user.first_name} {user.last_name}</h2>
+                            <p>Vă mulțumim pentru participarea la procesul electoral. Votul dumneavoastră pentru alegerea Parlamentului României a fost înregistrat cu succes.</p>
+                            <p>Referință vot: {vote.vote_reference}</p>
+                            <p>Data și ora: {vote_datetime}</p>
+                        </div>
+                        
+                        <div class="section">
+                            <h3>Partidul votat:</h3>
+                            <p><strong>Partid:</strong> {vote.party.name} {vote.party.abbreviation if vote.party.abbreviation else ""}</p>
+                            
+                            <a href="{pdf_url}" class="download-btn">Descarcă confirmarea în format PDF</a>
+                        </div>
+                    </div>
+                </body>
+                </html>
+                """
+            
+            # Trimitem email-ul
+            email_msg = EmailMessage(
+                'Confirmare vot parlamentar - SmartVote',
+                html_message,
+                config('EMAIL_FROM'),
+                [email],
+                reply_to=[config('EMAIL_FROM')],
+            )
+            email_msg.content_subtype = 'html'
+            email_msg.send()
+            
+            logger.info(f"Chitanța de vot parlamentar trimisă prin email pentru utilizatorul {user.id} la adresa {email}")
+            return True
+        except Exception as e:
+            logger.error(f"Eroare la trimiterea chitanței prin email: {e}")
+            return False
+
+class GenerateParliamentaryVoteReceiptPDFView(APIView):
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        """Generează un PDF cu confirmarea votului parlamentar"""
+        vote_reference = request.GET.get('vote_reference')
+        if not vote_reference:
+            return Response({
+                'error': 'Referința votului este obligatorie'
+            }, status=status.HTTP_400_BAD_REQUEST)
+            
+        # Verifică dacă referința votului există
+        vote = ParliamentaryVote.objects.filter(vote_reference=vote_reference).first()
+        if not vote:
+            return Response({
+                'error': 'Nu a fost găsit un vot cu această referință'
+            }, status=status.HTTP_404_NOT_FOUND)
+            
+        # Generează PDF-ul
+        buffer = io.BytesIO()
+        self.create_pdf(buffer, vote.user, vote)
+        buffer.seek(0)
+        
+        # Returnează PDF-ul ca răspuns
+        response = HttpResponse(buffer, content_type='application/pdf')
+        response['Content-Disposition'] = f'attachment; filename="confirmare_vot_parlamentar_{vote_reference}.pdf"'
+        return response
+    
+    def create_pdf(self, buffer, user, vote):
+        """Creează documentul PDF cu confirmarea votului parlamentar"""
+        # Configurează documentul
+        doc = SimpleDocTemplate(
+            buffer,
+            pagesize=A4,
+            rightMargin=72,
+            leftMargin=72,
+            topMargin=72,
+            bottomMargin=72
+        )
+        
+        # Configurarea fonturilor cu suport pentru diacritice
+        try:
+            font_path = os.path.join(settings.BASE_DIR, 'vote', 'static', 'fonts')
+            dejavu_regular = os.path.join(font_path, 'DejaVuSans.ttf')
+            dejavu_bold = os.path.join(font_path, 'DejaVuSans-Bold.ttf')
+            
+            pdfmetrics.registerFont(TTFont('DejaVuSans', dejavu_regular))
+            pdfmetrics.registerFont(TTFont('DejaVuSans-Bold', dejavu_bold))
+            font_name = 'DejaVuSans'
+            bold_font_name = 'DejaVuSans-Bold'
+        except Exception as e:
+            # Folosim fonturile implicite în caz de eroare
+            logger.error(f"Eroare la încărcarea fonturilor: {e}")
+            font_name = 'Helvetica'
+            bold_font_name = 'Helvetica-Bold'
+        
+        # Stiluri
+        styles = getSampleStyleSheet()
+        styles.add(ParagraphStyle(
+            name='CenterTitle',
+            parent=styles['Heading1'],
+            fontName=bold_font_name,
+            alignment=TA_CENTER,
+            spaceAfter=12
+        ))
+        styles.add(ParagraphStyle(
+            name='CenterNormal',
+            parent=styles['Normal'],
+            fontName=font_name,
+            alignment=TA_CENTER,
+            spaceAfter=6
+        ))
+        styles.add(ParagraphStyle(
+            name='NormalRomanian',
+            parent=styles['Normal'],
+            fontName=font_name,
+            spaceAfter=6
+        ))
+        styles.add(ParagraphStyle(
+            name='Heading3Romanian',
+            parent=styles['Heading3'],
+            fontName=bold_font_name,
+            spaceAfter=6
+        ))
+        
+        # Elemente PDF
+        elements = []
+        
+        # Titlu
+        elements.append(Paragraph("CONFIRMARE VOT PARLAMENTAR - SMARTVOTE", styles['CenterTitle']))
+        elements.append(Spacer(1, 0.25 * inch))
+        
+        # Informații utilizator
+        elements.append(Paragraph(f"Bună ziua, {user.first_name} {user.last_name}", styles['NormalRomanian']))
+        elements.append(Spacer(1, 0.1 * inch))
+        elements.append(Paragraph("Vă mulțumim pentru participarea la procesul electoral. Votul dumneavoastră pentru alegerea Parlamentului României a fost înregistrat cu succes.", styles['NormalRomanian']))
+        elements.append(Spacer(1, 0.1 * inch))
+        
+        # Referință vot
+        elements.append(Paragraph(f"Referință vot: {vote.vote_reference}", styles['CenterNormal']))
+        elements.append(Paragraph(f"Data și ora: {vote.vote_datetime.strftime('%d-%m-%Y %H:%M:%S')}", styles['CenterNormal']))
+        elements.append(Spacer(1, 0.25 * inch))
+        
+        # Partidul votat
+        elements.append(Paragraph("Partidul votat:", styles['Heading3Romanian']))
+        
+        # Tabel pentru partid
+        data = [["Funcție", "Nume Partid", "Abreviere"]]
+        data.append(["Parlament al României", vote.party.name, vote.party.abbreviation if vote.party.abbreviation else "-"])
+        
+        # Stilul pentru tabel
+        table_style = TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.lightblue),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 0), (-1, 0), bold_font_name),
+            ('FONTNAME', (0, 1), (-1, -1), font_name),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+            ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+            ('GRID', (0, 0), (-1, -1), 1, colors.black)
+        ])
+        
+        party_table = Table(data, style=table_style)
+        elements.append(party_table)
         elements.append(Spacer(1, 0.25 * inch))
         
         # Avertisment și footer
