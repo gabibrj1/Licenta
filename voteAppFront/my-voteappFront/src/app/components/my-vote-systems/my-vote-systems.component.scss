@@ -1,0 +1,452 @@
+.my-vote-systems-container {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 20px;
+    
+    h1 {
+      color: #3498db;
+      text-align: center;
+      margin-bottom: 30px;
+      font-weight: 600;
+      font-size: 2.2rem;
+    }
+    
+    /* Bara de acțiuni */
+    .action-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 30px;
+      gap: 20px;
+      flex-wrap: wrap;
+      
+      .create-btn {
+        background-color: #3498db;
+        color: white;
+        border: none;
+        padding: 12px 25px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: all 0.2s ease;
+        font-size: 1rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        display: flex;
+        align-items: center;
+        
+        i {
+          margin-right: 8px;
+        }
+        
+        &:hover {
+          background-color: #2980b9;
+          transform: translateY(-2px);
+          box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        &:active {
+          transform: translateY(0);
+        }
+      }
+      
+      .filters {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        min-width: 300px;
+        
+        .search-box {
+          display: flex;
+          width: 100%;
+          
+          input {
+            flex: 1;
+            padding: 10px 15px;
+            background-color: rgba(255, 255, 255, 0.9);
+            border: 2px solid rgba(52, 152, 219, 0.3);
+            border-right: none;
+            border-radius: 6px 0 0 6px;
+            color: #333;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            
+            &:focus {
+              outline: none;
+              border-color: #3498db;
+              background-color: #fff;
+              box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+            }
+            
+            &::placeholder {
+              color: #aaa;
+            }
+          }
+          
+          .search-btn {
+            padding: 0 15px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 0 6px 6px 0;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            
+            &:hover {
+              background-color: #2980b9;
+            }
+          }
+        }
+        
+        .filter-controls {
+          display: flex;
+          gap: 10px;
+          
+          select {
+            flex: 1;
+            padding: 10px 15px;
+            background-color: rgba(255, 255, 255, 0.9);
+            border: 2px solid rgba(52, 152, 219, 0.3);
+            border-radius: 6px;
+            color: #333;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            
+            &:focus {
+              outline: none;
+              border-color: #3498db;
+              background-color: #fff;
+              box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+            }
+            
+            option {
+              background-color: #fff;
+              color: #333;
+            }
+          }
+        }
+      }
+    }
+    
+    /* Container pentru loading */
+    .loading-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 50px 0;
+      
+      .spinner {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        border: 3px solid rgba(52, 152, 219, 0.3);
+        border-top-color: #3498db;
+        animation: spin 1s linear infinite;
+        margin-bottom: 15px;
+      }
+      
+      p {
+        color: #fff;
+        font-size: 1.1rem;
+      }
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    /* Mesaj de eroare */
+    .error-message {
+      background-color: #f8d7da;
+      color: #721c24;
+      padding: 15px;
+      border-radius: 4px;
+      margin: 15px 0;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      
+      i {
+        margin-right: 10px;
+        font-size: 18px;
+      }
+      
+      p {
+        margin: 0;
+      }
+    }
+    
+    /* Mesaj când nu există sisteme de vot */
+    .no-systems-message {
+      background-color: rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+      padding: 40px;
+      margin: 20px 0;
+      text-align: center;
+      backdrop-filter: blur(5px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      
+      .empty-illustration {
+        margin-bottom: 20px;
+        color: rgba(255, 255, 255, 0.5);
+      }
+      
+      h3 {
+        color: #3498db;
+        margin-bottom: 15px;
+        font-weight: 500;
+        font-size: 1.5rem;
+      }
+      
+      p {
+        color: #fff;
+        margin-bottom: 25px;
+        font-size: 1.1rem;
+      }
+      
+      button {
+        background-color: #3498db;
+        color: white;
+        border: none;
+        padding: 12px 25px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: all 0.2s ease;
+        font-size: 1rem;
+        
+        &:hover {
+          background-color: #2980b9;
+          transform: translateY(-2px);
+          box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+      }
+    }
+    
+    /* Grid pentru cardurile de sisteme de vot */
+    .vote-systems-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 25px;
+      margin-top: 20px;
+    }
+    
+    /* Card pentru un sistem de vot */
+    .vote-system-card {
+      background-color: rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+      padding: 25px;
+      backdrop-filter: blur(5px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      position: relative;
+      transition: all 0.3s ease;
+      cursor: pointer;
+      overflow: hidden;
+      
+      &:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+        border-color: rgba(52, 152, 219, 0.3);
+        
+        .system-name {
+          color: #3498db;
+        }
+      }
+      
+      /* Badge pentru status */
+      .status-badge {
+        position: absolute;
+        top: 15px;
+        right: 15px;
+        padding: 5px 10px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        
+        &.status-active {
+          background-color: rgba(46, 204, 113, 0.2);
+          color: #2ecc71;
+          border: 1px solid rgba(46, 204, 113, 0.3);
+        }
+        
+        &.status-completed {
+          background-color: rgba(52, 152, 219, 0.2);
+          color: #3498db;
+          border: 1px solid rgba(52, 152, 219, 0.3);
+        }
+        
+        &.status-pending {
+          background-color: rgba(241, 196, 15, 0.2);
+          color: #f1c40f;
+          border: 1px solid rgba(241, 196, 15, 0.3);
+        }
+      }
+      
+      .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 15px;
+        
+        .system-name {
+          color: #fff;
+          margin: 0;
+          font-size: 1.3rem;
+          font-weight: 600;
+          transition: color 0.3s ease;
+          padding-right: 80px; /* Spațiu pentru badge-ul de status */
+        }
+        
+        .actions {
+          display: flex;
+          gap: 8px;
+          
+          .action-btn {
+            background-color: transparent;
+            color: rgba(255, 255, 255, 0.7);
+            border: none;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            
+            &:hover {
+              background-color: rgba(255, 255, 255, 0.1);
+              color: #fff;
+              transform: scale(1.1);
+            }
+            
+            &.delete-btn:hover {
+              background-color: rgba(231, 76, 60, 0.2);
+              color: #e74c3c;
+            }
+            
+            &.share-btn:hover {
+              background-color: rgba(52, 152, 219, 0.2);
+              color: #3498db;
+            }
+            
+            i {
+              font-size: 14px;
+            }
+          }
+        }
+      }
+      
+      .system-description {
+        color: rgba(255, 255, 255, 0.9);
+        margin-bottom: 20px;
+        font-size: 0.95rem;
+        line-height: 1.5;
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        line-clamp: 3;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      
+      .card-details {
+        margin-bottom: 20px;
+        
+        .detail-item {
+          display: flex;
+          align-items: center;
+          margin-bottom: 10px;
+          color: rgba(255, 255, 255, 0.8);
+          font-size: 0.9rem;
+          
+          i {
+            width: 18px;
+            margin-right: 8px;
+            color: #3498db;
+          }
+        }
+      }
+      
+      .card-actions {
+        display: flex;
+        justify-content: center;
+        
+        .btn-secondary {
+          background-color: rgba(255, 255, 255, 0.1);
+          color: #fff;
+          border: 1px solid rgba(255, 255, 255, 0.3);
+          padding: 10px 20px;
+          border-radius: 6px;
+          cursor: pointer;
+          font-weight: 500;
+          transition: all 0.2s ease;
+          font-size: 0.9rem;
+          width: 100%;
+          text-align: center;
+          
+          &:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+          }
+        }
+      }
+    }
+    
+    /* Media queries pentru responsive */
+    @media (max-width: 768px) {
+      .action-bar {
+        flex-direction: column;
+        align-items: stretch;
+        
+        .create-btn {
+          width: 100%;
+          justify-content: center;
+        }
+        
+        .filters {
+          width: 100%;
+          min-width: auto;
+          
+          .filter-controls {
+            flex-direction: column;
+          }
+        }
+      }
+      
+      .vote-systems-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+    
+    @media (max-width: 480px) {
+      .card-header {
+        flex-direction: column;
+        align-items: flex-start;
+        
+        .system-name {
+          margin-bottom: 15px;
+          padding-right: 0;
+        }
+        
+        .actions {
+          align-self: flex-end;
+          margin-top: -40px;
+        }
+      }
+      
+      .status-badge {
+        top: 10px;
+        right: 10px;
+        font-size: 0.7rem;
+        padding: 4px 8px;
+      }
+    }
+  }

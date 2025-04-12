@@ -3,6 +3,9 @@ from .models import VoteSettings, VotingSection, LocalCandidate, LocalVote, Pres
 from .models import ParliamentaryParty, ParliamentaryVote
 from django import forms
 from django.core.exceptions import ValidationError  
+from .models import VoteSystem, VoteOption, VoteCast
+from django.utils import timezone
+from django.utils.html import format_html
 
 class VoteSettingsForm(forms.ModelForm):
     class Meta:
@@ -103,3 +106,43 @@ class ParliamentaryVoteAdmin(admin.ModelAdmin):
         return super().get_queryset(request).select_related(
             'user', 'party'
         )
+    
+# Verificare manuala a sistemului de vot de catre admin
+
+class VoteOptionInline(admin.TabularInline):
+    model = VoteOption
+    extra = 0
+
+@admin.register(VoteSystem)
+class VoteSystemAdmin(admin.ModelAdmin):
+    list_display = ('name', 'creator', 'created_at', 'status', 'admin_verified_display')
+    list_filter = ('status', 'admin_verified', 'category')
+    search_fields = ('name', 'description', 'creator__email')
+    readonly_fields = ('created_at',)
+    inlines = [VoteOptionInline]
+    actions = ['approve_vote_systems', 'reject_vote_systems']
+    
+    def admin_verified_display(self, obj):
+        # Make sure to return a boolean value, not HTML
+        return obj.admin_verified
+    admin_verified_display.short_description = 'Admin Verified'
+    admin_verified_display.boolean = True
+    
+    def approve_vote_systems(self, request, queryset):
+        for system in queryset:
+            system.admin_verified = True
+            system.status = 'active' if timezone.now() >= system.start_date else 'pending'
+            system.verification_date = timezone.now()
+            system.save()
+        
+        self.message_user(request, f'{queryset.count()} sisteme de vot au fost aprobate.')
+    approve_vote_systems.short_description = "Aprobă sistemele de vot selectate"
+    
+    def reject_vote_systems(self, request, queryset):
+        for system in queryset:
+            system.status = 'rejected'
+            system.verification_date = timezone.now()
+            system.save()
+        
+        self.message_user(request, f'{queryset.count()} sisteme de vot au fost respinse.')
+    reject_vote_systems.short_description = "Respinge sistemele de vot selectate"

@@ -1,0 +1,69 @@
+<div class="vote-system-status-container">
+    <!-- Loading spinner -->
+    <div class="loading-container" *ngIf="isLoading">
+      <div class="spinner"></div>
+      <p>Se verifică starea sistemului de vot...</p>
+    </div>
+    
+    <!-- Error message -->
+    <div class="error-message" *ngIf="errorMessage && !isLoading">
+      <i class="fas fa-exclamation-triangle"></i>
+      <p>{{ errorMessage }}</p>
+      
+      <div class="error-actions">
+        <button class="btn-primary" (click)="createNewSystem()">
+          Creează alt sistem de vot
+        </button>
+        <button class="btn-secondary" (click)="goToMenu()">
+          Înapoi la meniu
+        </button>
+      </div>
+    </div>
+    
+    <!-- System in verification -->
+    <div class="verification-status" *ngIf="voteSystem && voteSystem.status === 'pending'">
+      <div class="status-icon pending">
+        <i class="fas fa-clock"></i>
+      </div>
+      
+      <h2>Sistemul de vot se află în proces de verificare</h2>
+      
+      <p class="status-message">
+        Sistemul de vot <strong>{{ voteSystem.name }}</strong> este în așteptare pentru verificare.
+        Acest proces poate dura câteva minute. Te rugăm să aștepți.
+      </p>
+      
+      <div class="verification-details">
+        <div class="detail-item">
+          <span class="detail-label">Status:</span>
+          <span class="detail-value status-pending">În așteptare</span>
+        </div>
+        
+        <div class="detail-item">
+          <span class="detail-label">Creat la:</span>
+          <span class="detail-value">{{ voteSystem.created_at | date:'dd.MM.yyyy HH:mm' }}</span>
+        </div>
+      </div>
+      
+      <div class="loading-indicator">
+        <div class="pulse-dot"></div>
+        <div class="pulse-dot"></div>
+        <div class="pulse-dot"></div>
+      </div>
+      
+      <p class="info-text">
+        În timp ce aștepți, poți naviga la alte secțiuni. Vei primi o notificare când 
+        verificarea este completă.
+      </p>
+      
+      <div class="action-buttons">
+        <button class="btn-secondary" (click)="goToMenu()">
+          <i class="fas fa-arrow-left"></i> Înapoi la meniu
+        </button>
+        
+        <button class="btn-primary" (click)="checkVoteSystemStatus()">
+          <i class="fas fa-sync"></i> Verifică din nou
+        </button>
+      </div>
+    </div>
+  </div>

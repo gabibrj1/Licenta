@@ -4,6 +4,8 @@ from .views import UserVotingEligibilityView, FindVotingSectionView, LocalCandid
 from .views import ConfirmVoteAndSendReceiptView, GenerateVoteReceiptPDFView
 from .views import UserPresidentialVotingEligibilityView, PresidentialCandidatesView, CheckPresidentialVoteStatusView, SubmitPresidentialVoteView, GeneratePresidentialVoteReceiptPDFView
 from .views import UserParliamentaryVotingEligibilityView, ParliamentaryPartiesView, CheckParliamentaryVoteStatusView, SubmitParliamentaryVoteView, GenerateParliamentaryVoteReceiptPDFView
+from .views import CreateVoteSystemView, UserVoteSystemsView, VoteSystemDetailView, SubmitVoteView
+from .views import PublicVoteSystemView, PublicSubmitVoteView, PublicVoteResultsView
 urlpatterns = [
     path('vote-settings/', VoteSettingsView.as_view(), name='vote-settings'),
     path('admin/vote-settings/', AdminVoteSettingsView.as_view(), name='admin-vote-settings'),
@@ -26,5 +28,12 @@ urlpatterns = [
     path('vote/parliamentary/check-status/', CheckParliamentaryVoteStatusView.as_view(), name='check-parliamentary-vote-status'),
     path('vote/parliamentary/submit/', SubmitParliamentaryVoteView.as_view(), name='submit-parliamentary-vote'),
     path('vote/parliamentary/receipt-pdf/', GenerateParliamentaryVoteReceiptPDFView.as_view(), name='generate-parliamentary-vote-receipt-pdf'),
+    path('vote-systems/create/', CreateVoteSystemView.as_view(), name='create-vote-system'),
+    path('vote-systems/user/', UserVoteSystemsView.as_view(), name='user-vote-systems'),    
+    path('vote-systems/<int:system_id>/', VoteSystemDetailView.as_view(), name='vote-system-detail'),
+    path('vote-systems/<int:system_id>/vote/', SubmitVoteView.as_view(), name='submit-vote'),
+    path('vote-systems/<int:system_id>/public/', PublicVoteSystemView.as_view(), name='public-vote-system'),
+    path('vote-systems/<int:system_id>/public-vote/', PublicSubmitVoteView.as_view(), name='public-submit-vote'),
+    path('vote-systems/<int:system_id>/public-results/', PublicVoteResultsView.as_view(), name='public-vote-results'),   
 
 ] 

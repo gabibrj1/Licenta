@@ -1,0 +1,234 @@
+<div class="vote-system-details-container">
+    <div class="navigation-header">
+      <button class="back-btn" (click)="goBack()">
+        <i class="fas fa-arrow-left"></i> Înapoi la lista de sisteme
+      </button>
+    </div>
+    
+    <!-- Loading spinner -->
+    <div class="loading-container" *ngIf="isLoading">
+      <div class="spinner"></div>
+      <p>Se încarcă detaliile sistemului de vot...</p>
+    </div>
+    
+    <!-- Error message -->
+    <div class="error-message" *ngIf="errorMessage && !isLoading">
+      <i class="fas fa-exclamation-triangle"></i>
+      <p>{{ errorMessage }}</p>
+    </div>
+    
+    <!-- Vote system details -->
+    <div class="vote-system-content" *ngIf="voteSystem && !isLoading">
+      <div class="system-header">
+        <h1>{{ voteSystem.name }}</h1>
+        
+        <!-- Status badge - simplificat pentru a evita erori -->
+        <div class="status-badge" [class.status-active]="isVoteActive()">
+          <span *ngIf="isVoteActive()">Activ</span>
+          <span *ngIf="!isVoteActive()">Inactiv</span>
+        </div>
+      </div>
+      
+      <div class="progress-bar-container">
+        <div class="progress-bar">
+          <div class="progress-fill" [style.width]="getVoteProgress() + '%'"></div>
+        </div>
+        <div class="progress-status">
+          {{ getVoteStatusText() }}
+        </div>
+      </div>
+      
+      <!-- Tabs navigation -->
+      <div class="system-tabs">
+        <div class="tab" [class.active]="activeTab === 'overview'" (click)="setActiveTab('overview')">
+          <i class="fas fa-info-circle"></i> Prezentare
+        </div>
+        <div class="tab" [class.active]="activeTab === 'results'" (click)="setActiveTab('results')">
+          <i class="fas fa-chart-pie"></i> Rezultate
+        </div>
+        <div class="tab" [class.active]="activeTab === 'share'" (click)="setActiveTab('share')">
+          <i class="fas fa-share-alt"></i> Distribuie
+        </div>
+        <div class="tab" [class.active]="activeTab === 'settings'" (click)="setActiveTab('settings')">
+          <i class="fas fa-cog"></i> Setări
+        </div>
+      </div>
+      
+      <!-- Overview Tab -->
+      <div class="tab-content" *ngIf="activeTab === 'overview'">
+        <div class="overview-container">
+          <div class="system-description">
+            <h3>Descriere</h3>
+            <p>{{ voteSystem.description }}</p>
+          </div>
+          
+          <div class="system-details">
+            <h3>Detalii</h3>
+            
+            <div class="detail-item">
+              <span class="detail-label">Creat la:</span>
+              <span class="detail-value">{{ formatDate(voteSystem.created_at) }}</span>
+            </div>
+            
+            <div class="detail-item">
+              <span class="detail-label">Data începerii:</span>
+              <span class="detail-value">{{ formatDate(voteSystem.start_date) }}</span>
+            </div>
+            
+            <div class="detail-item">
+              <span class="detail-label">Data încheierii:</span>
+              <span class="detail-value">{{ formatDate(voteSystem.end_date) }}</span>
+            </div>
+            
+            <div class="detail-item">
+              <span class="detail-label">Total voturi:</span>
+              <span class="detail-value">{{ voteSystem.total_votes }}</span>
+            </div>
+          </div>
+          
+          <!-- Voting Form -->
+          <div class="voting-section" *ngIf="isVoteActive() && !voteSubmitted">
+            <h3>Votează</h3>
+            
+            <form [formGroup]="voteForm" (ngSubmit)="submitVote()">
+              <div class="vote-error" *ngIf="voteError">
+                <i class="fas fa-exclamation-triangle"></i>
+                {{ voteError }}
+              </div>
+              
+              <div class="vote-options">
+                <div class="option-item" *ngFor="let option of voteSystem.options">
+                  <input type="radio" 
+                        [id]="'option-' + option.id" 
+                        formControlName="selectedOption" 
+                        [value]="option.id">
+                  <label [for]="'option-' + option.id">
+                    <span class="option-title">{{ option.title }}</span>
+                  </label>
+                </div>
+              </div>
+              
+              <button type="submit" class="btn-primary submit-vote-btn" [disabled]="voteForm.invalid || isSubmittingVote">
+                <span *ngIf="!isSubmittingVote">Trimite vot</span>
+                <span *ngIf="isSubmittingVote">
+                  <i class="fas fa-spinner fa-spin"></i> Se procesează...
+                </span>
+              </button>
+            </form>
+          </div>
+          
+          <!-- Vote Submitted Message -->
+          <div class="vote-success" *ngIf="voteSubmitted">
+            <div class="success-icon">
+              <i class="fas fa-check-circle"></i>
+            </div>
+            <h3>Votul tău a fost înregistrat cu succes!</h3>
+            <p>Îți mulțumim pentru participare.</p>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Results Tab -->
+      <div class="tab-content" *ngIf="activeTab === 'results'">
+        <div class="results-container">
+          <h3>Rezultate vot</h3>
+          
+          <div class="results-chart-container">
+            <div echarts [options]="chartOptions" class="results-chart"></div>
+          </div>
+          
+          <div class="results-table">
+            <table>
+              <thead>
+                <tr>
+                  <th>Opțiune</th>
+                  <th>Voturi</th>
+                  <th>Procent</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let option of voteSystem.options">
+                  <td>{{ option.title }}</td>
+                  <td>{{ option.votes }}</td>
+                  <td>{{ voteSystem.total_votes > 0 ? (option.votes / voteSystem.total_votes * 100).toFixed(2) : '0' }}%</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Share Tab -->
+      <div class="tab-content" *ngIf="activeTab === 'share'">
+        <div class="share-container">
+          <h3>Distribuie sistem de vot</h3>
+          
+          <div class="share-methods">
+            <div class="share-item">
+              <h4>Link direct</h4>
+              <div class="share-input-group">
+                <input type="text" [value]="shareLinks.directLink" readonly>
+                <button class="btn-copy" (click)="copyToClipboard(shareLinks.directLink)">
+                  <i class="fas fa-copy"></i>
+                </button>
+              </div>
+            </div>
+            
+<!-- Adaugă acest fragment de cod în secțiunea share -->
+<div class="share-item">
+  <h4>Cod QR</h4>
+  <div class="qr-image">
+    <img [src]="shareLinks.qrCodeUrl" alt="QR Code">
+    <div class="localhost-warning" *ngIf="isLocalhost">
+      <i class="fas fa-exclamation-triangle"></i>
+      <p>Acest cod QR funcționează doar în mediul de producție. În dezvoltare (localhost), scanarea va rezulta într-o eroare.</p>
+    </div>
+  </div>
+</div>
+            
+            <div class="share-social">
+              <h4>Distribuie pe rețele sociale</h4>
+              <div class="social-buttons">
+                <a [href]="getShareFacebookLink()" 
+                   target="_blank" class="social-btn facebook">
+                  <i class="fab fa-facebook-f"></i>
+                </a>
+                
+                <a [href]="getShareTwitterLink()" 
+                   target="_blank" class="social-btn twitter">
+                  <i class="fab fa-twitter"></i>
+                </a>
+                
+                <a [href]="getShareWhatsAppLink()" 
+                   target="_blank" class="social-btn whatsapp">
+                  <i class="fab fa-whatsapp"></i>
+                </a>
+                
+                <a [href]="getShareEmailLink()" 
+                   class="social-btn email">
+                  <i class="fas fa-envelope"></i>
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Settings Tab -->
+      <div class="tab-content" *ngIf="activeTab === 'settings'">
+        <div class="settings-container">
+          <h3>Setări sistem de vot</h3>
+          
+          <div class="settings-actions">
+            <button class="btn-secondary">
+              <i class="fas fa-edit"></i> Editează sistem
+            </button>
+            
+            <button class="btn-danger">
+              <i class="fas fa-trash"></i> Șterge sistem
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>

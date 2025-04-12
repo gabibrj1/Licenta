@@ -1,0 +1,103 @@
+<div class="my-vote-systems-container">
+    <h1>Sistemele mele de vot</h1>
+    
+    <div class="action-bar">
+      <button class="btn-primary create-btn" (click)="createNewVoteSystem()">
+        <i class="fas fa-plus"></i> Creează sistem nou
+      </button>
+      
+      <div class="filters">
+        <div class="search-box">
+          <input type="text" [(ngModel)]="searchQuery" placeholder="Caută sisteme..." (keyup.enter)="applyFilters()">
+          <button class="search-btn" (click)="applyFilters()">
+            <i class="fas fa-search"></i>
+          </button>
+        </div>
+        
+        <div class="filter-controls">
+          <select [(ngModel)]="activeFilter" (change)="applyFilters()">
+            <option value="all">Toate sistemele</option>
+            <option value="active">Active</option>
+            <option value="completed">Încheiate</option>
+            <option value="pending">În așteptare</option>
+          </select>
+          
+          <select [(ngModel)]="sortBy" (change)="applyFilters()">
+            <option value="date_desc">Cele mai recente</option>
+            <option value="date_asc">Cele mai vechi</option>
+            <option value="votes_desc">Cele mai multe voturi</option>
+            <option value="name_asc">Nume (A-Z)</option>
+            <option value="name_desc">Nume (Z-A)</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Loading spinner -->
+    <div class="loading-container" *ngIf="isLoading">
+      <div class="spinner"></div>
+      <p>Se încarcă sistemele de vot...</p>
+    </div>
+    
+    <!-- Error message -->
+    <div class="error-message" *ngIf="errorMessage && !isLoading">
+      <i class="fas fa-exclamation-triangle"></i>
+      <p>{{ errorMessage }}</p>
+    </div>
+    
+    <!-- No systems message -->
+    <div class="no-systems-message" *ngIf="voteSystems.length === 0 && !isLoading && !errorMessage">
+      <div class="empty-illustration">
+        <i class="fas fa-box-open fa-4x"></i>
+      </div>
+      <h3>Nu aveți sisteme de vot create</h3>
+      <p>Creați primul sistem de vot pentru a începe să colectați opinii în mod democratic!</p>
+      <button class="btn-primary" (click)="createNewVoteSystem()">
+        Creează primul sistem de vot
+      </button>
+    </div>
+    
+    <!-- Vote systems list -->
+    <div class="vote-systems-grid" *ngIf="voteSystems.length > 0 && !isLoading">
+      <div class="vote-system-card" *ngFor="let system of voteSystems" (click)="viewVoteSystem(system.id)">
+        <div class="status-badge" [ngClass]="getStatusClass(system.status)">
+          {{ getStatusText(system.status) }}
+        </div>
+        
+        <div class="card-header">
+          <h3 class="system-name">{{ system.name }}</h3>
+          <div class="actions">
+            <button class="action-btn delete-btn" (click)="deleteVoteSystem($event, system.id)" title="Șterge sistem">
+              <i class="fas fa-trash"></i>
+            </button>
+            <button class="action-btn share-btn" title="Distribuie">
+              <i class="fas fa-share-alt"></i>
+            </button>
+          </div>
+        </div>
+        
+        <p class="system-description">{{ system.description }}</p>
+        
+        <div class="card-details">
+          <div class="detail-item">
+            <i class="fas fa-calendar-alt"></i>
+            <span>Creat: {{ formatDate(system.created_at) }}</span>
+          </div>
+          
+          <div class="detail-item">
+            <i class="fas fa-vote-yea"></i>
+            <span>{{ system.votes_count }} voturi</span>
+          </div>
+          
+          <div class="detail-item" *ngIf="system.status === 'active'">
+            <i class="fas fa-clock"></i>
+            <span>{{ getRemainingTime(system.end_date) }}</span>
+          </div>
+        </div>
+        
+        <div class="card-actions">
+          <button class="btn-secondary">Vezi detalii</button>
+        </div>
+      </div>
+    </div>
+  </div>

@@ -39,7 +39,8 @@ from django.shortcuts import get_object_or_404
 import os
 from .models import PresidentialVote, PresidentialCandidate, ParliamentaryVote, ParliamentaryParty
 from django.db import connection
-
+from .models import VoteSystem, VoteOption, VoteCast
+from .serializers import VoteSystemSerializer, VoteOptionSerializer, VoteCastSerializer, CreateVoteSystemSerializer
 
 logger = logging.getLogger(__name__)
 
@@ -1776,3 +1777,413 @@ class GenerateParliamentaryVoteReceiptPDFView(APIView):
         
         # Generează PDF-ul
         doc.build(elements)
+
+# view pentru creearea propriului sistem de vot
+class CreateVoteSystemView(APIView):
+    permission_classes = [IsAuthenticated]
+    
+    def post(self, request):
+        # Cream un serializator cu datele din request
+        serializer = CreateVoteSystemSerializer(data=request.data)
+        
+        if serializer.is_valid():
+            # Salvăm sistemul de vot
+            vote_system = serializer.save(creator=request.user)
+            
+            # Returnăm datele sistemului creat
+            return Response({
+                'success': True,
+                'message': 'Sistem de vot creat cu succes!',
+                'system_id': vote_system.id
+            }, status=status.HTTP_201_CREATED)
+        
+        return Response({
+            'success': False,
+            'errors': serializer.errors
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+
+class UserVoteSystemsView(APIView):
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        # Obținem toate sistemele de vot create de utilizatorul curent
+        vote_systems = VoteSystem.objects.filter(creator=request.user)
+        
+        # Actualizăm status-ul pentru fiecare sistem
+        for system in vote_systems:
+            system.update_status()
+        
+        # Serializăm datele
+        serializer = VoteSystemSerializer(vote_systems, many=True)
+        
+        return Response(serializer.data)
+
+
+class VoteSystemDetailView(APIView):
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request, system_id):
+        try:
+            # Obținem sistemul de vot
+            vote_system = VoteSystem.objects.get(id=system_id)
+            
+            # Verificăm dacă utilizatorul are dreptul să vadă sistemul
+            if vote_system.creator != request.user:
+                return Response({
+                    'error': 'Nu aveți permisiunea de a vedea acest sistem de vot.'
+                }, status=status.HTTP_403_FORBIDDEN)
+            
+            # Actualizăm status-ul
+            vote_system.update_status()
+            
+            # Serializăm datele
+            serializer = VoteSystemSerializer(vote_system)
+            
+            return Response(serializer.data)
+        
+        except VoteSystem.DoesNotExist:
+            return Response({
+                'error': 'Sistemul de vot nu a fost găsit.'
+            }, status=status.HTTP_404_NOT_FOUND)
+    
+    def put(self, request, system_id):
+        try:
+            # Obținem sistemul de vot
+            vote_system = VoteSystem.objects.get(id=system_id)
+            
+            # Verificăm dacă utilizatorul are dreptul să modifice sistemul
+            if vote_system.creator != request.user:
+                return Response({
+                    'error': 'Nu aveți permisiunea de a modifica acest sistem de vot.'
+                }, status=status.HTTP_403_FORBIDDEN)
+            
+            # Verificăm dacă sistemul poate fi modificat
+            if vote_system.status != 'pending':
+                return Response({
+                    'error': 'Acest sistem nu mai poate fi modificat deoarece a început sau s-a încheiat.'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Actualizăm datele
+            serializer = CreateVoteSystemSerializer(vote_system, data=request.data, partial=True)
+            
+            if serializer.is_valid():
+                serializer.save()
+                
+                return Response({
+                    'success': True,
+                    'message': 'Sistem de vot actualizat cu succes!'
+                })
+            
+            return Response({
+                'success': False,
+                'errors': serializer.errors
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        except VoteSystem.DoesNotExist:
+            return Response({
+                'error': 'Sistemul de vot nu a fost găsit.'
+            }, status=status.HTTP_404_NOT_FOUND)
+    
+    def delete(self, request, system_id):
+        try:
+            # Obținem sistemul de vot
+            vote_system = VoteSystem.objects.get(id=system_id)
+            
+            # Verificăm dacă utilizatorul are dreptul să șteargă sistemul
+            if vote_system.creator != request.user:
+                return Response({
+                    'error': 'Nu aveți permisiunea de a șterge acest sistem de vot.'
+                }, status=status.HTTP_403_FORBIDDEN)
+            
+            # Ștergem sistemul
+            vote_system.delete()
+            
+            return Response({
+                'success': True,
+                'message': 'Sistem de vot șters cu succes!'
+            })
+        
+        except VoteSystem.DoesNotExist:
+            return Response({
+                'error': 'Sistemul de vot nu a fost găsit.'
+            }, status=status.HTTP_404_NOT_FOUND)
+
+
+class SubmitVoteView(APIView):
+    def post(self, request, system_id):
+        try:
+            # Log pentru debugging
+            print(f"Date primite: {request.data}")
+            
+            # Obținem sistemul de vot
+            vote_system = VoteSystem.objects.get(id=system_id)
+            
+            # Verificăm dacă sistemul este activ
+            if vote_system.status != 'active':
+                return Response({
+                    'error': 'Acest sistem de vot nu este activ în acest moment.'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Obținem opțiunea pentru care s-a votat
+            option_id = request.data.get('option_id')
+            
+            if not option_id:
+                return Response({
+                    'error': 'Trebuie să selectați o opțiune pentru a vota.'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            try:
+                option = VoteOption.objects.get(id=option_id, vote_system=vote_system)
+            except VoteOption.DoesNotExist:
+                return Response({
+                    'error': 'Opțiunea selectată nu există pentru acest sistem de vot.'
+                }, status=status.HTTP_404_NOT_FOUND)
+            
+            # Verificăm dacă utilizatorul a votat deja
+            if request.user.is_authenticated:
+                if VoteCast.objects.filter(vote_system=vote_system, user=request.user).exists():
+                    return Response({
+                        'error': 'Ați votat deja în acest sistem de vot.'
+                    }, status=status.HTTP_400_BAD_REQUEST)
+                
+                # Creăm votul pentru utilizator autentificat
+                vote = VoteCast.objects.create(
+                    vote_system=vote_system,
+                    option=option,
+                    user=request.user,
+                    ip_address=self.get_client_ip(request),
+                    user_agent=request.META.get('HTTP_USER_AGENT', '')
+                )
+            else:
+                # Pentru voturile anonime, folosim o combinație IP + User Agent
+                anonymous_id = self.generate_anonymous_id(request)
+                
+                if vote_system.rules.get('allow_anonymous_voting', False) is False:
+                    return Response({
+                        'error': 'Acest sistem de vot nu permite votul anonim. Vă rugăm să vă autentificați.'
+                    }, status=status.HTTP_403_FORBIDDEN)
+                
+                if VoteCast.objects.filter(vote_system=vote_system, anonymous_id=anonymous_id).exists():
+                    return Response({
+                        'error': 'Se pare că ați votat deja în acest sistem de vot.'
+                    }, status=status.HTTP_400_BAD_REQUEST)
+                
+                # Creăm votul anonim
+                vote = VoteCast.objects.create(
+                    vote_system=vote_system,
+                    option=option,
+                    anonymous_id=anonymous_id,
+                    ip_address=self.get_client_ip(request),
+                    user_agent=request.META.get('HTTP_USER_AGENT', '')
+                )
+            
+            return Response({
+                'success': True,
+                'message': 'Votul dvs. a fost înregistrat cu succes!'
+            })
+        
+        except VoteSystem.DoesNotExist:
+            return Response({
+                'error': 'Sistemul de vot nu a fost găsit.'
+            }, status=status.HTTP_404_NOT_FOUND)
+    
+    def get_client_ip(self, request):
+        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+        if x_forwarded_for:
+            ip = x_forwarded_for.split(',')[0]
+        else:
+            ip = request.META.get('REMOTE_ADDR')
+        return ip
+    
+    def generate_anonymous_id(self, request):
+        """Generează un ID anonim bazat pe IP și User Agent"""
+        import hashlib
+        
+        ip = self.get_client_ip(request)
+        user_agent = request.META.get('HTTP_USER_AGENT', '')
+        
+        combined = f"{ip}:{user_agent}"
+        return hashlib.md5(combined.encode()).hexdigest()
+    
+class AdminVerifyVoteSystemView(APIView):
+    permission_classes = [IsAdminUser]
+    
+    def post(self, request, system_id):
+        try:
+            # Obținem sistemul de vot
+            vote_system = VoteSystem.objects.get(id=system_id)
+            
+            # Obținem acțiunea
+            action = request.data.get('action')
+            reason = request.data.get('reason', '')
+            
+            if action == 'approve':
+                vote_system.admin_verified = True
+                vote_system.status = 'active'
+                vote_system.verification_date = timezone.now()
+                message = 'Sistem de vot aprobat cu succes!'
+            elif action == 'reject':
+                vote_system.status = 'rejected'
+                vote_system.rejection_reason = reason
+                vote_system.verification_date = timezone.now()
+                message = 'Sistem de vot respins.'
+            else:
+                return Response({
+                    'error': 'Acțiune invalidă. Folosiți "approve" sau "reject".'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            vote_system.save()
+            
+            return Response({
+                'success': True,
+                'message': message
+            })
+        
+        except VoteSystem.DoesNotExist:
+            return Response({
+                'error': 'Sistemul de vot nu a fost găsit.'
+            }, status=status.HTTP_404_NOT_FOUND)
+        
+# clase pentru votul public        
+class PublicVoteSystemView(APIView):
+    permission_classes = [AllowAny]  # Permite accesul tuturor utilizatorilor
+    
+    def get(self, request, system_id):
+        try:
+            # Obținem sistemul de vot
+            vote_system = VoteSystem.objects.get(id=system_id)
+            
+            # Verificăm dacă sistemul este activ sau finalizat
+            if vote_system.status not in ['active', 'completed']:
+                return Response({
+                    'error': 'Acest sistem de vot nu este disponibil pentru vizualizare publică.'
+                }, status=status.HTTP_403_FORBIDDEN)
+            
+            # Actualizăm status-ul
+            vote_system.update_status()
+            
+            # Serializăm datele
+            serializer = VoteSystemSerializer(vote_system)
+            
+            return Response(serializer.data)
+        
+        except VoteSystem.DoesNotExist:
+            return Response({
+                'error': 'Sistemul de vot nu a fost găsit.'
+            }, status=status.HTTP_404_NOT_FOUND)
+
+# Adaugă această clasă pentru votarea publică
+class PublicSubmitVoteView(APIView):
+    permission_classes = [AllowAny]  # Permite accesul tuturor utilizatorilor
+    
+    def post(self, request, system_id):
+        try:
+            # Obținem sistemul de vot
+            vote_system = VoteSystem.objects.get(id=system_id)
+            
+            # Verificăm dacă sistemul este activ
+            vote_system.update_status()
+            
+            if vote_system.status != 'active':
+                return Response({
+                    'error': 'Acest sistem de vot nu este activ în acest moment.'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # MODIFICARE: Eliminăm verificarea pentru allow_anonymous_voting
+            # pentru ruta publică, asumăm că toate sistemele distribuite
+            # permit vot anonim
+            
+            # Obținem opțiunea pentru care s-a votat
+            option_id = request.data.get('option_id')
+            
+            if not option_id:
+                return Response({
+                    'error': 'Trebuie să selectați o opțiune pentru a vota.'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            try:
+                option = VoteOption.objects.get(id=option_id, vote_system=vote_system)
+            except VoteOption.DoesNotExist:
+                return Response({
+                    'error': 'Opțiunea selectată nu există pentru acest sistem de vot.'
+                }, status=status.HTTP_404_NOT_FOUND)
+            
+            # Pentru voturile anonime, folosim o combinație IP + User Agent
+            anonymous_id = self.generate_anonymous_id(request)
+            
+            if VoteCast.objects.filter(vote_system=vote_system, anonymous_id=anonymous_id).exists():
+                return Response({
+                    'error': 'Se pare că ați votat deja în acest sistem de vot.'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Creăm votul anonim
+            vote = VoteCast.objects.create(
+                vote_system=vote_system,
+                option=option,
+                anonymous_id=anonymous_id,
+                ip_address=self.get_client_ip(request),
+                user_agent=request.META.get('HTTP_USER_AGENT', '')
+            )
+            
+            return Response({
+                'success': True,
+                'message': 'Votul dvs. a fost înregistrat cu succes!'
+            })
+        
+        except VoteSystem.DoesNotExist:
+            return Response({
+                'error': 'Sistemul de vot nu a fost găsit.'
+            }, status=status.HTTP_404_NOT_FOUND)
+    
+    def get_client_ip(self, request):
+        """Obține adresa IP a clientului"""
+        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+        if x_forwarded_for:
+            ip = x_forwarded_for.split(',')[0]
+        else:
+            ip = request.META.get('REMOTE_ADDR')
+        return ip
+    
+    def generate_anonymous_id(self, request):
+        """Generează un ID anonim bazat pe IP și User Agent"""
+        import hashlib
+        
+        ip = self.get_client_ip(request)
+        user_agent = request.META.get('HTTP_USER_AGENT', '')
+        
+        combined = f"{ip}:{user_agent}"
+        return hashlib.md5(combined.encode()).hexdigest()
+
+# Adaugă această clasă pentru rezultatele publice
+class PublicVoteResultsView(APIView):
+    permission_classes = [AllowAny]  # Permite accesul tuturor utilizatorilor
+    
+    def get(self, request, system_id):
+        try:
+            # Obținem sistemul de vot
+            vote_system = VoteSystem.objects.get(id=system_id)
+            
+            # Verificăm dacă rezultatele pot fi afișate public
+            result_visibility = vote_system.rules.get('result_visibility', 'after_end')
+            current_time = timezone.now()
+            
+            if result_visibility == 'hidden':
+                return Response({
+                    'error': 'Rezultatele acestui vot nu sunt disponibile public.'
+                }, status=status.HTTP_403_FORBIDDEN)
+            
+            if result_visibility == 'after_end' and current_time < vote_system.end_date:
+                return Response({
+                    'error': 'Rezultatele vor fi disponibile după încheierea perioadei de vot.'
+                }, status=status.HTTP_403_FORBIDDEN)
+            
+            # Serializăm datele
+            serializer = VoteSystemSerializer(vote_system)
+            
+            return Response(serializer.data)
+        
+        except VoteSystem.DoesNotExist:
+            return Response({
+                'error': 'Sistemul de vot nu a fost găsit.'
+            }, status=status.HTTP_404_NOT_FOUND)

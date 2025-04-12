@@ -43,10 +43,17 @@ import { NgxEchartsModule } from 'ngx-echarts';
 import { VoteModule } from './vote/vote.module';
 import { VoteMonitoringService } from './services/vote-monitoring.service'; 
 import { PresidentialVoteService } from './services/presidential-vote.service';
+import { AuthBypassInterceptor } from './interceptors/auth-bypass.interceptor';
 
 import { AuthGuard } from './guards/auth.guard';
 import { ScheduleDialogComponent } from './schedule-dialog/schedule-dialog.component';
 import { VoteReceiptComponent } from './components/vote-receipt/vote-receipt.component';
+import { CreateVoteSystemComponent } from './components/create-vote-system/create-vote-system.component';
+import { MyVoteSystemsComponent } from './components/my-vote-systems/my-vote-systems.component';
+import { VoteSystemDetailsComponent } from './components/vote-system-details/vote-system-details.component';
+import { VoteSystemStatusComponent } from './components/vote-system-status/vote-system-status.component';
+import { PublicVoteComponent } from './components/public-vote/public-vote.component';
+
 
 @NgModule({
   declarations: [
@@ -68,7 +75,13 @@ import { VoteReceiptComponent } from './components/vote-receipt/vote-receipt.com
     AppointmentRejectedComponent,
     AppointmentErrorComponent,
     MapComponent,
-    VoteReceiptComponent
+    VoteReceiptComponent,
+    CreateVoteSystemComponent,
+    MyVoteSystemsComponent,
+    VoteSystemDetailsComponent,
+    VoteSystemStatusComponent,
+    PublicVoteComponent,
+
   ],
   imports: [
     BrowserModule,
@@ -103,6 +116,7 @@ import { VoteReceiptComponent } from './components/vote-receipt/vote-receipt.com
   providers: [
     { provide: HTTP_INTERCEPTORS, useClass: CsrfInterceptor, multi: true },
     { provide: HTTP_INTERCEPTORS, useClass: AuthInterceptor, multi: true },
+    { provide: HTTP_INTERCEPTORS, useClass: AuthBypassInterceptor, multi: true },
     VoteMonitoringService,
     PresidentialVoteService
   ],

@@ -13,6 +13,11 @@ import { PresidentialVoteComponent } from './vote/presidential-vote/presidential
 import { ParliamentaryVoteComponent } from './vote/parliamentary-vote/parliamentary-vote.component';
 import { LocalVoteComponent } from './vote/local-vote/local-vote.component';
 import { VoteReceiptComponent } from './components/vote-receipt/vote-receipt.component';
+import { CreateVoteSystemComponent } from './components/create-vote-system/create-vote-system.component';
+import { VoteSystemStatusComponent } from './components/vote-system-status/vote-system-status.component';
+import { VoteSystemDetailsComponent } from './components/vote-system-details/vote-system-details.component';
+import { MyVoteSystemsComponent } from './components/my-vote-systems/my-vote-systems.component';
+import { PublicVoteComponent } from './components/public-vote/public-vote.component';
 
 import { AppointmentConfirmedComponent } from './appointments/appointment-confirmed.component';
 import { AppointmentRejectedComponent } from './appointments/appointment-rejected.component';
@@ -27,12 +32,16 @@ const routes: Routes = [
     component: MenuComponent,
     children: [
       { path: 'despre/contact', component: ContactComponent },
+      { path: 'despre/creeaza-sistem', component: CreateVoteSystemComponent, canActivate: [AuthGuard] },
+      { path: 'despre/sisteme-vot', component: MyVoteSystemsComponent, canActivate: [AuthGuard] },
+      { path: 'despre/sisteme-vot/:id', component: VoteSystemDetailsComponent, canActivate: [AuthGuard] },
+      { path: 'despre/status-vot/:id', component: VoteSystemStatusComponent, canActivate: [AuthGuard] },
+      
       { path: 'harta', component: MapComponent},
       // Rute pentru vot și simulare
       { path: 'simulare-vot', component: VoteSimulationComponent },
       { path: 'vot/prezidentiale', component: PresidentialVoteComponent, canActivate: [AuthGuard] },
       { path: 'vot/parlamentare', component: ParliamentaryVoteComponent, canActivate: [AuthGuard] },
-
       { path: 'vot/locale', component: LocalVoteComponent, canActivate: [AuthGuard] },
 
       // Aici poți adăuga alte rute pentru conținutul din meniu
@@ -42,6 +51,7 @@ const routes: Routes = [
   { path: 'verify-email', component: VerifyEmailComponent },
   { path: 'voteapp-front', component: VoteappFrontComponent},
   { path: 'reviews', component: ReviewsComponent },
+  { path: 'vote/:id', component: PublicVoteComponent },
 
   { path: 'appointment-confirmed', component: AppointmentConfirmedComponent },
   { path: 'appointment-rejected', component: AppointmentRejectedComponent },

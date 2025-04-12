@@ -217,3 +217,106 @@ class ParliamentaryVote(models.Model):
 
     def __str__(self):
         return f"{self.user} - {self.party} - {self.vote_datetime.strftime('%d.%m.%Y, %H:%M')}"
+    
+class VoteSystem(models.Model):
+    """Model pentru sistemele de vot personalizate"""
+    name = models.CharField(max_length=200)
+    description = models.TextField()
+    creator = models.ForeignKey('users.User', on_delete=models.CASCADE, related_name='vote_systems')
+    category = models.CharField(max_length=50, choices=[
+        ('political', 'Politic'),
+        ('organizational', 'Organizațional'),
+        ('community', 'Comunitar'),
+        ('survey', 'Sondaj'),
+        ('decision', 'Decizie'),
+        ('other', 'Altele'),
+    ])
+    created_at = models.DateTimeField(auto_now_add=True)
+    start_date = models.DateTimeField()
+    end_date = models.DateTimeField()
+    
+    # Stocare JSON pentru reguli și setări
+    rules = models.JSONField(default=dict)
+    
+    # Status-ul sistemului
+    status = models.CharField(max_length=20, default='pending', choices=[
+        ('pending', 'În așteptare'),
+        ('active', 'Activ'),
+        ('completed', 'Încheiat'),
+        ('rejected', 'Respins'),
+    ])
+    
+    # Verificare manuala
+    admin_verified = models.BooleanField(default=False)
+    rejection_reason = models.TextField(blank=True, null=True)
+    verification_date = models.DateTimeField(null=True, blank=True)
+    
+    class Meta:
+        verbose_name = "Sistem de vot"
+        verbose_name_plural = "Sisteme de vot"
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"{self.name} (creat de {self.creator.email})"
+    
+    def update_status(self):
+        """Actualizează automat status-ul în funcție de data curentă"""
+        now = timezone.now()
+        
+        # Daca nu a fost verificat de admin ramane in asteptare
+        if not self.admin_verified:
+            self.status = 'pending'
+            return self.status
+        
+        if now < self.start_date:
+            self.status = 'pending'
+        elif now >= self.start_date and now <= self.end_date:
+            self.status = 'active'
+        elif now > self.end_date:
+            self.status = 'completed'
+        return self.status
+
+
+class VoteOption(models.Model):
+    """Model pentru opțiunile din cadrul unui sistem de vot"""
+    vote_system = models.ForeignKey(VoteSystem, on_delete=models.CASCADE, related_name='options')
+    title = models.CharField(max_length=200)
+    description = models.TextField(blank=True, null=True)
+    image_url = models.URLField(blank=True, null=True)
+    order = models.IntegerField(default=0)
+    
+    class Meta:
+        verbose_name = "Opțiune de vot"
+        verbose_name_plural = "Opțiuni de vot"
+        ordering = ['order', 'id']
+    
+    def __str__(self):
+        return f"{self.title} ({self.vote_system.name})"
+
+
+class VoteCast(models.Model):
+    """Model pentru voturile efectuate"""
+    vote_system = models.ForeignKey(VoteSystem, on_delete=models.CASCADE, related_name='votes')
+    option = models.ForeignKey(VoteOption, on_delete=models.CASCADE, related_name='votes')
+    user = models.ForeignKey('users.User', on_delete=models.SET_NULL, null=True, blank=True)
+    anonymous_id = models.CharField(max_length=100, blank=True, null=True)  # Pentru voturile anonime
+    ip_address = models.GenericIPAddressField(blank=True, null=True)
+    user_agent = models.TextField(blank=True, null=True)
+    vote_datetime = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        verbose_name = "Vot"
+        verbose_name_plural = "Voturi"
+        # Un utilizator poate vota o singură dată pentru fiecare sistem (excepție: vot multiplu)
+        constraints = [
+            models.UniqueConstraint(
+                fields=['vote_system', 'user'],
+                name='unique_user_vote_per_system',
+                condition=models.Q(user__isnull=False)
+            )
+        ]
+    
+    def __str__(self):
+        if self.user:
+            return f"Vot de {self.user.email} pentru {self.option.title}"
+        return f"Vot anonim pentru {self.option.title}"
