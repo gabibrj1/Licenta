@@ -19,7 +19,7 @@ class VoteSystemSerializer(serializers.ModelSerializer):
     class Meta:
         model = VoteSystem
         fields = ['id', 'name', 'description', 'category', 'created_at', 'start_date', 
-                  'end_date', 'status', 'rules', 'options', 'total_votes']
+                  'end_date', 'status', 'rules', 'options', 'total_votes', 'require_email_verification', 'allowed_emails']
     
     def get_total_votes(self, obj):
         return VoteCast.objects.filter(vote_system=obj).count()

@@ -4,6 +4,7 @@ import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { VoteSystemService } from '../../services/vote-system.service';
 import { environment } from '../../../src/environments/environment';
 
+
 @Component({
   selector: 'app-public-vote',
   templateUrl: './public-vote.component.html',
@@ -20,6 +21,13 @@ export class PublicVoteComponent implements OnInit {
   isSubmittingVote = false;
   voteSubmitted = false;
   voteError = '';
+  
+  // Verificare token
+  requiresEmailVerification = false;
+  emailVerified = false;
+  tokenForm: FormGroup;
+  isVerifying = false;
+  tokenError = '';
   
   // Vizualizare rezultate
   showResults = false;
@@ -57,6 +65,12 @@ export class PublicVoteComponent implements OnInit {
     this.voteForm = this.fb.group({
       selectedOption: ['', Validators.required]
     });
+    
+    // Inițializăm formularul pentru verificarea token-ului
+    this.tokenForm = this.fb.group({
+      email: ['', [Validators.required, Validators.email]],
+      token: ['', [Validators.required, Validators.minLength(6), Validators.maxLength(6)]]
+    });
   }
 
   ngOnInit(): void {
@@ -70,28 +84,21 @@ export class PublicVoteComponent implements OnInit {
     
     // Verifică dacă există parametri speciali în URL
     this.checkUrlParameters();
-
-    // Detectează accesul din rețea
-    this.detectNetworkAccess();
+    
+    // Verifică dacă utilizatorul a votat deja
+    this.checkIfAlreadyVoted();
     
     this.loadVoteSystem();
   }
-  detectNetworkAccess(): void {
-    const isNetworkAccess = window.location.hostname === environment.networkIp;
-    
-    if (isNetworkAccess) {
-      console.log('Acces din rețeaua locală detectat, folosim adresa IP a rețelei pentru API');
-    }
-  }
 
-  // Verifică dacă există parametri speciali în URL
-  checkUrlParameters(): void {
-    const params = this.route.snapshot.queryParams;
+  // Verifică dacă utilizatorul a votat deja
+  checkIfAlreadyVoted(): void {
+    // Verifică localStorage pentru token-ul de vot
+    const voteKey = `vote_confirmation_${this.systemId}`;
+    const hasVoted = localStorage.getItem(voteKey);
     
-    // Exemplu: Poți implementa verificări de token-uri de unică folosință sau alte metode
-    if (params['token']) {
-      // Verifică token-ul (implementare specifică aplicației tale)
-      console.log('Token găsit în URL:', params['token']);
+    if (hasVoted) {
+      this.voteSubmitted = true;
     }
   }
 
@@ -101,6 +108,16 @@ export class PublicVoteComponent implements OnInit {
       next: (data) => {
         this.voteSystem = data;
         this.isLoading = false;
+        
+        // Verifică dacă sistemul necesită verificare prin email
+        this.requiresEmailVerification = data.require_email_verification;
+        console.log('Necesită verificare email:', this.requiresEmailVerification);
+        
+        // Verifică dacă emailul a fost deja verificat în această sesiune
+        const sessionToken = localStorage.getItem(`vote_session_${this.systemId}`);
+        if (sessionToken) {
+          this.emailVerified = true;
+        }
         
         // Verificăm dacă putem afișa rezultatele
         this.checkIfCanShowResults();
@@ -114,6 +131,37 @@ export class PublicVoteComponent implements OnInit {
         this.errorMessage = 'Nu s-au putut încărca detaliile sistemului de vot.';
         this.isLoading = false;
         console.error('Eroare la încărcarea detaliilor sistemului de vot:', error);
+      }
+    });
+  }
+  
+  // Verifică token-ul de email
+  verifyToken(): void {
+    if (this.tokenForm.invalid) return;
+    
+    this.isVerifying = true;
+    this.tokenError = '';
+    
+    const token = this.tokenForm.value.token.toUpperCase();
+    const email = this.tokenForm.value.email;
+    
+    this.voteSystemService.verifyVoteToken(this.systemId, token, email).subscribe({
+      next: (response) => {
+        this.isVerifying = false;
+        if (response.valid) {
+          this.emailVerified = true;
+          
+          // Stocăm token-ul și email-ul pentru a-l folosi la vot
+          localStorage.setItem(`vote_session_${this.systemId}`, response.session_token || '');
+          localStorage.setItem(`vote_email_${this.systemId}`, email);
+        } else {
+          this.tokenError = response.message || 'Cod invalid. Te rugăm să verifici și să încerci din nou.';
+        }
+      },
+      error: (error) => {
+        this.isVerifying = false;
+        this.tokenError = error.error?.message || 'A apărut o eroare la verificarea codului.';
+        console.error('Eroare la verificarea token-ului:', error);
       }
     });
   }
@@ -154,17 +202,72 @@ export class PublicVoteComponent implements OnInit {
   
   // Trimite un vot
   submitVote(): void {
-    if (this.voteForm.invalid) return;
+    if (this.voteForm.invalid) {
+      console.error('Formular invalid pentru vot');
+      return;
+    }
     
     const selectedOptionId = this.voteForm.value.selectedOption;
+    console.log('Opțiune selectată pentru vot:', selectedOptionId);
     
     this.isSubmittingVote = true;
     this.voteError = '';
     
-    this.voteSystemService.submitPublicVote(this.systemId, { option_id: selectedOptionId }).subscribe({
+    // Verifică dacă utilizatorul a votat deja
+    const voteKey = `vote_confirmation_${this.systemId}`;
+    if (localStorage.getItem(voteKey)) {
+      this.isSubmittingVote = false;
+      this.voteError = 'Se pare că ați votat deja în acest sistem de vot.';
+      console.log('Vot deja înregistrat în localStorage');
+      return;
+    }
+    
+    // Pregătim datele pentru vot
+    const voteData: any = {
+      option_id: selectedOptionId
+    };
+    
+    // Dacă sistemul necesită verificare prin email, adăugăm token-ul și email-ul
+    if (this.requiresEmailVerification) {
+      const sessionToken = localStorage.getItem(`vote_session_${this.systemId}`);
+      const email = localStorage.getItem(`vote_email_${this.systemId}`);
+      
+      console.log('Date sesiune pentru votare:', { 
+        requiresEmailVerification: this.requiresEmailVerification,
+        systemId: this.systemId, 
+        sessionToken, 
+        email 
+      });
+      
+      if (!sessionToken || !email) {
+        this.isSubmittingVote = false;
+        this.voteError = 'Sesiunea de verificare a expirat. Te rugăm să introduci din nou codul de acces.';
+        this.emailVerified = false;
+        console.error('Lipsă token sau email pentru vot');
+        return;
+      }
+      
+      // Adăugăm token-ul și email-ul la datele de vot
+      voteData.token = sessionToken;
+      voteData.email = email;
+    }
+    
+    console.log('Trimitere date vot către server:', voteData);
+    
+    this.voteSystemService.submitPublicVote(this.systemId, voteData).subscribe({
       next: (response) => {
+        console.log('Răspuns după trimitere vot:', response);
         this.isSubmittingVote = false;
         this.voteSubmitted = true;
+        
+        // Salvăm confirmarea votului în localStorage
+        if (response.vote_confirmation) {
+          localStorage.setItem(voteKey, response.vote_confirmation);
+          console.log('Confirmare vot salvată în localStorage');
+        } else {
+          localStorage.setItem(voteKey, 'voted');
+          console.log('Confirmare simplă de vot salvată în localStorage');
+        }
         
         // Verificăm dacă putem afișa rezultatele după vot
         this.checkIfCanShowResults();
@@ -175,9 +278,26 @@ export class PublicVoteComponent implements OnInit {
         }
       },
       error: (error) => {
-        this.isSubmittingVote = false;
         console.error('Eroare la trimiterea votului:', error);
-        this.voteError = error.error?.error || 'A apărut o eroare la trimiterea votului.';
+        this.isSubmittingVote = false;
+        
+        // Tratarea specifică a mesajelor de eroare
+        if (error.error && error.error.error) {
+          this.voteError = error.error.error;
+        } else if (error.message) {
+          this.voteError = error.message;
+        } else {
+          this.voteError = 'A apărut o eroare la trimiterea votului.';
+        }
+        
+        // Dacă eroarea indică un token invalid, resetăm starea de verificare
+        if (this.voteError.toLowerCase().includes('token') || 
+            this.voteError.toLowerCase().includes('email')) {
+          console.log('Resetare stare verificare email din cauza erorii cu token/email');
+          this.emailVerified = false;
+          localStorage.removeItem(`vote_session_${this.systemId}`);
+          localStorage.removeItem(`vote_email_${this.systemId}`);
+        }
       }
     });
   }
@@ -193,6 +313,17 @@ export class PublicVoteComponent implements OnInit {
         console.error('Eroare la încărcarea rezultatelor:', error);
       }
     });
+  }
+  
+  // Verifică dacă există parametri speciali în URL
+  checkUrlParameters(): void {
+    const params = this.route.snapshot.queryParams;
+    
+    // Exemplu: Poți implementa verificări de token-uri de unică folosință sau alte metode
+    if (params['token']) {
+      // Verifică token-ul (implementare specifică aplicației tale)
+      console.log('Token găsit în URL:', params['token']);
+    }
   }
   
   // Formatează data pentru afișare

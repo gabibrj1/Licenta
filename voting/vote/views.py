@@ -41,6 +41,12 @@ from .models import PresidentialVote, PresidentialCandidate, ParliamentaryVote, 
 from django.db import connection
 from .models import VoteSystem, VoteOption, VoteCast
 from .serializers import VoteSystemSerializer, VoteOptionSerializer, VoteCastSerializer, CreateVoteSystemSerializer
+from .models import VoteToken
+from .forms import EmailListForm
+from django.core.mail import send_mail
+from datetime import timedelta
+
+
 
 logger = logging.getLogger(__name__)
 
@@ -2073,12 +2079,14 @@ class PublicVoteSystemView(APIView):
                 'error': 'Sistemul de vot nu a fost găsit.'
             }, status=status.HTTP_404_NOT_FOUND)
 
-# Adaugă această clasă pentru votarea publică
 class PublicSubmitVoteView(APIView):
-    permission_classes = [AllowAny]  # Permite accesul tuturor utilizatorilor
+    permission_classes = [AllowAny]
     
     def post(self, request, system_id):
         try:
+            # Logging pentru debugging
+            print(f"Date primite în PublicSubmitVoteView: {request.data}")
+            
             # Obținem sistemul de vot
             vote_system = VoteSystem.objects.get(id=system_id)
             
@@ -2090,29 +2098,71 @@ class PublicSubmitVoteView(APIView):
                     'error': 'Acest sistem de vot nu este activ în acest moment.'
                 }, status=status.HTTP_400_BAD_REQUEST)
             
-            # MODIFICARE: Eliminăm verificarea pentru allow_anonymous_voting
-            # pentru ruta publică, asumăm că toate sistemele distribuite
-            # permit vot anonim
+            # Verificăm dacă sistemul necesită verificare prin email
+            if vote_system.require_email_verification:
+                # Obținem token-ul și email-ul din request
+                token_value = request.data.get('token')
+                email = request.data.get('email')
+                
+                print(f"Verificare token: {token_value}, email: {email}")
+                
+                if not token_value or not email:
+                    return Response({
+                        'error': 'Token-ul și adresa de email sunt necesare pentru acest sistem de vot.'
+                    }, status=status.HTTP_400_BAD_REQUEST)
+                
+                # Căutăm token-ul în baza de date
+                try:
+                    token = VoteToken.objects.get(
+                        vote_system=vote_system, 
+                        token=token_value,
+                        email=email
+                    )
+                    
+                    # Verificăm dacă token-ul este valid
+                    if token.used:
+                        return Response({
+                            'error': 'Acest token a fost deja folosit.'
+                        }, status=status.HTTP_400_BAD_REQUEST)
+                    
+                    if token.expires_at < timezone.now():
+                        return Response({
+                            'error': 'Acest token a expirat.'
+                        }, status=status.HTTP_400_BAD_REQUEST)
+                    
+                except VoteToken.DoesNotExist:
+                    return Response({
+                        'error': 'Token invalid sau adresă de email incorectă.'
+                    }, status=status.HTTP_400_BAD_REQUEST)
             
             # Obținem opțiunea pentru care s-a votat
             option_id = request.data.get('option_id')
             
             if not option_id:
+                print("Eroare: Lipsește option_id din request")
                 return Response({
                     'error': 'Trebuie să selectați o opțiune pentru a vota.'
                 }, status=status.HTTP_400_BAD_REQUEST)
             
             try:
                 option = VoteOption.objects.get(id=option_id, vote_system=vote_system)
+                print(f"Opțiune găsită: {option.id} - {option.title}")
             except VoteOption.DoesNotExist:
                 return Response({
                     'error': 'Opțiunea selectată nu există pentru acest sistem de vot.'
                 }, status=status.HTTP_404_NOT_FOUND)
             
-            # Pentru voturile anonime, folosim o combinație IP + User Agent
+            # Verificăm dacă există deja un vot cu același anonymous_id
+            ip_address = self.get_client_ip(request)
             anonymous_id = self.generate_anonymous_id(request)
             
-            if VoteCast.objects.filter(vote_system=vote_system, anonymous_id=anonymous_id).exists():
+            # Verificăm dacă există deja un vot pentru acest anonymous_id
+            existing_vote = VoteCast.objects.filter(
+                vote_system=vote_system,
+                anonymous_id=anonymous_id
+            ).first()
+            
+            if existing_vote:
                 return Response({
                     'error': 'Se pare că ați votat deja în acest sistem de vot.'
                 }, status=status.HTTP_400_BAD_REQUEST)
@@ -2122,19 +2172,40 @@ class PublicSubmitVoteView(APIView):
                 vote_system=vote_system,
                 option=option,
                 anonymous_id=anonymous_id,
-                ip_address=self.get_client_ip(request),
+                ip_address=ip_address,
                 user_agent=request.META.get('HTTP_USER_AGENT', '')
             )
             
+            print(f"Vot creat cu succes: ID {vote.id} pentru opțiunea {option.title}")
+            
+            # Dacă sistemul necesită verificare prin email, marcăm token-ul ca folosit
+            if vote_system.require_email_verification and 'token' in locals():
+                token.used = True
+                token.used_at = timezone.now()
+                token.ip_address = ip_address
+                token.save()
+                print(f"Token marcat ca folosit: {token.token}")
+            
+            # Generăm un token de confirmare pentru vot
+            vote_confirmation = self.generate_vote_confirmation(vote.id)
+            
             return Response({
                 'success': True,
-                'message': 'Votul dvs. a fost înregistrat cu succes!'
+                'message': 'Votul dvs. a fost înregistrat cu succes!',
+                'vote_confirmation': vote_confirmation
             })
         
         except VoteSystem.DoesNotExist:
             return Response({
                 'error': 'Sistemul de vot nu a fost găsit.'
             }, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            print(f"Eroare generală în PublicSubmitVoteView: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return Response({
+                'error': f'Eroare internă: {str(e)}'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
     def get_client_ip(self, request):
         """Obține adresa IP a clientului"""
@@ -2154,6 +2225,15 @@ class PublicSubmitVoteView(APIView):
         
         combined = f"{ip}:{user_agent}"
         return hashlib.md5(combined.encode()).hexdigest()
+        
+    def generate_vote_confirmation(self, vote_id):
+        """Generează un token de confirmare pentru vot"""
+        import hashlib
+        import time
+        
+        salt = str(time.time())
+        token_input = f"{vote_id}:{salt}"
+        return hashlib.sha256(token_input.encode()).hexdigest()
 
 # Adaugă această clasă pentru rezultatele publice
 class PublicVoteResultsView(APIView):
@@ -2183,6 +2263,236 @@ class PublicVoteResultsView(APIView):
             
             return Response(serializer.data)
         
+        except VoteSystem.DoesNotExist:
+            return Response({
+                'error': 'Sistemul de vot nu a fost găsit.'
+            }, status=status.HTTP_404_NOT_FOUND)
+        
+class ManageVoterEmailsView(APIView):
+    permission_classes = [IsAuthenticated]
+    
+    def post(self, request, system_id):
+        try:
+            # Obținem sistemul de vot
+            vote_system = VoteSystem.objects.get(id=system_id)
+            
+            # Verificăm dacă utilizatorul are dreptul să modifice sistemul
+            if vote_system.creator != request.user:
+                return Response({
+                    'error': 'Nu aveți permisiunea de a modifica acest sistem de vot.'
+                }, status=status.HTTP_403_FORBIDDEN)
+            
+            # Procesăm lista de emailuri
+            emails_data = request.data.get('emails', '')
+            
+            # Debug pentru a vedea ce se primește
+            print(f"Datele primite pentru email-uri: {emails_data}")
+            
+            form = EmailListForm({'emails': emails_data})
+            
+            if form.is_valid():
+                emails = form.cleaned_data['emails']
+                
+                # Debug pentru a vedea ce rezultă după procesare
+                print(f"Email-uri procesate: {emails}")
+                
+                # Actualizăm sistemul de vot cu opțiunea de verificare prin email
+                vote_system.require_email_verification = True
+                vote_system.allowed_emails = ','.join(emails)
+                vote_system.save()
+                
+                # Returnăm răspunsul
+                return Response({
+                    'success': True,
+                    'message': f'Au fost adăugate {len(emails)} adrese de email.',
+                    'emails_count': len(emails)
+                })
+            else:
+                print(f"Erori validare email-uri: {form.errors}")
+                return Response({
+                    'success': False,
+                    'errors': form.errors
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+        except VoteSystem.DoesNotExist:
+            return Response({
+                'error': 'Sistemul de vot nu a fost găsit.'
+            }, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            print(f"Eroare generală în ManageVoterEmailsView: {str(e)}")
+            return Response({
+                'success': False,
+                'error': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+class SendVoteTokensView(APIView):
+    permission_classes = [IsAuthenticated]
+    
+    def post(self, request, system_id):
+        try:
+            # Obținem sistemul de vot
+            vote_system = VoteSystem.objects.get(id=system_id)
+            
+            # Verificăm dacă utilizatorul are dreptul să modifice sistemul
+            if vote_system.creator != request.user:
+                return Response({
+                    'error': 'Nu aveți permisiunea de a gestiona acest sistem de vot.'
+                }, status=status.HTTP_403_FORBIDDEN)
+            
+            # Verificăm dacă sunt adrese de email configurate
+            if not vote_system.allowed_emails:
+                return Response({
+                    'error': 'Nu există adrese de email configurate pentru acest sistem de vot.'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Obținem lista de emailuri
+            emails = [email.strip() for email in vote_system.allowed_emails.split(',') if email.strip()]
+            
+            if not emails:
+                return Response({
+                    'error': 'Lista de email-uri este goală sau conține doar caractere whitespace.'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Generăm și trimitem token-uri pentru fiecare email
+            tokens_created = 0
+            emails_sent = 0
+            
+            # Configurare pentru linkul de vot
+            frontend_url = getattr(settings, 'FRONTEND_URL', 'http://localhost:4200')
+            
+            for email in emails:
+                # Verificăm dacă există deja un token pentru acest email
+                token, created = VoteToken.objects.get_or_create(
+                    vote_system=vote_system,
+                    email=email,
+                    defaults={
+                        'token': VoteToken.generate_token(),
+                        'expires_at': timezone.now() + timedelta(minutes=3)
+                    }
+                )
+                
+                # Dacă token-ul a fost deja folosit sau a expirat, generăm unul nou
+                if not token.is_valid():
+                    token.token = VoteToken.generate_token()
+                    token.expires_at = timezone.now() + timedelta(minutes=3)
+                    token.used = False
+                    token.used_at = None
+                    token.save()
+                
+                if created or not token.is_valid():
+                    tokens_created += 1
+                
+                # Trimitem email-ul cu token-ul
+                try:
+                    # Pregătim contextul pentru șablon
+                    context = {
+                        'vote_system': vote_system,
+                        'token': token.token,
+                        'expires_at': token.expires_at,
+                        'vote_url': f"{settings.FRONTEND_URL}/vote/{vote_system.id}"
+                    }
+                    
+                    # Calea corectă spre șabloane - modificare importantă aici
+                    html_message = render_to_string('vote_token.html', context)
+                    plain_message = render_to_string('vote_token_plain.txt', context)
+                    
+                    # Trimitem email-ul
+                    send_mail(
+                        subject=f"[SmartVote] Codul tău de vot pentru {vote_system.name}",
+                        message=plain_message,
+                        from_email=settings.DEFAULT_FROM_EMAIL,
+                        recipient_list=[email],
+                        html_message=html_message,
+                        fail_silently=False
+                    )
+                    print(f"Email trimis cu succes către {email}")
+                    emails_sent += 1
+                    
+                except Exception as e:
+                    print(f"Eroare la trimiterea email-ului către {email}: {str(e)}")
+            
+            if emails_sent == 0:
+                return Response({
+                    'success': False,
+                    'message': f'Nu s-a putut trimite niciun email. Verificați configurația SMTP.',
+                    'tokens_created': tokens_created,
+                    'emails_sent': emails_sent
+                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            
+            return Response({
+                'success': True,
+                'message': f'Au fost trimise {emails_sent} email-uri cu coduri de vot.',
+                'tokens_created': tokens_created,
+                'emails_sent': emails_sent
+            })
+            
+        except VoteSystem.DoesNotExist:
+            return Response({
+                'error': 'Sistemul de vot nu a fost găsit.'
+            }, status=status.HTTP_404_NOT_FOUND)
+
+class VerifyVoteTokenView(APIView):
+    permission_classes = [AllowAny]
+    
+    def post(self, request, system_id):
+        try:
+            # Obținem sistemul de vot
+            vote_system = VoteSystem.objects.get(id=system_id)
+            
+            # Verificăm dacă sistemul necesită verificare prin email
+            if not vote_system.require_email_verification:
+                return Response({
+                    'valid': True,
+                    'message': 'Acest sistem de vot nu necesită verificare prin email.'
+                })
+            
+            # Obținem token-ul și email-ul din request
+            token_value = request.data.get('token')
+            email = request.data.get('email')
+            
+            print(f"Verificare token: {token_value}, email: {email}")
+            
+            if not token_value or not email:
+                return Response({
+                    'valid': False,
+                    'message': 'Token-ul și adresa de email sunt necesare.'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Căutăm token-ul în baza de date
+            try:
+                token = VoteToken.objects.get(
+                    vote_system=vote_system, 
+                    token=token_value,
+                    email=email
+                )
+                
+                # Verificăm dacă token-ul este valid
+                if token.used:
+                    return Response({
+                        'valid': False,
+                        'message': 'Acest token a fost deja folosit.'
+                    }, status=status.HTTP_400_BAD_REQUEST)
+                
+                if token.expires_at < timezone.now():
+                    return Response({
+                        'valid': False,
+                        'message': 'Acest token a expirat.'
+                    }, status=status.HTTP_400_BAD_REQUEST)
+                
+                # La acest punct, token-ul este valid
+                # Returnăm token-ul original (important!)
+                return Response({
+                    'valid': True,
+                    'session_token': token.token,  # Folosim token-ul original
+                    'message': 'Token valid. Puteți continua cu votul.'
+                })
+                
+            except VoteToken.DoesNotExist:
+                return Response({
+                    'valid': False,
+                    'message': 'Token invalid sau adresă de email incorectă.'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
         except VoteSystem.DoesNotExist:
             return Response({
                 'error': 'Sistemul de vot nu a fost găsit.'

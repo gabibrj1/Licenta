@@ -1,0 +1,124 @@
+.token-verification-container {
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+    border: 1px solid #e9ecef;
+  }
+  
+  h3 {
+    margin-top: 0;
+    color: #2c3e50;
+    font-size: 1.4rem;
+    margin-bottom: 15px;
+  }
+  
+  .verification-instructions {
+    margin-bottom: 20px;
+    color: #555;
+    
+    p {
+      margin-bottom: 8px;
+    }
+  }
+  
+  .form-group {
+    margin-bottom: 15px;
+    
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: 500;
+      color: #2c3e50;
+      
+      .required {
+        color: #e74c3c;
+        margin-left: 3px;
+      }
+    }
+    
+    input {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ced4da;
+      border-radius: 4px;
+      font-size: 1rem;
+      transition: border-color 0.3s;
+      
+      &:focus {
+        outline: none;
+        border-color: #3498db;
+        box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+      }
+      
+      &.invalid {
+        border-color: #e74c3c;
+      }
+    }
+    
+    .error-text {
+      color: #e74c3c;
+      font-size: 0.85rem;
+      margin-top: 5px;
+    }
+  }
+  
+  .error-message {
+    background-color: #fdeaea;
+    color: #e74c3c;
+    padding: 10px 15px;
+    border-radius: 4px;
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    
+    i {
+      margin-right: 8px;
+      font-size: 1.1rem;
+    }
+  }
+  
+  .form-actions {
+    margin-top: 20px;
+    
+    button {
+      padding: 10px 20px;
+      font-size: 1rem;
+      cursor: pointer;
+      background-color: #3498db;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      transition: background-color 0.3s;
+      
+      &:hover {
+        background-color: #2980b9;
+      }
+      
+      &:disabled {
+        background-color: #95a5a6;
+        cursor: not-allowed;
+      }
+    }
+  }
+  
+  .verification-success {
+    text-align: center;
+    padding: 20px 0;
+    
+    .success-icon {
+      font-size: 3rem;
+      color: #2ecc71;
+      margin-bottom: 15px;
+    }
+    
+    h4 {
+      font-size: 1.2rem;
+      color: #2c3e50;
+      margin-bottom: 8px;
+    }
+    
+    p {
+      color: #555;
+    }
+  }

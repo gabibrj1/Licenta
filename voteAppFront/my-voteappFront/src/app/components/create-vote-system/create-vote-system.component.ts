@@ -12,11 +12,12 @@ import { VoteSystemService } from '../../services/vote-system.service';
 export class CreateVoteSystemComponent implements OnInit {
   // Stări pentru UI
   currentStep = 1;
-  totalSteps = 4;
+  totalSteps = 5;
   isSubmitting = false;
   submitted = false;
   errorMessage = '';
   successMessage = '';
+  createdSystemId: string = '';
   
   // Formular principal
   voteSystemForm: FormGroup;
@@ -73,10 +74,17 @@ export class CreateVoteSystemComponent implements OnInit {
         resultVisibility: ['after_end', Validators.required],
         requireVerification: [false],
         allowComments: [false],
-        allowAnonymousVoting: [false]
+        allowAnonymousVoting: [false],
+        requireEmailVerification: [false]
+      }),
+
+      // Pas 4: Lista de emailuiri pentru votanti
+      voterEmails: this.fb.group({
+        emails: ['', Validators.required],
+        sendImmediately: [true]
       }),
       
-      // Pas 4: Programare și durată
+      // Pas 5: Programare și durată
       schedule: this.fb.group({
         startDate: ['', Validators.required],
         endDate: ['', Validators.required],
@@ -104,6 +112,11 @@ export class CreateVoteSystemComponent implements OnInit {
     // Setăm ore implicite
     this.voteSystemForm.get('schedule.startTime')?.setValue('09:00');
     this.voteSystemForm.get('schedule.endTime')?.setValue('18:00');
+
+    //Adaugam listener pentru schimbarea optiunii de verificare prin email
+    this.voteSystemForm.get('rules.requireEmailVerification')?.valueChanges.subscribe(value => {
+      this.onEmailVerificationChange(value);
+    });
   }
   
   // Formatare dată pentru input de tip date
@@ -139,13 +152,35 @@ export class CreateVoteSystemComponent implements OnInit {
       this.optionsArray.removeAt(index);
     }
   }
+
+  // Arata sau ascunde pasul de emailuri in functie de varainta selectata
+  onEmailVerificationChange(value: boolean): void {
+    if (value){
+      this.totalSteps = 5;
+      if (this.currentStep > 4) {
+        this.currentStep = 5;
+      }
+    } else {
+      this.totalSteps = 4;
+      if (this.currentStep === 4) {
+        this.currentStep = 3;
+      }
+    }
+  }
   
   // Navigare între pași
   nextStep(): void {
     const currentFormGroup = this.getCurrentFormGroup();
     
     if (currentFormGroup.valid) {
-      this.currentStep++;
+      // Verifică dacă pasul curent este 3 și verificarea prin email este dezactivată
+      const requireEmailVerification = this.voteSystemForm.get('rules.requireEmailVerification')?.value;
+      
+      if (this.currentStep === 3 && !requireEmailVerification) {
+        this.currentStep = 5; // Sărim peste pasul de emailuri
+      } else {
+        this.currentStep++;
+      }
     } else {
       // Marchează toate câmpurile ca touched pentru a afișa erorile
       Object.keys(currentFormGroup.controls).forEach(key => {
@@ -168,7 +203,15 @@ export class CreateVoteSystemComponent implements OnInit {
   
   prevStep(): void {
     if (this.currentStep > 1) {
-      this.currentStep--;
+      // Verifică dacă pasul curent este 5 și verificarea prin email este dezactivată
+      const requireEmailVerification = this.voteSystemForm.get('rules.requireEmailVerification')?.value;
+      
+      if (this.currentStep === 5 && !requireEmailVerification) {
+        this.currentStep = 3; // Sărim peste pasul de emailuri
+      } else {
+        this.currentStep--;
+      }
+      
       this.errorMessage = '';
     }
   }
@@ -183,6 +226,8 @@ export class CreateVoteSystemComponent implements OnInit {
       case 3:
         return this.voteSystemForm.get('rules') as FormGroup;
       case 4:
+        return this.voteSystemForm.get('voterEmails') as FormGroup;
+      case 5:
         return this.voteSystemForm.get('schedule') as FormGroup;
       default:
         return this.voteSystemForm.get('basicInfo') as FormGroup;
@@ -220,24 +265,108 @@ export class CreateVoteSystemComponent implements OnInit {
           result_visibility: rules.resultVisibility,
           require_verification: rules.requireVerification,
           allow_comments: rules.allowComments,
-          allow_anonymous_voting: rules.allowAnonymousVoting
+          allow_anonymous_voting: rules.allowAnonymousVoting,
+          require_email_verification: rules.requireEmailVerification
         },
         options: votingOptions.options
       };
       
+      console.log('Trimite date sistem vot:', formData);
+      
       // Trimitem datele către backend
       this.voteSystemService.createVoteSystem(formData).subscribe({
         next: (response) => {
-          this.isSubmitting = false;
-          this.submitted = true;
-          this.successMessage = 'Sistemul de vot a fost creat cu succes și a fost trimis spre verificare.';
+          this.createdSystemId = response.system_id;
+          console.log('Sistem creat cu ID:', this.createdSystemId);
           
-          // Redirecționăm către pagina de status
-          setTimeout(() => {
-            this.router.navigate(['/menu/despre/status-vot', response.system_id]);
-          }, 2000);
+          // Dacă este activată verificarea prin email, trimitem listele de email
+          if (rules.requireEmailVerification) {
+            const emailsData = this.voteSystemForm.get('voterEmails')?.value;
+            if (!emailsData || !emailsData.emails || emailsData.emails.trim() === '') {
+              this.isSubmitting = false;
+              this.errorMessage = 'Lista de email-uri nu poate fi goală când este activată verificarea prin email.';
+              return;
+            }
+            
+            const emailsList = emailsData.emails
+              .split(/[\n,;]+/)
+              .map((email: string) => email.trim())
+              .filter((email: string) => email !== '');
+            
+            console.log('Lista de email-uri pentru trimitere:', emailsList);
+            
+            if (emailsList.length === 0) {
+              this.isSubmitting = false;
+              this.errorMessage = 'Nu s-au găsit adrese de email valide în lista furnizată.';
+              return;
+            }
+            
+            this.voteSystemService.manageVoterEmails(this.createdSystemId, emailsList).subscribe({
+              next: (emailResponse) => {
+                console.log('Răspuns management email-uri:', emailResponse);
+                
+                // Dacă s-a cerut trimiterea imediată a tokenurilor
+                if (emailsData.sendImmediately) {
+                  console.log('Se trimit token-uri...');
+                  
+                  this.voteSystemService.sendVoteTokens(this.createdSystemId).subscribe({
+                    next: (tokenResponse) => {
+                      console.log('Răspuns trimitere token-uri:', tokenResponse);
+                      this.isSubmitting = false;
+                      this.submitted = true;
+                      
+                      if (tokenResponse.success) {
+                        this.successMessage = `Sistemul de vot a fost creat cu succes și au fost trimise ${tokenResponse.emails_sent} email-uri cu coduri de acces!`;
+                      } else {
+                        this.successMessage = 'Sistemul de vot a fost creat, dar a apărut o eroare la trimiterea email-urilor.';
+                      }
+                      
+                      // Redirecționăm către pagina de status
+                      setTimeout(() => {
+                        this.router.navigate(['/menu/despre/status-vot', this.createdSystemId]);
+                      }, 2000);
+                    },
+                    error: (tokenError) => {
+                      console.error('Eroare trimitere token-uri:', tokenError);
+                      this.isSubmitting = false;
+                      this.submitted = true;
+                      this.successMessage = 'Sistemul de vot a fost creat, dar a apărut o eroare la trimiterea email-urilor.';
+                      
+                      setTimeout(() => {
+                        this.router.navigate(['/menu/despre/status-vot', this.createdSystemId]);
+                      }, 2000);
+                    }
+                  });
+                } else {
+                  this.isSubmitting = false;
+                  this.submitted = true;
+                  this.successMessage = 'Sistemul de vot a fost creat cu succes și a fost trimis spre verificare.';
+                  
+                  // Redirecționăm către pagina de status
+                  setTimeout(() => {
+                    this.router.navigate(['/menu/despre/status-vot', this.createdSystemId]);
+                  }, 2000);
+                }
+              },
+              error: (emailError) => {
+                console.error('Eroare management email-uri:', emailError);
+                this.isSubmitting = false;
+                this.errorMessage = 'Sistemul de vot a fost creat, dar a apărut o eroare la salvarea listei de email-uri.';
+              }
+            });
+          } else {
+            this.isSubmitting = false;
+            this.submitted = true;
+            this.successMessage = 'Sistemul de vot a fost creat cu succes și a fost trimis spre verificare.';
+            
+            // Redirecționăm către pagina de status
+            setTimeout(() => {
+              this.router.navigate(['/menu/despre/status-vot', this.createdSystemId]);
+            }, 2000);
+          }
         },
         error: (error) => {
+          console.error('Eroare creare sistem vot:', error);
           this.isSubmitting = false;
           
           if (error.error && error.error.errors) {

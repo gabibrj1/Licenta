@@ -53,6 +53,7 @@ import { MyVoteSystemsComponent } from './components/my-vote-systems/my-vote-sys
 import { VoteSystemDetailsComponent } from './components/vote-system-details/vote-system-details.component';
 import { VoteSystemStatusComponent } from './components/vote-system-status/vote-system-status.component';
 import { PublicVoteComponent } from './components/public-vote/public-vote.component';
+import { EmailTokenVerificationComponent } from './components/email-token-verification/email-token-verification.component';
 
 
 @NgModule({
@@ -81,6 +82,7 @@ import { PublicVoteComponent } from './components/public-vote/public-vote.compon
     VoteSystemDetailsComponent,
     VoteSystemStatusComponent,
     PublicVoteComponent,
+    EmailTokenVerificationComponent,
 
   ],
   imports: [

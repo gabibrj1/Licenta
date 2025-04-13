@@ -1,0 +1,19 @@
+SmartVote - Codul tău de vot
+
+Dragă participant,
+
+Ai fost invitat să participi la votul: {{ vote_system.name }}.
+
+Pentru a-ți valida votul, te rugăm să folosești următorul cod:
+
+{{ token }}
+
+Important: Acest cod este valabil doar pentru 3 minute și poate fi folosit o singură dată.
+Expiră la: {{ expires_at|date:"d.m.Y H:i:s" }}
+
+Pentru a vota, accesează link-ul de mai jos și introdu codul când ți se solicită:
+{{ vote_url }}
+
+Acest email a fost trimis automat. Te rugăm să nu răspunzi la acest mesaj.
+
+© 2023 SmartVote. Toate drepturile rezervate.

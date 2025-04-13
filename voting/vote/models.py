@@ -2,6 +2,8 @@ from django.db import models
 from django.utils import timezone
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
+import uuid
+from datetime import timedelta
 
 class VoteSettings(models.Model):
     vote_type = models.CharField(max_length=20, choices=[
@@ -220,9 +222,11 @@ class ParliamentaryVote(models.Model):
     
 class VoteSystem(models.Model):
     """Model pentru sistemele de vot personalizate"""
+    
     name = models.CharField(max_length=200)
     description = models.TextField()
     creator = models.ForeignKey('users.User', on_delete=models.CASCADE, related_name='vote_systems')
+    
     category = models.CharField(max_length=50, choices=[
         ('political', 'Politic'),
         ('organizational', 'Organizațional'),
@@ -231,6 +235,7 @@ class VoteSystem(models.Model):
         ('decision', 'Decizie'),
         ('other', 'Altele'),
     ])
+    
     created_at = models.DateTimeField(auto_now_add=True)
     start_date = models.DateTimeField()
     end_date = models.DateTimeField()
@@ -246,10 +251,18 @@ class VoteSystem(models.Model):
         ('rejected', 'Respins'),
     ])
     
-    # Verificare manuala
+    # Verificare manuală
     admin_verified = models.BooleanField(default=False)
     rejection_reason = models.TextField(blank=True, null=True)
     verification_date = models.DateTimeField(null=True, blank=True)
+    
+    # Verificare prin email
+    require_email_verification = models.BooleanField(default=False,
+        help_text="Dacă este activat, utilizatorii vor trebui să verifice email-ul înainte de a vota")
+    
+    # Lista de emailuri permise să voteze
+    allowed_emails = models.TextField(blank=True, null=True,
+        help_text="Lista de emailuri permise să voteze, separate prin virgulă")
     
     class Meta:
         verbose_name = "Sistem de vot"
@@ -263,17 +276,18 @@ class VoteSystem(models.Model):
         """Actualizează automat status-ul în funcție de data curentă"""
         now = timezone.now()
         
-        # Daca nu a fost verificat de admin ramane in asteptare
+        # Dacă nu a fost verificat de admin rămâne în așteptare
         if not self.admin_verified:
             self.status = 'pending'
             return self.status
         
         if now < self.start_date:
             self.status = 'pending'
-        elif now >= self.start_date and now <= self.end_date:
+        elif self.start_date <= now <= self.end_date:
             self.status = 'active'
         elif now > self.end_date:
             self.status = 'completed'
+        
         return self.status
 
 
@@ -320,3 +334,49 @@ class VoteCast(models.Model):
         if self.user:
             return f"Vot de {self.user.email} pentru {self.option.title}"
         return f"Vot anonim pentru {self.option.title}"
+    
+# Modele pentru one time tokens
+class VoteToken(models.Model):
+    """Model pentru token-uri de vot de unică folosință"""
+    vote_system = models.ForeignKey(VoteSystem, on_delete=models.CASCADE, related_name='vote_tokens')
+    email = models.EmailField()
+    token = models.CharField(max_length=50, unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+    used = models.BooleanField(default=False)
+    used_at = models.DateTimeField(null=True, blank=True)
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    
+    class Meta:
+        verbose_name = "Token vot"
+        verbose_name_plural = "Token-uri vot"
+        unique_together = ('vote_system', 'email')  # Un singur token per email per sistem de vot
+    
+    def __str__(self):
+        status = "Folosit" if self.used else "Nefolosit"
+        return f"Token pentru {self.email}: {self.token[:10]}... ({status})"
+    
+    def save(self, *args, **kwargs):
+        # Generează un token aleator dacă nu există unul
+        if not self.token:
+            self.token = self.generate_token()
+        
+        # Setează data de expirare dacă nu există una (3 minute după creare)
+        if not self.expires_at:
+            self.expires_at = timezone.now() + timedelta(minutes=3)
+            
+        super().save(*args, **kwargs)
+    
+    @staticmethod
+    def generate_token():
+        """Generează un token unic de 6 caractere alfanumerice"""
+        import random
+        import string
+        # Generăm un token scurt, ușor de introdus de către utilizator
+        chars = string.ascii_uppercase + string.digits
+        return ''.join(random.choice(chars) for _ in range(6))
+    
+    def is_valid(self):
+        """Verifică dacă token-ul este valid (nefolosit și neexpirat)"""
+        now = timezone.now()
+        return not self.used and now <= self.expires_at
