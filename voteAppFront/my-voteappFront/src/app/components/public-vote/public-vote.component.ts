@@ -82,8 +82,25 @@ export class PublicVoteComponent implements OnInit {
       return;
     }
     
-    // Verifică dacă există parametri speciali în URL
-    this.checkUrlParameters();
+    // Verifică dacă există parametri în query string
+    const queryParams = this.route.snapshot.queryParams;
+    
+    // Dacă există token și email în URL, populează formularul automat
+    if (queryParams['token'] && queryParams['email']) {
+      console.log('Token și email găsite în URL:', {
+        token: queryParams['token'],
+        email: queryParams['email']
+      });
+      
+      // Populează formularul cu valorile din URL
+      this.tokenForm.patchValue({
+        token: queryParams['token'],
+        email: queryParams['email']
+      });
+      
+      // Opțional: Verifică automat token-ul
+      // this.verifyToken();
+    }
     
     // Verifică dacă utilizatorul a votat deja
     this.checkIfAlreadyVoted();

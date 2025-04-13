@@ -2348,17 +2348,15 @@ class SendVoteTokensView(APIView):
             # Obținem lista de emailuri
             emails = [email.strip() for email in vote_system.allowed_emails.split(',') if email.strip()]
             
-            if not emails:
-                return Response({
-                    'error': 'Lista de email-uri este goală sau conține doar caractere whitespace.'
-                }, status=status.HTTP_400_BAD_REQUEST)
-            
             # Generăm și trimitem token-uri pentru fiecare email
             tokens_created = 0
             emails_sent = 0
             
-            # Configurare pentru linkul de vot
-            frontend_url = getattr(settings, 'FRONTEND_URL', 'http://localhost:4200')
+            # Folosește întotdeauna IP-ul de rețea pentru link-urile din email
+            network_ip = getattr(settings, 'NETWORK_IP', '192.168.29.140')
+            frontend_url = f"http://{network_ip}:4200"
+            
+            print(f"Folosim URL de rețea pentru email: {frontend_url}")
             
             for email in emails:
                 # Verificăm dacă există deja un token pentru acest email
@@ -2382,6 +2380,10 @@ class SendVoteTokensView(APIView):
                 if created or not token.is_valid():
                     tokens_created += 1
                 
+                # Generăm URL-ul pentru pagina de vot folosind IP-ul de rețea
+                vote_url = f"{frontend_url}/vote/{vote_system.id}?token={token.token}&email={email}"
+                print(f"URL generat pentru email: {vote_url}")
+                
                 # Trimitem email-ul cu token-ul
                 try:
                     # Pregătim contextul pentru șablon
@@ -2389,12 +2391,91 @@ class SendVoteTokensView(APIView):
                         'vote_system': vote_system,
                         'token': token.token,
                         'expires_at': token.expires_at,
-                        'vote_url': f"{settings.FRONTEND_URL}/vote/{vote_system.id}"
+                        'vote_url': vote_url  # URL-ul complet cu IP-ul de rețea
                     }
                     
-                    # Calea corectă spre șabloane - modificare importantă aici
-                    html_message = render_to_string('vote_token.html', context)
-                    plain_message = render_to_string('vote_token_plain.txt', context)
+                    # Încercăm să folosim template-urile, dar avem și o variantă de backup
+                    try:
+                        html_message = render_to_string('vote_token.html', context)
+                        plain_message = render_to_string('vote_token_plain.txt', context)
+                    except Exception as template_error:
+                        print(f"Eroare la randarea template-ului: {str(template_error)}")
+                        
+                        # Folosim un string HTML direct cu URL-ul de rețea
+                        html_message = f"""
+                        <!DOCTYPE html>
+                        <html>
+                        <head>
+                            <meta charset="UTF-8">
+                            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                            <title>Codul tău de vot pentru {vote_system.name}</title>
+                            <style>
+                                body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; }}
+                                .container {{ border: 1px solid #ddd; border-radius: 5px; padding: 20px; background-color: #f9f9f9; }}
+                                .header {{ text-align: center; margin-bottom: 20px; }}
+                                .token {{ background-color: #e9f7fe; color: #0078d4; font-size: 24px; font-weight: bold; text-align: center; padding: 15px; margin: 20px 0; border-radius: 5px; letter-spacing: 2px; }}
+                                .info {{ margin-bottom: 15px; }}
+                                .footer {{ font-size: 12px; color: #777; margin-top: 30px; text-align: center; }}
+                                .button {{ display: inline-block; background-color: #0078d4; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin-top: 15px; }}
+                            </style>
+                        </head>
+                        <body>
+                            <div class="container">
+                                <div class="header">
+                                    <h1>SmartVote</h1>
+                                    <h2>Codul tău de vot</h2>
+                                </div>
+                                
+                                <div class="info">
+                                    <p>Dragă participant,</p>
+                                    <p>Ai fost invitat să participi la votul: <strong>{vote_system.name}</strong>.</p>
+                                    <p>Pentru a-ți valida votul, te rugăm să folosești codul de mai jos:</p>
+                                </div>
+                                
+                                <div class="token">
+                                    {token.token}
+                                </div>
+                                
+                                <div class="info">
+                                    <p><strong>Important:</strong> Acest cod este valabil doar pentru 3 minute și poate fi folosit o singură dată.</p>
+                                    <p>Expiră la: {token.expires_at.strftime('%d.%m.%Y %H:%M:%S')}</p>
+                                    
+                                    <p>Pentru a vota, accesează link-ul de mai jos și introdu codul când ți se solicită:</p>
+                                    <div style="text-align: center;">
+                                        <a href="{vote_url}" class="button">Accesează pagina de vot</a>
+                                    </div>
+                                </div>
+                                
+                                <div class="footer">
+                                    <p>Acest email a fost trimis automat. Te rugăm să nu răspunzi la acest mesaj.</p>
+                                    <p>&copy; 2023 SmartVote. Toate drepturile rezervate.</p>
+                                </div>
+                            </div>
+                        </body>
+                        </html>
+                        """
+                        
+                        plain_message = f"""
+                        SmartVote - Codul tău de vot
+                        
+                        Dragă participant,
+                        
+                        Ai fost invitat să participi la votul: {vote_system.name}.
+                        
+                        Pentru a-ți valida votul, te rugăm să folosești următorul cod:
+                        
+                        {token.token}
+                        
+                        Important: Acest cod este valabil doar pentru 3 minute și poate fi folosit o singură dată.
+                        Expiră la: {token.expires_at.strftime('%d.%m.%Y %H:%M:%S')}
+                        
+                        Pentru a vota, accesează link-ul de mai jos și introdu codul când ți se solicită:
+                        {vote_url}
+                        
+                        Acest email a fost trimis automat. Te rugăm să nu răspunzi la acest mesaj.
+                        
+                        © 2023 SmartVote. Toate drepturile rezervate.
+                        """
                     
                     # Trimitem email-ul
                     send_mail(
@@ -2405,19 +2486,13 @@ class SendVoteTokensView(APIView):
                         html_message=html_message,
                         fail_silently=False
                     )
-                    print(f"Email trimis cu succes către {email}")
+                    print(f"Email trimis cu succes către {email} cu link: {vote_url}")
                     emails_sent += 1
                     
                 except Exception as e:
                     print(f"Eroare la trimiterea email-ului către {email}: {str(e)}")
-            
-            if emails_sent == 0:
-                return Response({
-                    'success': False,
-                    'message': f'Nu s-a putut trimite niciun email. Verificați configurația SMTP.',
-                    'tokens_created': tokens_created,
-                    'emails_sent': emails_sent
-                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                    import traceback
+                    traceback.print_exc()
             
             return Response({
                 'success': True,
@@ -2430,7 +2505,14 @@ class SendVoteTokensView(APIView):
             return Response({
                 'error': 'Sistemul de vot nu a fost găsit.'
             }, status=status.HTTP_404_NOT_FOUND)
-
+        except Exception as e:
+            print(f"Eroare generală în SendVoteTokensView: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return Response({
+                'error': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
 class VerifyVoteTokenView(APIView):
     permission_classes = [AllowAny]
     

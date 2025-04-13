@@ -1,10 +1,8 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, throwError  } from 'rxjs';
+import { Observable, throwError } from 'rxjs';
 import { environment } from '../../src/environments/environment';
 import { tap, catchError } from 'rxjs/operators';
-
-
 
 @Injectable({
   providedIn: 'root'
@@ -18,11 +16,27 @@ export class VoteSystemService {
   // Verifică dacă utilizatorul accesează din rețea sau de pe localhost
   private getApiUrl(): string {
     // Dacă URL-ul conține adresa IP a rețelei, folosim networkApiUrl
-    // altfel folosim apiUrl normal
     if (window.location.hostname === environment.networkIp) {
       return this.networkApiUrl;
     }
+    
+    // Detecție explicită pentru a forța URL-ul de rețea când e necesar
+    const isNetworkAccess = 
+      window.location.hostname !== 'localhost' && 
+      window.location.hostname !== '127.0.0.1';
+      
+    if (isNetworkAccess) {
+      console.log('Detectat acces din rețea, folosim networkApiUrl');
+      return this.networkApiUrl;
+    }
+    
     return this.apiUrl;
+  }
+
+  // URL pentru frontend - folosit pentru generarea link-urilor
+  public getFrontendUrl(): string {
+    // Folosim întotdeauna adresa IP de rețea pentru link-urile pentru alte dispozitive
+    return `http://${environment.networkIp}:4200`;
   }
 
   // Metode existente actualizate pentru a folosi getApiUrl()
@@ -85,16 +99,26 @@ export class VoteSystemService {
   getPublicVoteSystemResults(systemId: string): Observable<any> {
     return this.http.get(`${this.getApiUrl()}vote-systems/${systemId}/public-results/`);
   }
+
   manageVoterEmails(systemId: string, emails: string[]): Observable<any> {
     console.log(`Adăugare email-uri pentru sistemul ${systemId}:`, emails);
     return this.http.post(`${this.getApiUrl()}vote-systems/${systemId}/manage-emails/`, { 
       emails: emails.join('\n') 
     });
   }
+
   sendVoteTokens(systemId: string): Observable<any> {
     console.log(`Trimitere token-uri pentru sistemul ${systemId}`);
-    return this.http.post(`${this.getApiUrl()}vote-systems/${systemId}/send-tokens/`, {});
+    
+    // Trimitem și URL-ul frontend pentru a fi folosit în email-uri
+    const frontendUrl = this.getFrontendUrl();
+    console.log(`URL frontend pentru email-uri: ${frontendUrl}`);
+    
+    return this.http.post(`${this.getApiUrl()}vote-systems/${systemId}/send-tokens/`, {
+      frontend_url: frontendUrl
+    });
   }
+
   verifyVoteToken(systemId: string, token: string, email: string): Observable<any> {
     console.log(`Verificare token pentru sistemul ${systemId}: token=${token}, email=${email}`);
     
@@ -114,4 +138,16 @@ export class VoteSystemService {
     );
   }
 
+  // Metodă pentru a genera link-uri de distribuire care folosesc adresa de rețea
+  generateShareLink(systemId: string, includeToken: boolean = false): string {
+    const baseUrl = this.getFrontendUrl();
+    
+    if (includeToken) {
+      // Generăm un token simplu pentru tracking
+      const simpleToken = btoa(`${systemId}-${Date.now()}`);
+      return `${baseUrl}/vote/${systemId}?token=${simpleToken}`;
+    }
+    
+    return `${baseUrl}/vote/${systemId}`;
+  }
 }
