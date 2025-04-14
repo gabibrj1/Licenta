@@ -1,38 +1,483 @@
 :host {
-    display: block;
-    min-height: 100vh;
-    background-color: #222;
-  }
+  display: block;
+  min-height: 100vh;
+  background-color: #222;
+}
+
 body {
-    background-color: #222;
-    margin: 0;
-    padding: 0;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background-color: #222;
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+// Container principal pentru public vote
+.public-vote-container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 40px; // Ajustat din 245px pentru a reduce spațiul
+  color: #fff;
+  
+  // Loading spinner
+  .loading-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 50px 0;
+    
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      border: 3px solid rgba(52, 152, 219, 0.3);
+      border-top-color: #3498db;
+      animation: spin 1s linear infinite;
+      margin-bottom: 15px;
+    }
+    
+    p {
+      color: #fff;
+      font-size: 1.1rem;
+    }
   }
   
-  // Container principal pentru public vote
-  .public-vote-container {
-    max-width: 800px;
-    margin: 0 auto;
-    padding: 245px;
-    color: #fff;
+  // Mesaj de eroare
+  .error-message {
+    background-color: #f8d7da;
+    color: #721c24;
+    padding: 15px;
+    border-radius: 4px;
+    margin: 15px 0;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
     
-    // Loading spinner
-    .loading-container {
+    i {
+      margin-right: 10px;
+      font-size: 18px;
+    }
+    
+    p {
+      margin: 0;
+    }
+  }
+  
+  // Conținut principal
+  .vote-system-content {
+    background-color: #333;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    
+    // Header sistem
+    .system-header {
+      padding: 20px;
       display: flex;
-      flex-direction: column;
+      justify-content: space-between;
       align-items: center;
-      justify-content: center;
-      padding: 50px 0;
       
-      .spinner {
-        width: 40px;
-        height: 40px;
-        border-radius: 50%;
-        border: 3px solid rgba(52, 152, 219, 0.3);
-        border-top-color: #3498db;
-        animation: spin 1s linear infinite;
+      h1 {
+        color: #3498db;
+        margin: 0;
+        font-size: 1.8rem;
+        font-weight: 600;
+      }
+      
+      .status-badge {
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        
+        &.status-active {
+          background-color: rgba(46, 204, 113, 0.2);
+          color: #2ecc71;
+          border: 1px solid rgba(46, 204, 113, 0.3);
+        }
+        
+        &:not(.status-active) {
+          background-color: rgba(149, 165, 166, 0.2);
+          color: #95a5a6;
+          border: 1px solid rgba(149, 165, 166, 0.3);
+        }
+      }
+    }
+    
+    // Bară progres
+    .progress-bar-container {
+      padding: 0 20px 15px;
+      
+      .progress-bar {
+        height: 6px;
+        background-color: rgba(255, 255, 255, 0.1);
+        border-radius: 3px;
+        overflow: hidden;
+        
+        .progress-fill {
+          height: 100%;
+          background-color: #3498db;
+          transition: width 0.5s ease;
+        }
+      }
+      
+      .progress-status {
+        color: rgba(255, 255, 255, 0.7);
+        font-size: 0.85rem;
+        margin-top: 5px;
+        text-align: right;
+      }
+    }
+    
+    // Descriere sistem
+    .system-description {
+      padding: 0 20px 20px;
+      
+      p {
+        color: rgba(255, 255, 255, 0.9);
+        line-height: 1.5;
+        margin: 0;
+      }
+    }
+    
+    // Secțiunea de verificare email token
+    .email-verification-section {
+      margin: 0 auto 20px;
+      width: 90%;
+      
+      .token-verification-container {
+        background-color: rgba(39, 55, 71, 0.9);
+        border-radius: 8px;
+        padding: 25px;
+        border: 1px solid rgba(52, 152, 219, 0.3);
+        box-sizing: border-box;
+        
+        h3 {
+          color: #3498db;
+          margin-top: 0;
+          margin-bottom: 20px;
+          font-size: 1.5rem;
+          font-weight: 500;
+          text-align: center;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+          padding-bottom: 15px;
+        }
+        
+        .verification-instructions {
+          margin-bottom: 20px;
+          
+          p {
+            color: rgba(255, 255, 255, 0.9);
+            line-height: 1.5;
+            margin-bottom: 10px;
+            font-size: 0.95rem;
+          }
+        }
+        
+        .error-message {
+          background-color: rgba(231, 76, 60, 0.2);
+          color: #fff;
+          border-left: 3px solid #e74c3c;
+          margin-bottom: 15px;
+          
+          i {
+            color: #e74c3c;
+          }
+        }
+        
+        .form-group {
+          margin-bottom: 15px;
+          
+          label {
+            display: block;
+            margin-bottom: 8px;
+            color: rgba(255, 255, 255, 0.9);
+            font-weight: 500;
+            
+            .required {
+              color: #e74c3c;
+              margin-left: 3px;
+            }
+          }
+          
+          input {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 12px 15px;
+            background-color: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 6px;
+            color: #fff;
+            transition: all 0.3s ease;
+            
+            &:focus {
+              outline: none;
+              border-color: #3498db;
+              box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.3);
+            }
+            
+            &.invalid {
+              border-color: #e74c3c;
+              background-color: rgba(231, 76, 60, 0.1);
+            }
+            
+            &::placeholder {
+              color: rgba(255, 255, 255, 0.5);
+            }
+          }
+          
+          .error-text {
+            color: #e74c3c;
+            font-size: 0.85rem;
+            margin-top: 5px;
+          }
+        }
+        
+        .form-actions {
+          margin-top: 20px;
+          text-align: center;
+          
+          button.btn-primary {
+            width: 100%;
+            padding: 14px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            transition: all 0.2s ease;
+            
+            &:hover:not(:disabled) {
+              background-color: #2980b9;
+              transform: translateY(-2px);
+              box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            }
+            
+            &:disabled {
+              background-color: rgba(52, 152, 219, 0.5);
+              cursor: not-allowed;
+            }
+            
+            i {
+              margin-right: 8px;
+            }
+          }
+        }
+        
+        .verification-success {
+          text-align: center;
+          padding: 20px 0;
+          animation: scaleIn 0.5s ease-in-out;
+          
+          .success-icon {
+            font-size: 60px;
+            color: #2ecc71;
+            margin-bottom: 15px;
+            animation: bounceIn 0.6s ease-in-out;
+          }
+          
+          h4 {
+            color: #2ecc71;
+            margin-bottom: 8px;
+            font-size: 1.2rem;
+          }
+          
+          p {
+            color: #fff;
+            font-size: 1rem;
+          }
+        }
+      }
+    }
+    
+    // Stilizare pentru notificarea de verificare email
+    .email-verification-notice {
+      width: 90%;
+      margin: 0 auto 20px;
+      padding: 15px;
+      background-color: rgba(241, 196, 15, 0.1);
+      border: 1px solid rgba(241, 196, 15, 0.3);
+      border-left: 3px solid #f1c40f;
+      border-radius: 6px;
+      box-sizing: border-box;
+      
+      p {
+        color: rgba(255, 255, 255, 0.9);
+        margin: 0;
+      }
+    }
+    
+    // Secțiunea de vot
+    .voting-section {
+      margin: 0 20px 20px;
+      padding: 20px;
+      background-color: rgba(255, 255, 255, 0.05);
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      
+      h3 {
+        color: #3498db;
+        margin-top: 0;
+        margin-bottom: 20px;
+        font-size: 1.5rem;
+        font-weight: 500;
+      }
+      
+      .vote-error {
+        background-color: #f8d7da;
+        color: #721c24;
+        padding: 10px;
+        border-radius: 4px;
         margin-bottom: 15px;
+        display: flex;
+        align-items: center;
+        
+        i {
+          margin-right: 8px;
+        }
+      }
+      
+      .vote-options {
+        margin-bottom: 20px;
+        
+        .option-item {
+          margin-bottom: 15px;
+          
+          // Ascundem radio button-ul original
+          input[type="radio"] {
+            position: absolute;
+            opacity: 0;
+            
+            &:checked + label {
+              background-color: rgba(52, 152, 219, 0.2);
+              border-color: #3498db;
+              
+              .option-title {
+                color: #3498db;
+                font-weight: 600;
+              }
+              
+              &:before {
+                background-color: #3498db;
+                border-color: #3498db;
+                box-shadow: inset 0 0 0 4px rgba(255, 255, 255, 0.9);
+              }
+            }
+          }
+          
+          // Label cu custom radio button
+          label {
+            display: block;
+            padding: 12px 15px 12px 45px;
+            background-color: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            
+            &:hover {
+              background-color: rgba(255, 255, 255, 0.1);
+            }
+            
+            // Custom radio button
+            &:before {
+              content: '';
+              position: absolute;
+              left: 15px;
+              top: 50%;
+              transform: translateY(-50%);
+              width: 18px;
+              height: 18px;
+              border-radius: 50%;
+              border: 2px solid rgba(255, 255, 255, 0.3);
+              transition: all 0.3s ease;
+              background-color: transparent;
+            }
+            
+            // Conținutul opțiunii
+            .option-content {
+              .option-title {
+                color: #fff;
+                font-weight: 500;
+                display: block;
+                margin-bottom: 5px;
+              }
+              
+              .option-description {
+                color: rgba(255, 255, 255, 0.7);
+                font-size: 0.9rem;
+                margin: 5px 0 0;
+              }
+              
+              .option-image {
+                max-width: 100%;
+                border-radius: 4px;
+                margin-top: 10px;
+              }
+            }
+          }
+        }
+      }
+      
+      // Buton de submit
+      .submit-vote-btn {
+        width: 100%;
+        padding: 14px;
+        background-color: #3498db;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 1rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        transition: all 0.2s ease;
+        
+        &:hover:not(:disabled) {
+          background-color: #2980b9;
+          transform: translateY(-2px);
+          box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        &:disabled {
+          background-color: rgba(52, 152, 219, 0.5);
+          cursor: not-allowed;
+        }
+        
+        i {
+          margin-right: 8px;
+        }
+      }
+    }
+    
+    // Mesaj de succes
+    .vote-success {
+      margin: 0 20px 20px;
+      padding: 30px;
+      background-color: rgba(46, 204, 113, 0.1);
+      border: 1px solid rgba(46, 204, 113, 0.3);
+      border-radius: 8px;
+      text-align: center;
+      animation: scaleIn 0.5s ease-in-out;
+      
+      .success-icon {
+        font-size: 64px;
+        color: #2ecc71;
+        margin-bottom: 20px;
+        animation: bounceIn 0.6s ease-in-out;
+      }
+      
+      h3 {
+        color: #2ecc71;
+        margin-bottom: 10px;
+        font-size: 1.3rem;
       }
       
       p {
@@ -41,499 +486,238 @@ body {
       }
     }
     
-    // Mesaj de eroare
-    .error-message {
-      background-color: #f8d7da;
-      color: #721c24;
-      padding: 15px;
-      border-radius: 4px;
-      margin: 15px 0;
-      font-weight: 500;
-      display: flex;
-      align-items: center;
+    // Rezultate
+    .results-container {
+      margin: 0 20px 20px;
       
-      i {
-        margin-right: 10px;
-        font-size: 18px;
+      h3 {
+        color: #3498db;
+        margin-top: 0;
+        margin-bottom: 20px;
+        font-weight: 500;
+        font-size: 1.5rem;
       }
       
-      p {
-        margin: 0;
+      .results-chart-container {
+        height: 400px;
+        margin-bottom: 30px;
+        
+        .results-chart {
+          width: 100%;
+          height: 100%;
+        }
+      }
+      
+      .results-table {
+        background-color: rgba(255, 255, 255, 0.05);
+        border-radius: 8px;
+        overflow: hidden;
+        
+        table {
+          width: 100%;
+          border-collapse: collapse;
+          
+          th, td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+          }
+          
+          th {
+            background-color: rgba(255, 255, 255, 0.1);
+            color: #3498db;
+            font-weight: 600;
+          }
+          
+          td {
+            color: #fff;
+          }
+          
+          tr:last-child td {
+            border-bottom: none;
+          }
+          
+          tr:hover td {
+            background-color: rgba(255, 255, 255, 0.05);
+          }
+        }
       }
     }
     
-    // Conținut principal
-    .vote-system-content {
-      background-color: #333;
-      border-radius: 10px;
-      overflow: hidden;
-      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    // Footer
+    .system-footer {
+      padding: 15px 20px;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
       
-      // Header sistem
-      .system-header {
-        padding: 20px;
+      .footer-info {
         display: flex;
         justify-content: space-between;
-        align-items: center;
+        color: rgba(255, 255, 255, 0.6);
+        font-size: 0.9rem;
         
-        h1 {
-          color: #3498db;
-          margin: 0;
-          font-size: 1.8rem;
-          font-weight: 600;
-        }
-        
-        .status-badge {
-          padding: 6px 12px;
-          border-radius: 20px;
-          font-size: 0.85rem;
-          font-weight: 600;
-          text-transform: uppercase;
+        span {
+          margin-right: 15px;
           
-          &.status-active {
-            background-color: rgba(46, 204, 113, 0.2);
-            color: #2ecc71;
-            border: 1px solid rgba(46, 204, 113, 0.3);
-          }
-          
-          &:not(.status-active) {
-            background-color: rgba(149, 165, 166, 0.2);
-            color: #95a5a6;
-            border: 1px solid rgba(149, 165, 166, 0.3);
-          }
-        }
-      }
-      
-      // Bară progres
-      .progress-bar-container {
-        padding: 0 20px 15px;
-        
-        .progress-bar {
-          height: 6px;
-          background-color: rgba(255, 255, 255, 0.1);
-          border-radius: 3px;
-          overflow: hidden;
-          
-          .progress-fill {
-            height: 100%;
-            background-color: #3498db;
-            transition: width 0.5s ease;
-          }
-        }
-        
-        .progress-status {
-          color: rgba(255, 255, 255, 0.7);
-          font-size: 0.85rem;
-          margin-top: 5px;
-          text-align: right;
-        }
-      }
-      
-      // Descriere sistem
-      .system-description {
-        padding: 0 20px 20px;
-        
-        p {
-          color: rgba(255, 255, 255, 0.9);
-          line-height: 1.5;
-          margin: 0;
-        }
-      }
-      
-      // Secțiunea de vot
-      .voting-section {
-        margin: 0 20px 20px;
-        padding: 20px;
-        background-color: rgba(255, 255, 255, 0.05);
-        border-radius: 8px;
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        
-        h3 {
-          color: #3498db;
-          margin-top: 0;
-          margin-bottom: 20px;
-          font-size: 1.5rem;
-          font-weight: 500;
-        }
-        
-        .vote-error {
-          background-color: #f8d7da;
-          color: #721c24;
-          padding: 10px;
-          border-radius: 4px;
-          margin-bottom: 15px;
-          display: flex;
-          align-items: center;
-          
-          i {
-            margin-right: 8px;
-          }
-        }
-        
-        .vote-options {
-          margin-bottom: 20px;
-          
-          .option-item {
-            margin-bottom: 15px;
-            
-            // Ascundem radio button-ul original
-            input[type="radio"] {
-              position: absolute;
-              opacity: 0;
-              
-              &:checked + label {
-                background-color: rgba(52, 152, 219, 0.2);
-                border-color: #3498db;
-                
-                .option-title {
-                  color: #3498db;
-                  font-weight: 600;
-                }
-                
-                &:before {
-                  background-color: #3498db;
-                  border-color: #3498db;
-                  box-shadow: inset 0 0 0 4px rgba(255, 255, 255, 0.9);
-                }
-              }
-            }
-            
-            // Label cu custom radio button
-            label {
-              display: block;
-              padding: 12px 15px 12px 45px;
-              background-color: rgba(255, 255, 255, 0.05);
-              border: 1px solid rgba(255, 255, 255, 0.2);
-              border-radius: 6px;
-              cursor: pointer;
-              transition: all 0.3s ease;
-              position: relative;
-              
-              &:hover {
-                background-color: rgba(255, 255, 255, 0.1);
-              }
-              
-              // Custom radio button
-              &:before {
-                content: '';
-                position: absolute;
-                left: 15px;
-                top: 50%;
-                transform: translateY(-50%);
-                width: 18px;
-                height: 18px;
-                border-radius: 50%;
-                border: 2px solid rgba(255, 255, 255, 0.3);
-                transition: all 0.3s ease;
-                background-color: transparent;
-              }
-              
-              // Conținutul opțiunii
-              .option-content {
-                .option-title {
-                  color: #fff;
-                  font-weight: 500;
-                  display: block;
-                  margin-bottom: 5px;
-                }
-                
-                .option-description {
-                  color: rgba(255, 255, 255, 0.7);
-                  font-size: 0.9rem;
-                  margin: 5px 0 0;
-                }
-                
-                .option-image {
-                  max-width: 100%;
-                  border-radius: 4px;
-                  margin-top: 10px;
-                }
-              }
-            }
-          }
-        }
-        
-        // Buton de submit
-        .submit-vote-btn {
-          width: 100%;
-          padding: 14px;
-          background-color: #3498db;
-          color: white;
-          border: none;
-          border-radius: 6px;
-          cursor: pointer;
-          font-weight: 600;
-          font-size: 1rem;
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-          transition: all 0.2s ease;
-          
-          &:hover:not(:disabled) {
-            background-color: #2980b9;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-          }
-          
-          &:disabled {
-            background-color: rgba(52, 152, 219, 0.5);
-            cursor: not-allowed;
-          }
-          
-          i {
-            margin-right: 8px;
-          }
-        }
-      }
-      
-      // Mesaj de succes
-      .vote-success {
-        margin: 0 20px 20px;
-        padding: 30px;
-        background-color: rgba(46, 204, 113, 0.1);
-        border: 1px solid rgba(46, 204, 113, 0.3);
-        border-radius: 8px;
-        text-align: center;
-        animation: scaleIn 0.5s ease-in-out;
-        
-        .success-icon {
-          font-size: 64px;
-          color: #2ecc71;
-          margin-bottom: 20px;
-          animation: bounceIn 0.6s ease-in-out;
-        }
-        
-        h3 {
-          color: #2ecc71;
-          margin-bottom: 10px;
-          font-size: 1.3rem;
-        }
-        
-        p {
-          color: #fff;
-          font-size: 1.1rem;
-        }
-      }
-      
-      // Rezultate
-      .results-container {
-        margin: 0 20px 20px;
-        
-        h3 {
-          color: #3498db;
-          margin-top: 0;
-          margin-bottom: 20px;
-          font-weight: 500;
-          font-size: 1.5rem;
-        }
-        
-        .results-chart-container {
-          height: 400px;
-          margin-bottom: 30px;
-          
-          .results-chart {
-            width: 100%;
-            height: 100%;
-          }
-        }
-        
-        .results-table {
-          background-color: rgba(255, 255, 255, 0.05);
-          border-radius: 8px;
-          overflow: hidden;
-          
-          table {
-            width: 100%;
-            border-collapse: collapse;
-            
-            th, td {
-              padding: 15px;
-              text-align: left;
-              border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-            }
-            
-            th {
-              background-color: rgba(255, 255, 255, 0.1);
-              color: #3498db;
-              font-weight: 600;
-            }
-            
-            td {
-              color: #fff;
-            }
-            
-            tr:last-child td {
-              border-bottom: none;
-            }
-            
-            tr:hover td {
-              background-color: rgba(255, 255, 255, 0.05);
-            }
-          }
-        }
-      }
-      
-      // Footer
-      .system-footer {
-        padding: 15px 20px;
-        border-top: 1px solid rgba(255, 255, 255, 0.1);
-        
-        .footer-info {
-          display: flex;
-          justify-content: space-between;
-          color: rgba(255, 255, 255, 0.6);
-          font-size: 0.9rem;
-          
-          span {
-            margin-right: 15px;
-            
-            &:last-child {
-              margin-right: 0;
-            }
-          }
-        }
-      }
-    }
-  }
-  
-  // Stilizare pentru Votează
-  .vote-form-container {
-    background-color: rgba(255, 255, 255, 0.05);
-    border-radius: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    padding: 20px;
-    margin-bottom: 20px;
-    
-    h3 {
-      color: #3498db;
-      margin-top: 0;
-      margin-bottom: 20px;
-      font-size: 1.5rem;
-      font-weight: 500;
-    }
-    
-    .option-item {
-      margin-bottom: 15px;
-      
-      input[type="radio"] {
-        position: absolute;
-        opacity: 0;
-        
-        &:checked + label {
-          background-color: rgba(52, 152, 219, 0.2);
-          border-color: #3498db;
-        }
-      }
-      
-      label {
-        display: block;
-        padding: 12px 15px;
-        background-color: rgba(255, 255, 255, 0.05);
-        border: 1px solid rgba(255, 255, 255, 0.2);
-        border-radius: 6px;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        color: #fff;
-        font-weight: 500;
-        
-        &:hover {
-          background-color: rgba(255, 255, 255, 0.1);
-        }
-      }
-    }
-    
-    .submit-vote-btn {
-      width: 100%;
-      padding: 14px;
-      background-color: #3498db;
-      color: white;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      font-weight: 600;
-      font-size: 1rem;
-      text-transform: uppercase;
-      transition: all 0.2s ease;
-      
-      &:hover {
-        background-color: #2980b9;
-      }
-    }
-  }
-  
-  // Animații
-  @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-  }
-  
-  @keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-  }
-  
-  @keyframes scaleIn {
-    from { opacity: 0; transform: scale(0.9); }
-    to { opacity: 1; transform: scale(1); }
-  }
-  
-  @keyframes bounceIn {
-    0% { transform: scale(0); opacity: 0; }
-    60% { transform: scale(1.2); opacity: 1; }
-    100% { transform: scale(1); }
-  }
-  
-  // Media queries
-  @media (max-width: 768px) {
-    .public-vote-container {
-      padding: 15px;
-      
-      .vote-system-content {
-        .system-header {
-          flex-direction: column;
-          align-items: flex-start;
-          
-          h1 {
-            margin-bottom: 15px;
-          }
-          
-          .status-badge {
-            align-self: flex-start;
-          }
-        }
-        
-        .voting-section, 
-        .vote-success, 
-        .results-container {
-          margin: 0 15px 15px;
-        }
-        
-        .system-footer .footer-info {
-          flex-direction: column;
-          
-          span {
-            margin-bottom: 5px;
+          &:last-child {
             margin-right: 0;
           }
         }
       }
     }
   }
+}
+
+// Stilizare pentru Votează
+.vote-form-container {
+  background-color: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 20px;
+  margin-bottom: 20px;
   
-  @media (max-width: 480px) {
-    .public-vote-container {
-      padding: 10px;
+  h3 {
+    color: #3498db;
+    margin-top: 0;
+    margin-bottom: 20px;
+    font-size: 1.5rem;
+    font-weight: 500;
+  }
+  
+  .option-item {
+    margin-bottom: 15px;
+    
+    input[type="radio"] {
+      position: absolute;
+      opacity: 0;
       
-      .vote-system-content {
-        .system-header h1 {
-          font-size: 1.5rem;
+      &:checked + label {
+        background-color: rgba(52, 152, 219, 0.2);
+        border-color: #3498db;
+      }
+    }
+    
+    label {
+      display: block;
+      padding: 12px 15px;
+      background-color: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      color: #fff;
+      font-weight: 500;
+      
+      &:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+      }
+    }
+  }
+  
+  .submit-vote-btn {
+    width: 100%;
+    padding: 14px;
+    background-color: #3498db;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 1rem;
+    text-transform: uppercase;
+    transition: all 0.2s ease;
+    
+    &:hover {
+      background-color: #2980b9;
+    }
+  }
+}
+
+// Animații
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes bounceIn {
+  0% { transform: scale(0); opacity: 0; }
+  60% { transform: scale(1.2); opacity: 1; }
+  100% { transform: scale(1); }
+}
+
+// Media queries
+@media (max-width: 768px) {
+  .public-vote-container {
+    padding: 15px;
+    
+    .vote-system-content {
+      .system-header {
+        flex-direction: column;
+        align-items: flex-start;
+        
+        h1 {
+          margin-bottom: 15px;
         }
         
-        .voting-section, 
-        .vote-success, 
-        .results-container {
-          margin: 0 10px 10px;
-          padding: 15px;
+        .status-badge {
+          align-self: flex-start;
+        }
+      }
+      
+      .voting-section, 
+      .vote-success, 
+      .results-container {
+        margin: 0 15px 15px;
+      }
+      
+      .email-verification-section,
+      .email-verification-notice {
+        width: calc(100% - 30px);
+        margin: 0 15px 15px;
+      }
+      
+      .system-footer .footer-info {
+        flex-direction: column;
+        
+        span {
+          margin-bottom: 5px;
+          margin-right: 0;
         }
       }
     }
   }
+}
+
+@media (max-width: 480px) {
+  .public-vote-container {
+    padding: 10px;
+    
+    .vote-system-content {
+      .system-header h1 {
+        font-size: 1.5rem;
+      }
+      
+      .voting-section, 
+      .vote-success, 
+      .results-container {
+        margin: 0 10px 10px;
+        padding: 15px;
+      }
+      
+      .email-verification-section,
+      .email-verification-notice {
+        width: calc(100% - 20px);
+        margin: 0 10px 10px;
+      }
+    }
+  }
+}
