@@ -2579,3 +2579,30 @@ class VerifyVoteTokenView(APIView):
             return Response({
                 'error': 'Sistemul de vot nu a fost găsit.'
             }, status=status.HTTP_404_NOT_FOUND)
+        
+class CheckActiveVoteSystemView(APIView):
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        # Verificăm dacă utilizatorul are deja un sistem de vot activ sau în așteptare
+        active_systems = VoteSystem.objects.filter(
+            creator=request.user,
+            status__in=['active', 'pending']
+        ).order_by('-created_at')
+        
+        if active_systems.exists():
+            # Actualizăm status-ul primului sistem găsit
+            active_system = active_systems.first()
+            active_system.update_status()
+            
+            # Serializăm și returnăm sistemul activ
+            serializer = VoteSystemSerializer(active_system)
+            return Response({
+                'has_active_system': True,
+                'system': serializer.data
+            })
+        
+        return Response({
+            'has_active_system': False,
+            'system': None
+        })

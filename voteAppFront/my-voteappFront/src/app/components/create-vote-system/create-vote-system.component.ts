@@ -3,6 +3,7 @@ import { FormBuilder, FormGroup, FormArray, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 import { VoteSystemService } from '../../services/vote-system.service';
+import { interval, Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-create-vote-system',
@@ -18,6 +19,22 @@ export class CreateVoteSystemComponent implements OnInit {
   errorMessage = '';
   successMessage = '';
   createdSystemId: string = '';
+
+  // Sistemul activ
+  hasActiveSystem = false;
+  activeSystem: any = null;
+  isLoadingActiveSystem = true;
+  
+  // Timer pentru expirarea sistemului activ
+  timerSubscription: Subscription | null = null;
+  remainingTime: any = {
+    days: 0,
+    hours: 0,
+    minutes: 0,
+    seconds: 0
+  };
+
+
   
   // Formular principal
   voteSystemForm: FormGroup;
@@ -96,6 +113,9 @@ export class CreateVoteSystemComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    // Verificam daca utilizatorul are un sistem de vot activ
+    this.checkActiveVoteSystem();
+
     // Setăm data minimă ca ziua curentă
     const today = new Date();
     const tomorrow = new Date();
@@ -118,6 +138,87 @@ export class CreateVoteSystemComponent implements OnInit {
       this.onEmailVerificationChange(value);
     });
   }
+  ngOnDestroy(): void {
+    // Anulăm subscription-ul la timer când componenta este distrusă
+    if (this.timerSubscription) {
+      this.timerSubscription.unsubscribe();
+    }
+  }
+  checkActiveVoteSystem(): void {
+    this.isLoadingActiveSystem = true;
+    
+    this.voteSystemService.checkActiveVoteSystem().subscribe({
+      next: (response) => {
+        this.isLoadingActiveSystem = false;
+        this.hasActiveSystem = response.has_active_system;
+        
+        if (this.hasActiveSystem && response.system) {
+          this.activeSystem = response.system;
+          
+          // Pornim timer-ul pentru sistemul activ
+          this.startExpirationTimer();
+        }
+      },
+      error: (error) => {
+        this.isLoadingActiveSystem = false;
+        console.error('Eroare la verificarea sistemului activ:', error);
+      }
+    });
+  }
+  
+  // Pornim timer-ul pentru expirarea sistemului
+  startExpirationTimer(): void {
+    // Anulăm orice timer existent
+    if (this.timerSubscription) {
+      this.timerSubscription.unsubscribe();
+    }
+    
+    // Pornim un nou timer care se actualizează la fiecare secundă
+    this.timerSubscription = interval(1000).subscribe(() => {
+      this.updateRemainingTime();
+    });
+    
+    // Actualizăm timpul rămas inițial
+    this.updateRemainingTime();
+  }
+  
+  // Actualizează timpul rămas până la expirarea sistemului activ
+  updateRemainingTime(): void {
+    if (!this.activeSystem || !this.activeSystem.end_date) return;
+    
+    const now = new Date();
+    const endDate = new Date(this.activeSystem.end_date);
+    
+    // Calculăm diferența în milisecunde
+    let diff = endDate.getTime() - now.getTime();
+    
+    // Dacă timpul a expirat, reîncărcăm starea sistemului
+    if (diff <= 0) {
+      this.checkActiveVoteSystem();
+      return;
+    }
+    
+    // Calculăm zilele, orele, minutele și secundele
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    diff -= days * (1000 * 60 * 60 * 24);
+    
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    diff -= hours * (1000 * 60 * 60);
+    
+    const minutes = Math.floor(diff / (1000 * 60));
+    diff -= minutes * (1000 * 60);
+    
+    const seconds = Math.floor(diff / 1000);
+    
+    // Actualizăm obiectul cu timpul rămas
+    this.remainingTime = {
+      days,
+      hours,
+      minutes,
+      seconds
+    };
+  }
+
   
   // Formatare dată pentru input de tip date
   private formatDate(date: Date): string {
@@ -126,6 +227,27 @@ export class CreateVoteSystemComponent implements OnInit {
     const day = date.getDate().toString().padStart(2, '0');
     return `${year}-${month}-${day}`;
   }
+    // Formatează data pentru afișare
+    formatDateTime(date: string): string {
+      if (!date) return '';
+      
+      const dateObj = new Date(date);
+      
+      return dateObj.toLocaleDateString('ro-RO', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    }
+    
+    // Navighează către detaliile sistemului activ
+    viewActiveSystem(): void {
+      if (this.activeSystem && this.activeSystem.id) {
+        this.router.navigate(['/menu/despre/sisteme-vot', this.activeSystem.id]);
+      }
+    }
   
   // Crează o nouă opțiune pentru FormArray
   createOption(): FormGroup {

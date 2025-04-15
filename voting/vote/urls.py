@@ -6,7 +6,7 @@ from .views import UserPresidentialVotingEligibilityView, PresidentialCandidates
 from .views import UserParliamentaryVotingEligibilityView, ParliamentaryPartiesView, CheckParliamentaryVoteStatusView, SubmitParliamentaryVoteView, GenerateParliamentaryVoteReceiptPDFView
 from .views import CreateVoteSystemView, UserVoteSystemsView, VoteSystemDetailView, SubmitVoteView
 from .views import PublicVoteSystemView, PublicSubmitVoteView, PublicVoteResultsView
-from .views import ManageVoterEmailsView, SendVoteTokensView, VerifyVoteTokenView
+from .views import ManageVoterEmailsView, SendVoteTokensView, VerifyVoteTokenView, CheckActiveVoteSystemView
 
 urlpatterns = [
     path('vote-settings/', VoteSettingsView.as_view(), name='vote-settings'),
@@ -40,6 +40,6 @@ urlpatterns = [
     path('vote-systems/<int:system_id>/manage-emails/', ManageVoterEmailsView.as_view(), name='manage-voter-emails'),
     path('vote-systems/<int:system_id>/send-tokens/', SendVoteTokensView.as_view(), name='send-vote-tokens'),
     path('vote-systems/<int:system_id>/verify-token/', VerifyVoteTokenView.as_view(), name='verify-vote-token'),
- 
+    path('vote-systems/check-active/', CheckActiveVoteSystemView.as_view(), name='check-active-vote-system'),
 
 ] 

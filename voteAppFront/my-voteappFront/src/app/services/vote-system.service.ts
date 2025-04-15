@@ -150,4 +150,9 @@ export class VoteSystemService {
     
     return `${baseUrl}/vote/${systemId}`;
   }
+  checkActiveVoteSystem(): Observable<any> {
+    return this.http.get(`${this.getApiUrl()}vote-systems/check-active/`);
+  }
+
+
 }

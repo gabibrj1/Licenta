@@ -1,399 +1,468 @@
 <div class="create-vote-system-container">
   <h1>Creează propriul sistem de vot</h1>
   
-  <!-- Progres pași -->
-  <div class="steps-progress">
-    <div class="progress-container">
-      <div class="progress-bar" [style.width]="(currentStep / totalSteps * 100) + '%'"></div>
+  <!-- Loading spinner pentru verificarea sistemului activ -->
+  <div class="loading-container" *ngIf="isLoadingActiveSystem">
+    <div class="spinner"></div>
+    <p>Se verifică sistemele active...</p>
+  </div>
+  
+  <!-- Afișăm sistem activ dacă există -->
+  <div class="active-system-container" *ngIf="hasActiveSystem && activeSystem && !isLoadingActiveSystem">
+    <div class="active-system-header">
+      <h2>Ai deja un sistem de vot activ</h2>
+      <div class="status-badge" [ngClass]="{'status-active': activeSystem.status === 'active', 'status-pending': activeSystem.status === 'pending'}">
+        {{ activeSystem.status === 'active' ? 'Activ' : 'În așteptare' }}
+      </div>
     </div>
-    <div class="step-indicators">
-      <div 
-        *ngFor="let step of [1, 2, 3, 4, 5]; let i = index" 
-        class="step-indicator" 
-        [class.active]="currentStep >= step"
-        [class.completed]="currentStep > step"
-        [class.hidden]="step === 4 && !voteSystemForm.get('rules.requireEmailVerification')?.value"
-        (click)="currentStep = step">
-        <div class="step-number">{{ step }}</div>
-        <div class="step-label">
-          <span *ngIf="step === 1">Informații de bază</span>
-          <span *ngIf="step === 2">Opțiuni de vot</span>
-          <span *ngIf="step === 3">Reguli și parametri</span>
-          <span *ngIf="step === 4">Listă votanți</span>
-          <span *ngIf="step === 5">Programare</span>
+    
+    <div class="active-system-details">
+      <div class="system-info">
+        <h3>{{ activeSystem.name }}</h3>
+        <p>{{ activeSystem.description }}</p>
+        
+        <div class="date-details">
+          <div class="date-item">
+            <span class="label">Început:</span>
+            <span class="value">{{ formatDateTime(activeSystem.start_date) }}</span>
+          </div>
+          <div class="date-item">
+            <span class="label">Sfârșit:</span>
+            <span class="value">{{ formatDateTime(activeSystem.end_date) }}</span>
+          </div>
         </div>
+      </div>
+      
+      <div class="timer-container">
+        <h4>Timp rămas până la expirare:</h4>
+        <div class="countdown-timer">
+          <div class="time-block">
+            <div class="time-value">{{ remainingTime.days }}</div>
+            <div class="time-label">zile</div>
+          </div>
+          <div class="time-separator">:</div>
+          <div class="time-block">
+            <div class="time-value">{{ remainingTime.hours }}</div>
+            <div class="time-label">ore</div>
+          </div>
+          <div class="time-separator">:</div>
+          <div class="time-block">
+            <div class="time-value">{{ remainingTime.minutes }}</div>
+            <div class="time-label">min</div>
+          </div>
+          <div class="time-separator">:</div>
+          <div class="time-block">
+            <div class="time-value">{{ remainingTime.seconds }}</div>
+            <div class="time-label">sec</div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="system-actions">
+        <button class="btn-primary" (click)="viewActiveSystem()">
+          <i class="fas fa-eye"></i> Vezi detalii sistem
+        </button>
+        <p class="info-text">Nu poți crea un sistem nou până când cel actual nu expiră sau este anulat.</p>
       </div>
     </div>
   </div>
   
-  <!-- Formular principal -->
-  <form [formGroup]="voteSystemForm" (ngSubmit)="onSubmit()" *ngIf="!submitted">
-    <!-- Mesaj de eroare general -->
-    <div class="error-message" *ngIf="errorMessage">
-      <i class="fas fa-exclamation-triangle"></i>
-      {{ errorMessage }}
-    </div>
-    
-    <!-- Pas 1: Informații de bază -->
-    <div class="form-step" *ngIf="currentStep === 1" formGroupName="basicInfo">
-      <h2>Informații de bază</h2>
-      <p class="step-description">Stabiliți detaliile generale ale sistemului de vot pe care doriți să-l creați.</p>
-      
-      <div class="form-group">
-        <label for="name">Numele sistemului de vot<span class="required">*</span></label>
-        <input 
-          type="text" 
-          id="name" 
-          formControlName="name" 
-          [class.invalid]="hasError('basicInfo', 'name')"
-          placeholder="Ex: Alegerea președintelui asociației de locatari">
-        <div class="error-text" *ngIf="hasError('basicInfo', 'name')">
-          {{ getErrorMessage('basicInfo', 'name') }}
-        </div>
+  <!-- Afișăm formularul de creare doar dacă nu există un sistem activ -->
+  <div *ngIf="!hasActiveSystem && !isLoadingActiveSystem">
+    <!-- Progres pași -->
+    <div class="steps-progress">
+      <div class="progress-container">
+        <div class="progress-bar" [style.width]="(currentStep / totalSteps * 100) + '%'"></div>
       </div>
-      
-      <div class="form-group">
-        <label for="description">Descriere<span class="required">*</span></label>
-        <textarea 
-          id="description" 
-          formControlName="description" 
-          [class.invalid]="hasError('basicInfo', 'description')"
-          placeholder="Descrieți scopul acestui vot și orice alte informații relevante pentru votanți."
-          rows="5"></textarea>
-        <div class="error-text" *ngIf="hasError('basicInfo', 'description')">
-          {{ getErrorMessage('basicInfo', 'description') }}
-        </div>
-      </div>
-      
-      <div class="form-group">
-        <label for="category">Categorie<span class="required">*</span></label>
-        <select 
-          id="category" 
-          formControlName="category"
-          [class.invalid]="hasError('basicInfo', 'category')">
-          <option value="">Selectați o categorie</option>
-          <option value="political">Vot politic/electoral</option>
-          <option value="organizational">Vot organizațional</option>
-          <option value="community">Vot comunitar</option>
-          <option value="survey">Sondaj/Chestionar</option>
-          <option value="decision">Luare de decizii</option>
-          <option value="other">Altele</option>
-        </select>
-        <div class="error-text" *ngIf="hasError('basicInfo', 'category')">
-          {{ getErrorMessage('basicInfo', 'category') }}
-        </div>
-      </div>
-    </div>
-    
-    <!-- Pas 2: Opțiuni de vot -->
-    <div class="form-step" *ngIf="currentStep === 2" formGroupName="votingOptions">
-      <h2>Opțiuni de vot</h2>
-      <p class="step-description">Adăugați opțiunile de vot pentru sistemul dumneavoastră. Trebuie să existe minim 2 opțiuni.</p>
-      
-      <div formArrayName="options">
-        <div *ngFor="let option of optionsArray.controls; let i = index" class="option-item" [formGroupName]="i">
-          <div class="option-header">
-            <h3>Opțiunea {{ i + 1 }}</h3>
-            <button 
-              type="button" 
-              class="btn-remove-option" 
-              (click)="removeOption(i)" 
-              *ngIf="optionsArray.length > 2">
-              <i class="fas fa-times"></i>
-            </button>
+      <div class="step-indicators">
+        <div 
+          *ngFor="let step of [1, 2, 3, 4, 5]; let i = index" 
+          class="step-indicator" 
+          [class.active]="currentStep >= step"
+          [class.completed]="currentStep > step"
+          [class.hidden]="step === 4 && !voteSystemForm.get('rules.requireEmailVerification')?.value"
+          (click)="currentStep = step">
+          <div class="step-number">{{ step }}</div>
+          <div class="step-label">
+            <span *ngIf="step === 1">Informații de bază</span>
+            <span *ngIf="step === 2">Opțiuni de vot</span>
+            <span *ngIf="step === 3">Reguli și parametri</span>
+            <span *ngIf="step === 4">Listă votanți</span>
+            <span *ngIf="step === 5">Programare</span>
           </div>
-          
-          <div class="form-group">
-            <label [for]="'option-title-' + i">Titlu<span class="required">*</span></label>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Formular principal -->
+    <form [formGroup]="voteSystemForm" (ngSubmit)="onSubmit()" *ngIf="!submitted">
+      <!-- Mesaj de eroare general -->
+      <div class="error-message" *ngIf="errorMessage">
+        <i class="fas fa-exclamation-triangle"></i>
+        {{ errorMessage }}
+      </div>
+      
+      <!-- Pas 1: Informații de bază -->
+      <div class="form-step" *ngIf="currentStep === 1" formGroupName="basicInfo">
+        <h2>Informații de bază</h2>
+        <p class="step-description">Stabiliți detaliile generale ale sistemului de vot pe care doriți să-l creați.</p>
+        
+        <div class="form-group">
+          <label for="name">Numele sistemului de vot<span class="required">*</span></label>
+          <input 
+            type="text" 
+            id="name" 
+            formControlName="name" 
+            [class.invalid]="hasError('basicInfo', 'name')"
+            placeholder="Ex: Alegerea președintelui asociației de locatari">
+          <div class="error-text" *ngIf="hasError('basicInfo', 'name')">
+            {{ getErrorMessage('basicInfo', 'name') }}
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label for="description">Descriere<span class="required">*</span></label>
+          <textarea 
+            id="description" 
+            formControlName="description" 
+            [class.invalid]="hasError('basicInfo', 'description')"
+            placeholder="Descrieți scopul acestui vot și orice alte informații relevante pentru votanți."
+            rows="5"></textarea>
+          <div class="error-text" *ngIf="hasError('basicInfo', 'description')">
+            {{ getErrorMessage('basicInfo', 'description') }}
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label for="category">Categorie<span class="required">*</span></label>
+          <select 
+            id="category" 
+            formControlName="category"
+            [class.invalid]="hasError('basicInfo', 'category')">
+            <option value="">Selectați o categorie</option>
+            <option value="political">Vot politic/electoral</option>
+            <option value="organizational">Vot organizațional</option>
+            <option value="community">Vot comunitar</option>
+            <option value="survey">Sondaj/Chestionar</option>
+            <option value="decision">Luare de decizii</option>
+            <option value="other">Altele</option>
+          </select>
+          <div class="error-text" *ngIf="hasError('basicInfo', 'category')">
+            {{ getErrorMessage('basicInfo', 'category') }}
+          </div>
+        </div>
+      </div>
+      
+      <!-- Pas 2: Opțiuni de vot -->
+      <div class="form-step" *ngIf="currentStep === 2" formGroupName="votingOptions">
+        <h2>Opțiuni de vot</h2>
+        <p class="step-description">Adăugați opțiunile de vot pentru sistemul dumneavoastră. Trebuie să existe minim 2 opțiuni.</p>
+        
+        <div formArrayName="options">
+          <div *ngFor="let option of optionsArray.controls; let i = index" class="option-item" [formGroupName]="i">
+            <div class="option-header">
+              <h3>Opțiunea {{ i + 1 }}</h3>
+              <button 
+                type="button" 
+                class="btn-remove-option" 
+                (click)="removeOption(i)" 
+                *ngIf="optionsArray.length > 2">
+                <i class="fas fa-times"></i>
+              </button>
+            </div>
+            
+            <div class="form-group">
+              <label [for]="'option-title-' + i">Titlu<span class="required">*</span></label>
+              <input 
+                type="text" 
+                [id]="'option-title-' + i" 
+                formControlName="title"
+                [class.invalid]="hasOptionError(i, 'title')"
+                placeholder="Numele opțiunii de vot">
+              <div class="error-text" *ngIf="hasOptionError(i, 'title')">
+                {{ getOptionErrorMessage(i, 'title') }}
+              </div>
+            </div>
+            
+            <div class="form-group">
+              <label [for]="'option-description-' + i">Descriere</label>
+              <textarea 
+                [id]="'option-description-' + i" 
+                formControlName="description"
+                placeholder="Descriere opțională pentru această opțiune"
+                rows="2"></textarea>
+            </div>
+            
+            <div class="form-group">
+              <label [for]="'option-image-' + i">URL imagine</label>
+              <input 
+                type="text" 
+                [id]="'option-image-' + i" 
+                formControlName="imageUrl"
+                placeholder="Link către imaginea reprezentativă (opțional)">
+            </div>
+          </div>
+        </div>
+        
+        <div class="form-actions">
+          <button type="button" class="btn-add-option" (click)="addOption()">
+            <i class="fas fa-plus"></i> Adaugă opțiune nouă
+          </button>
+        </div>
+        
+        <div class="form-group checkbox-group">
+          <input type="checkbox" id="allowCustomOptions" formControlName="allowCustomOptions">
+          <label for="allowCustomOptions">Permite votanților să adauge opțiuni personalizate</label>
+        </div>
+      </div>
+      
+      <!-- Pas 3: Reguli și parametri -->
+      <div class="form-step" *ngIf="currentStep === 3" formGroupName="rules">
+        <h2>Reguli și parametri</h2>
+        <p class="step-description">Configurați regulile de vot și parametrii sistemului.</p>
+        
+        <div class="form-group">
+          <label for="voteType">Tipul votului<span class="required">*</span></label>
+          <select 
+            id="voteType" 
+            formControlName="voteType"
+            (change)="onVoteTypeChange()"
+            [class.invalid]="hasError('rules', 'voteType')">
+            <option *ngFor="let type of voteTypes" [value]="type.id">{{ type.name }}</option>
+          </select>
+        </div>
+        
+        <div class="form-group" *ngIf="voteSystemForm.get('rules.voteType')?.value === 'multiple'">
+          <label for="maxVotesPerUser">Număr maxim de voturi per utilizator<span class="required">*</span></label>
+          <input 
+            type="number" 
+            id="maxVotesPerUser" 
+            formControlName="maxVotesPerUser"
+            min="1"
+            [class.invalid]="hasError('rules', 'maxVotesPerUser')">
+          <div class="error-text" *ngIf="hasError('rules', 'maxVotesPerUser')">
+            {{ getErrorMessage('rules', 'maxVotesPerUser') }}
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label for="visibility">Vizibilitate<span class="required">*</span></label>
+          <select 
+            id="visibility" 
+            formControlName="visibility"
+            [class.invalid]="hasError('rules', 'visibility')">
+            <option *ngFor="let option of visibilityOptions" [value]="option.id">{{ option.name }}</option>
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <label for="resultVisibility">Vizibilitatea rezultatelor<span class="required">*</span></label>
+          <select 
+            id="resultVisibility" 
+            formControlName="resultVisibility"
+            [class.invalid]="hasError('rules', 'resultVisibility')">
+            <option *ngFor="let option of resultVisibilityOptions" [value]="option.id">{{ option.name }}</option>
+          </select>
+        </div>
+        
+        <div class="form-group checkbox-group">
+          <input type="checkbox" id="requireVerification" formControlName="requireVerification">
+          <label for="requireVerification">Necesită verificarea identității votanților</label>
+        </div>
+        
+        <div class="form-group checkbox-group">
+          <input type="checkbox" id="allowComments" formControlName="allowComments">
+          <label for="allowComments">Permite comentarii și discuții</label>
+        </div>
+        
+        <div class="form-group checkbox-group">
+          <input type="checkbox" id="allowAnonymousVoting" formControlName="allowAnonymousVoting">
+          <label for="allowAnonymousVoting">Permite votul anonim (identitatea votanților nu va fi înregistrată)</label>
+        </div>
+        
+        <!-- Opțiune pentru verificare prin email -->
+        <div class="form-group checkbox-group">
+          <input type="checkbox" id="requireEmailVerification" formControlName="requireEmailVerification">
+          <label for="requireEmailVerification">Cere verificare prin email (participanții vor avea nevoie de un cod de acces unic)</label>
+        </div>
+        
+        <div class="info-box" *ngIf="voteSystemForm.get('rules.requireEmailVerification')?.value">
+          <div class="info-icon">
+            <i class="fas fa-info-circle"></i>
+          </div>
+          <div class="info-content">
+            <p>Activând această opțiune, va trebui să furnizați o listă de adrese email în pasul următor. Fiecare participant va primi un cod unic de 6 caractere valabil pentru 3 minute, necesar pentru a putea vota.</p>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Pas 4: Lista de emailuri pentru votanți (nou) -->
+      <div class="form-step" *ngIf="currentStep === 4" formGroupName="voterEmails">
+        <h2>Listă votanți</h2>
+        <p class="step-description">Adăugați adresele de email ale persoanelor care vor primi codul de vot pentru acest sistem.</p>
+        
+        <div class="form-group">
+          <label for="emails">Adrese de email<span class="required">*</span></label>
+          <textarea 
+            id="emails" 
+            formControlName="emails" 
+            [class.invalid]="hasError('voterEmails', 'emails')"
+            placeholder="Introduceți adresele de email separate prin virgulă, linie nouă sau spațiu."
+            rows="10"></textarea>
+          <div class="email-format-info">
+            <i class="fas fa-info-circle"></i>
+            <span>Exemple de format valid: email&#64;example.com, alt.email&#64;example.com</span>
+          </div>
+          <div class="error-text" *ngIf="hasError('voterEmails', 'emails')">
+            {{ getErrorMessage('voterEmails', 'emails') }}
+          </div>
+        </div>
+        
+        <div class="form-group checkbox-group">
+          <input type="checkbox" id="sendImmediately" formControlName="sendImmediately">
+          <label for="sendImmediately">Trimite email-uri cu coduri de vot imediat după creare</label>
+        </div>
+        
+        <div class="info-box">
+          <div class="info-icon">
+            <i class="fas fa-info-circle"></i>
+          </div>
+          <div class="info-content">
+            <h4>Informații despre codul de vot:</h4>
+            <ul>
+              <li>Fiecare participant va primi un cod unic de 6 caractere valabil pentru 3 minute.</li>
+              <li>Codul poate fi folosit o singură dată și este legat de adresa de email a participantului.</li>
+              <li>Puteți retrimite coduri noi oricând după creare, din pagina de detalii a sistemului de vot.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Pas 5: Programare și durată -->
+      <div class="form-step" *ngIf="currentStep === 5" formGroupName="schedule">
+        <h2>Programare și durată</h2>
+        <p class="step-description">Stabiliți perioada în care va fi disponibil sistemul de vot.</p>
+        
+        <div class="form-row">
+          <div class="form-group half-width">
+            <label for="startDate">Data începerii<span class="required">*</span></label>
             <input 
-              type="text" 
-              [id]="'option-title-' + i" 
-              formControlName="title"
-              [class.invalid]="hasOptionError(i, 'title')"
-              placeholder="Numele opțiunii de vot">
-            <div class="error-text" *ngIf="hasOptionError(i, 'title')">
-              {{ getOptionErrorMessage(i, 'title') }}
+              type="date" 
+              id="startDate" 
+              formControlName="startDate"
+              [class.invalid]="hasError('schedule', 'startDate')">
+            <div class="error-text" *ngIf="hasError('schedule', 'startDate')">
+              {{ getErrorMessage('schedule', 'startDate') }}
             </div>
           </div>
           
-          <div class="form-group">
-            <label [for]="'option-description-' + i">Descriere</label>
-            <textarea 
-              [id]="'option-description-' + i" 
-              formControlName="description"
-              placeholder="Descriere opțională pentru această opțiune"
-              rows="2"></textarea>
+          <div class="form-group half-width">
+            <label for="startTime">Ora începerii<span class="required">*</span></label>
+            <input 
+              type="time" 
+              id="startTime" 
+              formControlName="startTime"
+              [class.invalid]="hasError('schedule', 'startTime')">
+            <div class="error-text" *ngIf="hasError('schedule', 'startTime')">
+              {{ getErrorMessage('schedule', 'startTime') }}
+            </div>
+          </div>
+        </div>
+        
+        <div class="form-row">
+          <div class="form-group half-width">
+            <label for="endDate">Data încheierii<span class="required">*</span></label>
+            <input 
+              type="date" 
+              id="endDate" 
+              formControlName="endDate"
+              [class.invalid]="hasError('schedule', 'endDate')">
+            <div class="error-text" *ngIf="hasError('schedule', 'endDate')">
+              {{ getErrorMessage('schedule', 'endDate') }}
+            </div>
           </div>
           
-          <div class="form-group">
-            <label [for]="'option-image-' + i">URL imagine</label>
+          <div class="form-group half-width">
+            <label for="endTime">Ora încheierii<span class="required">*</span></label>
             <input 
-              type="text" 
-              [id]="'option-image-' + i" 
-              formControlName="imageUrl"
-              placeholder="Link către imaginea reprezentativă (opțional)">
+              type="time" 
+              id="endTime" 
+              formControlName="endTime"
+              [class.invalid]="hasError('schedule', 'endTime')">
+            <div class="error-text" *ngIf="hasError('schedule', 'endTime')">
+              {{ getErrorMessage('schedule', 'endTime') }}
+            </div>
           </div>
+        </div>
+        
+        <div class="form-group">
+          <label for="timeZone">Fus orar<span class="required">*</span></label>
+          <select 
+            id="timeZone" 
+            formControlName="timeZone"
+            [class.invalid]="hasError('schedule', 'timeZone')">
+            <option value="Europe/Bucharest">Ora României (Europe/Bucharest)</option>
+            <option value="Europe/London">Londra (UTC+0)</option>
+            <option value="Europe/Paris">Paris (UTC+1)</option>
+            <option value="America/New_York">New York (UTC-5)</option>
+            <option value="UTC">UTC</option>
+          </select>
         </div>
       </div>
       
-      <div class="form-actions">
-        <button type="button" class="btn-add-option" (click)="addOption()">
-          <i class="fas fa-plus"></i> Adaugă opțiune nouă
+      <!-- Butoane navigare pași -->
+      <div class="form-navigation">
+        <button 
+          type="button" 
+          class="btn-secondary" 
+          (click)="prevStep()" 
+          *ngIf="currentStep > 1">
+          <i class="fas fa-arrow-left"></i> Înapoi
+        </button>
+        
+        <button 
+          type="button" 
+          class="btn-primary" 
+          (click)="nextStep()" 
+          *ngIf="currentStep < totalSteps">
+          Continuă <i class="fas fa-arrow-right"></i>
+        </button>
+        
+        <button 
+          type="submit" 
+          class="btn-submit" 
+          *ngIf="currentStep === totalSteps"
+          [disabled]="isSubmitting">
+          <span *ngIf="!isSubmitting">Creează sistem de vot</span>
+          <span *ngIf="isSubmitting">
+            <i class="fas fa-spinner fa-spin"></i> Se trimite...
+          </span>
         </button>
       </div>
-      
-      <div class="form-group checkbox-group">
-        <input type="checkbox" id="allowCustomOptions" formControlName="allowCustomOptions">
-        <label for="allowCustomOptions">Permite votanților să adauge opțiuni personalizate</label>
-      </div>
-    </div>
+    </form>
     
-    <!-- Pas 3: Reguli și parametri -->
-    <div class="form-step" *ngIf="currentStep === 3" formGroupName="rules">
-      <h2>Reguli și parametri</h2>
-      <p class="step-description">Configurați regulile de vot și parametrii sistemului.</p>
-      
-      <div class="form-group">
-        <label for="voteType">Tipul votului<span class="required">*</span></label>
-        <select 
-          id="voteType" 
-          formControlName="voteType"
-          (change)="onVoteTypeChange()"
-          [class.invalid]="hasError('rules', 'voteType')">
-          <option *ngFor="let type of voteTypes" [value]="type.id">{{ type.name }}</option>
-        </select>
+    <!-- Ecran succes după trimitere -->
+    <div class="success-container" *ngIf="submitted">
+      <div class="success-icon">
+        <i class="fas fa-check-circle"></i>
       </div>
       
-      <div class="form-group" *ngIf="voteSystemForm.get('rules.voteType')?.value === 'multiple'">
-        <label for="maxVotesPerUser">Număr maxim de voturi per utilizator<span class="required">*</span></label>
-        <input 
-          type="number" 
-          id="maxVotesPerUser" 
-          formControlName="maxVotesPerUser"
-          min="1"
-          [class.invalid]="hasError('rules', 'maxVotesPerUser')">
-        <div class="error-text" *ngIf="hasError('rules', 'maxVotesPerUser')">
-          {{ getErrorMessage('rules', 'maxVotesPerUser') }}
-        </div>
-      </div>
+      <h2>Sistem de vot creat cu succes!</h2>
+      <p>{{ successMessage }}</p>
       
-      <div class="form-group">
-        <label for="visibility">Vizibilitate<span class="required">*</span></label>
-        <select 
-          id="visibility" 
-          formControlName="visibility"
-          [class.invalid]="hasError('rules', 'visibility')">
-          <option *ngFor="let option of visibilityOptions" [value]="option.id">{{ option.name }}</option>
-        </select>
-      </div>
-      
-      <div class="form-group">
-        <label for="resultVisibility">Vizibilitatea rezultatelor<span class="required">*</span></label>
-        <select 
-          id="resultVisibility" 
-          formControlName="resultVisibility"
-          [class.invalid]="hasError('rules', 'resultVisibility')">
-          <option *ngFor="let option of resultVisibilityOptions" [value]="option.id">{{ option.name }}</option>
-        </select>
-      </div>
-      
-      <div class="form-group checkbox-group">
-        <input type="checkbox" id="requireVerification" formControlName="requireVerification">
-        <label for="requireVerification">Necesită verificarea identității votanților</label>
-      </div>
-      
-      <div class="form-group checkbox-group">
-        <input type="checkbox" id="allowComments" formControlName="allowComments">
-        <label for="allowComments">Permite comentarii și discuții</label>
-      </div>
-      
-      <div class="form-group checkbox-group">
-        <input type="checkbox" id="allowAnonymousVoting" formControlName="allowAnonymousVoting">
-        <label for="allowAnonymousVoting">Permite votul anonim (identitatea votanților nu va fi înregistrată)</label>
-      </div>
-      
-      <!-- Opțiune pentru verificare prin email -->
-      <div class="form-group checkbox-group">
-        <input type="checkbox" id="requireEmailVerification" formControlName="requireEmailVerification">
-        <label for="requireEmailVerification">Cere verificare prin email (participanții vor avea nevoie de un cod de acces unic)</label>
-      </div>
-      
-      <div class="info-box" *ngIf="voteSystemForm.get('rules.requireEmailVerification')?.value">
-        <div class="info-icon">
-          <i class="fas fa-info-circle"></i>
-        </div>
-        <div class="info-content">
-          <p>Activând această opțiune, va trebui să furnizați o listă de adrese email în pasul următor. Fiecare participant va primi un cod unic de 6 caractere valabil pentru 3 minute, necesar pentru a putea vota.</p>
-        </div>
-      </div>
-    </div>
-    
-    <!-- Pas 4: Lista de emailuri pentru votanți (nou) -->
-    <div class="form-step" *ngIf="currentStep === 4" formGroupName="voterEmails">
-      <h2>Listă votanți</h2>
-      <p class="step-description">Adăugați adresele de email ale persoanelor care vor primi codul de vot pentru acest sistem.</p>
-      
-      <div class="form-group">
-        <label for="emails">Adrese de email<span class="required">*</span></label>
-        <textarea 
-          id="emails" 
-          formControlName="emails" 
-          [class.invalid]="hasError('voterEmails', 'emails')"
-          placeholder="Introduceți adresele de email separate prin virgulă, linie nouă sau spațiu."
-          rows="10"></textarea>
-        <div class="email-format-info">
-          <i class="fas fa-info-circle"></i>
-          <span>Exemple de format valid: email&#64;example.com, alt.email&#64;example.com</span>
-        </div>
-        <div class="error-text" *ngIf="hasError('voterEmails', 'emails')">
-          {{ getErrorMessage('voterEmails', 'emails') }}
-        </div>
-      </div>
-      
-      <div class="form-group checkbox-group">
-        <input type="checkbox" id="sendImmediately" formControlName="sendImmediately">
-        <label for="sendImmediately">Trimite email-uri cu coduri de vot imediat după creare</label>
-      </div>
-      
-      <div class="info-box">
-        <div class="info-icon">
-          <i class="fas fa-info-circle"></i>
-        </div>
-        <div class="info-content">
-          <h4>Informații despre codul de vot:</h4>
-          <ul>
-            <li>Fiecare participant va primi un cod unic de 6 caractere valabil pentru 3 minute.</li>
-            <li>Codul poate fi folosit o singură dată și este legat de adresa de email a participantului.</li>
-            <li>Puteți retrimite coduri noi oricând după creare, din pagina de detalii a sistemului de vot.</li>
-          </ul>
-        </div>
-      </div>
-    </div>
-    
-    <!-- Pas 5: Programare și durată -->
-    <div class="form-step" *ngIf="currentStep === 5" formGroupName="schedule">
-      <h2>Programare și durată</h2>
-      <p class="step-description">Stabiliți perioada în care va fi disponibil sistemul de vot.</p>
-      
-      <div class="form-row">
-        <div class="form-group half-width">
-          <label for="startDate">Data începerii<span class="required">*</span></label>
-          <input 
-            type="date" 
-            id="startDate" 
-            formControlName="startDate"
-            [class.invalid]="hasError('schedule', 'startDate')">
-          <div class="error-text" *ngIf="hasError('schedule', 'startDate')">
-            {{ getErrorMessage('schedule', 'startDate') }}
-          </div>
-        </div>
+      <div class="success-actions">
+        <button type="button" class="btn-primary" (click)="resetForm()">
+          <i class="fas fa-plus"></i> Creează alt sistem de vot
+        </button>
         
-        <div class="form-group half-width">
-          <label for="startTime">Ora începerii<span class="required">*</span></label>
-          <input 
-            type="time" 
-            id="startTime" 
-            formControlName="startTime"
-            [class.invalid]="hasError('schedule', 'startTime')">
-          <div class="error-text" *ngIf="hasError('schedule', 'startTime')">
-            {{ getErrorMessage('schedule', 'startTime') }}
-          </div>
-        </div>
-      </div>
-      
-      <div class="form-row">
-        <div class="form-group half-width">
-          <label for="endDate">Data încheierii<span class="required">*</span></label>
-          <input 
-            type="date" 
-            id="endDate" 
-            formControlName="endDate"
-            [class.invalid]="hasError('schedule', 'endDate')">
-          <div class="error-text" *ngIf="hasError('schedule', 'endDate')">
-            {{ getErrorMessage('schedule', 'endDate') }}
-          </div>
-        </div>
-        
-        <div class="form-group half-width">
-          <label for="endTime">Ora încheierii<span class="required">*</span></label>
-          <input 
-            type="time" 
-            id="endTime" 
-            formControlName="endTime"
-            [class.invalid]="hasError('schedule', 'endTime')">
-          <div class="error-text" *ngIf="hasError('schedule', 'endTime')">
-            {{ getErrorMessage('schedule', 'endTime') }}
-          </div>
-        </div>
-      </div>
-      
-      <div class="form-group">
-        <label for="timeZone">Fus orar<span class="required">*</span></label>
-        <select 
-          id="timeZone" 
-          formControlName="timeZone"
-          [class.invalid]="hasError('schedule', 'timeZone')">
-          <option value="Europe/Bucharest">Ora României (Europe/Bucharest)</option>
-          <option value="Europe/London">Londra (UTC+0)</option>
-          <option value="Europe/Paris">Paris (UTC+1)</option>
-          <option value="America/New_York">New York (UTC-5)</option>
-          <option value="UTC">UTC</option>
-        </select>
+        <button type="button" class="btn-secondary" [routerLink]="['/menu']">
+          <i class="fas fa-arrow-left"></i> Înapoi la meniu
+        </button>
       </div>
     </div>
     
-    <!-- Butoane navigare pași -->
-    <div class="form-navigation">
-      <button 
-        type="button" 
-        class="btn-secondary" 
-        (click)="prevStep()" 
-        *ngIf="currentStep > 1">
-        <i class="fas fa-arrow-left"></i> Înapoi
-      </button>
-      
-      <button 
-        type="button" 
-        class="btn-primary" 
-        (click)="nextStep()" 
-        *ngIf="currentStep < totalSteps">
-        Continuă <i class="fas fa-arrow-right"></i>
-      </button>
-      
-      <button 
-        type="submit" 
-        class="btn-submit" 
-        *ngIf="currentStep === totalSteps"
-        [disabled]="isSubmitting">
-        <span *ngIf="!isSubmitting">Creează sistem de vot</span>
-        <span *ngIf="isSubmitting">
-          <i class="fas fa-spinner fa-spin"></i> Se trimite...
-        </span>
-      </button>
+    <div class="form-info">
+      <p><span class="required">*</span> - câmpuri obligatorii</p>
     </div>
-  </form>
-  
-  <!-- Ecran succes după trimitere -->
-  <div class="success-container" *ngIf="submitted">
-    <div class="success-icon">
-      <i class="fas fa-check-circle"></i>
-    </div>
-    
-    <h2>Sistem de vot creat cu succes!</h2>
-    <p>{{ successMessage }}</p>
-    
-    <div class="success-actions">
-      <button type="button" class="btn-primary" (click)="resetForm()">
-        <i class="fas fa-plus"></i> Creează alt sistem de vot
-      </button>
-      
-      <button type="button" class="btn-secondary" [routerLink]="['/menu']">
-        <i class="fas fa-arrow-left"></i> Înapoi la meniu
-      </button>
-    </div>
-  </div>
-  
-  <div class="form-info">
-    <p><span class="required">*</span> - câmpuri obligatorii</p>
   </div>
 </div>
