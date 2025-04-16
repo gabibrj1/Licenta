@@ -82,7 +82,7 @@
             
             <div class="detail-item">
               <span class="detail-label">Total voturi:</span>
-              <span class="detail-value">{{ voteSystem.total_votes }}</span>
+              <span class="detail-value">{{ totalVotes }}</span>
             </div>
           </div>
           
@@ -133,27 +133,55 @@
         <div class="results-container">
           <h3>Rezultate vot</h3>
           
-          <div class="results-chart-container">
-            <div echarts [options]="chartOptions" class="results-chart"></div>
+          <div class="total-votes-info">
+            <p>Total voturi înregistrate: <strong>{{ totalVotes }}</strong></p>
           </div>
           
-          <div class="results-table">
+          <div *ngIf="totalVotes === 0" class="no-votes-message">
+            <i class="fas fa-info-circle"></i>
+            <p>Nu există încă voturi înregistrate pentru acest sistem.</p>
+          </div>
+          
+          <div *ngIf="totalVotes > 0" class="results-charts">
+            <div class="chart-container">
+              <h4>Distribuția voturilor (diagrama circulară)</h4>
+              <div class="chart-wrapper">
+                <canvas #pieChartCanvas></canvas>
+              </div>
+            </div>
+            
+            <div class="chart-container">
+              <h4>Clasament opțiuni (diagrama bară)</h4>
+              <div class="chart-wrapper">
+                <canvas #barChartCanvas></canvas>
+              </div>
+            </div>
+          </div>
+          
+          <div class="results-table" *ngIf="totalVotes > 0">
+            <h4>Detalii voturi</h4>
             <table>
               <thead>
                 <tr>
+                  <th>#</th>
                   <th>Opțiune</th>
                   <th>Voturi</th>
                   <th>Procent</th>
                 </tr>
               </thead>
               <tbody>
-                <tr *ngFor="let option of voteSystem.options">
+                <tr *ngFor="let option of resultsData; let i = index">
+                  <td>{{ i + 1 }}</td>
                   <td>{{ option.title }}</td>
-                  <td>{{ option.votes }}</td>
-                  <td>{{ voteSystem.total_votes > 0 ? (option.votes / voteSystem.total_votes * 100).toFixed(2) : '0' }}%</td>
+                  <td>{{ option.votes_count }}</td>
+                  <td>{{ option.percentage }}%</td>
                 </tr>
               </tbody>
             </table>
+          </div>
+          
+          <div class="results-note">
+            <p><i class="fas fa-sync-alt"></i> Rezultatele se actualizează automat la fiecare 10 secunde</p>
           </div>
         </div>
       </div>

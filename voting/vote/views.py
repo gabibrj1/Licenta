@@ -2606,3 +2606,54 @@ class CheckActiveVoteSystemView(APIView):
             'has_active_system': False,
             'system': None
         })
+    
+class VoteSystemResultsUpdateView(APIView):
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request, system_id):
+        try:
+            # Obținem sistemul de vot
+            vote_system = VoteSystem.objects.get(id=system_id)
+            
+            # Verificăm dacă utilizatorul are dreptul să vadă sistemul
+            if vote_system.creator != request.user:
+                return Response({
+                    'error': 'Nu aveți permisiunea de a vedea acest sistem de vot.'
+                }, status=status.HTTP_403_FORBIDDEN)
+            
+            # Obținem toate opțiunile și le sortăm după numărul de voturi (descrescător)
+            options = VoteOption.objects.filter(vote_system=vote_system)
+            
+            # Pregătim datele pentru grafic
+            results_data = []
+            total_votes = 0
+            
+            for option in options:
+                votes_count = option.votes.count()
+                total_votes += votes_count
+                results_data.append({
+                    'id': option.id,
+                    'title': option.title,
+                    'votes_count': votes_count
+                })
+            
+            # Sortăm după numărul de voturi (descrescător)
+            results_data.sort(key=lambda x: x['votes_count'], reverse=True)
+            
+            # Calculăm procentajele
+            for option_data in results_data:
+                if total_votes > 0:
+                    option_data['percentage'] = round((option_data['votes_count'] / total_votes) * 100, 2)
+                else:
+                    option_data['percentage'] = 0
+            
+            return Response({
+                'success': True,
+                'total_votes': total_votes,
+                'results': results_data
+            })
+        
+        except VoteSystem.DoesNotExist:
+            return Response({
+                'error': 'Sistemul de vot nu a fost găsit.'
+            }, status=status.HTTP_404_NOT_FOUND)

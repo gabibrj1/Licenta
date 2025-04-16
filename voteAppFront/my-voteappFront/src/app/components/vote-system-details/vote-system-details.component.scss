@@ -389,39 +389,106 @@
       
       /* Tab Rezultate */
       .results-container {
-        .results-chart-container {
-          height: 400px;
+        padding: 20px;
+        
+        h3 {
+          margin-bottom: 20px;
+        }
+        
+        .total-votes-info {
+          background-color: rgba(52, 152, 219, 0.1);
+          padding: 15px;
+          border-radius: 8px;
+          margin-bottom: 20px;
+          
+          p {
+            margin: 0;
+            color: #fff;
+            font-size: 1.1rem;
+            
+            strong {
+              color: #3498db;
+              font-weight: 600;
+            }
+          }
+        }
+        
+        .no-votes-message {
+          display: flex;
+          align-items: center;
+          background-color: rgba(255, 255, 255, 0.05);
+          padding: 20px;
+          border-radius: 8px;
+          margin-bottom: 20px;
+          
+          i {
+            font-size: 24px;
+            color: #f1c40f;
+            margin-right: 15px;
+          }
+          
+          p {
+            margin: 0;
+            color: #fff;
+            font-size: 1.1rem;
+          }
+        }
+        
+        .results-charts {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 20px;
           margin-bottom: 30px;
           
-          .results-chart {
-            width: 100%;
-            height: 100%;
+          .chart-container {
+            flex: 1;
+            min-width: 300px;
+            background-color: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 20px;
+            
+            h4 {
+              margin-top: 0;
+              margin-bottom: 15px;
+              color: #fff;
+              font-size: 1.1rem;
+              text-align: center;
+            }
+            
+            .chart {
+              height: 350px;
+              width: 100%;
+            }
           }
         }
         
         .results-table {
           background-color: rgba(255, 255, 255, 0.05);
           border-radius: 8px;
-          overflow: hidden;
+          padding: 20px;
+          margin-bottom: 20px;
+          
+          h4 {
+            margin-top: 0;
+            margin-bottom: 15px;
+            color: #fff;
+            font-size: 1.1rem;
+          }
           
           table {
             width: 100%;
             border-collapse: collapse;
             
             th, td {
-              padding: 15px;
+              padding: 12px 15px;
               text-align: left;
               border-bottom: 1px solid rgba(255, 255, 255, 0.1);
             }
             
             th {
-              background-color: rgba(255, 255, 255, 0.1);
-              color: #3498db;
-              font-weight: 600;
-            }
-            
-            td {
+              background-color: rgba(52, 152, 219, 0.2);
               color: #fff;
+              font-weight: 600;
             }
             
             tr:last-child td {
@@ -430,6 +497,44 @@
             
             tr:hover td {
               background-color: rgba(255, 255, 255, 0.05);
+            }
+            
+            td:nth-child(3), td:nth-child(4) {
+              text-align: center;
+            }
+          }
+        }
+        
+        .results-note {
+          color: rgba(255, 255, 255, 0.6);
+          font-size: 0.9rem;
+          font-style: italic;
+          text-align: center;
+          
+          i {
+            margin-right: 5px;
+            animation: rotate 2s linear infinite;
+          }
+        }
+      }
+      
+      @keyframes rotate {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+      }
+      
+      /* Media queries pentru responsive */
+      @media (max-width: 768px) {
+        .results-container {
+          .results-charts {
+            flex-direction: column;
+          }
+          
+          .results-table {
+            overflow-x: auto;
+            
+            table {
+              min-width: 500px;
             }
           }
         }
@@ -698,3 +803,5 @@
       margin: 0;
     }
   }
+
+  

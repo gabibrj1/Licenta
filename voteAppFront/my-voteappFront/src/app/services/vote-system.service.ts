@@ -153,6 +153,8 @@ export class VoteSystemService {
   checkActiveVoteSystem(): Observable<any> {
     return this.http.get(`${this.getApiUrl()}vote-systems/check-active/`);
   }
-
+  getVoteSystemResultsUpdate(systemId: string): Observable<any> {
+    return this.http.get(`${this.getApiUrl()}vote-systems/${systemId}/results-update/`);
+  }
 
 }
