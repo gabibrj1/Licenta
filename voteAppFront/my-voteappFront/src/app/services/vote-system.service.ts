@@ -108,15 +108,21 @@ export class VoteSystemService {
   }
 
   sendVoteTokens(systemId: string): Observable<any> {
-    console.log(`Trimitere token-uri pentru sistemul ${systemId}`);
+    console.log(`Apelare sendVoteTokens pentru sistemul ${systemId}`);
     
-    // Trimitem și URL-ul frontend pentru a fi folosit în email-uri
+    // Folosim întotdeauna URL-ul frontend pentru a fi inclus în email-uri
     const frontendUrl = this.getFrontendUrl();
     console.log(`URL frontend pentru email-uri: ${frontendUrl}`);
     
     return this.http.post(`${this.getApiUrl()}vote-systems/${systemId}/send-tokens/`, {
       frontend_url: frontendUrl
-    });
+    }).pipe(
+      tap(response => console.log('Răspuns trimitere token-uri:', response)),
+      catchError(error => {
+        console.error('Eroare la trimiterea token-urilor:', error);
+        return throwError(() => error);
+      })
+    );
   }
 
   verifyVoteToken(systemId: string, token: string, email: string): Observable<any> {
@@ -156,5 +162,13 @@ export class VoteSystemService {
   getVoteSystemResultsUpdate(systemId: string): Observable<any> {
     return this.http.get(`${this.getApiUrl()}vote-systems/${systemId}/results-update/`);
   }
-
+  getVoterEmails(systemId: string): Observable<any> {
+    return this.http.get<any>(`${this.getApiUrl()}vote-systems/${systemId}/manage-emails/`)
+      .pipe(
+        catchError(error => {
+          console.error('Eroare la obținerea email-urilor:', error);
+          return throwError(() => error);
+        })
+      );
+  }
 }

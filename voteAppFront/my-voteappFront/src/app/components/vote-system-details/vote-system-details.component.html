@@ -23,9 +23,8 @@
         <h1>{{ voteSystem.name }}</h1>
         
         <!-- Status badge - simplificat pentru a evita erori -->
-        <div class="status-badge" [class.status-active]="isVoteActive()">
-          <span *ngIf="isVoteActive()">Activ</span>
-          <span *ngIf="!isVoteActive()">Inactiv</span>
+        <div class="status-badge" [ngClass]="getStatusClass()">
+          <span>{{ getStatusText() }}</span>
         </div>
       </div>
       
@@ -37,7 +36,9 @@
           {{ getVoteStatusText() }}
         </div>
       </div>
+
       
+
       <!-- Tabs navigation -->
       <div class="system-tabs">
         <div class="tab" [class.active]="activeTab === 'overview'" (click)="setActiveTab('overview')">
@@ -242,21 +243,274 @@
         </div>
       </div>
       
-      <!-- Settings Tab -->
-      <div class="tab-content" *ngIf="activeTab === 'settings'">
-        <div class="settings-container">
-          <h3>Setări sistem de vot</h3>
-          
-          <div class="settings-actions">
-            <button class="btn-secondary">
-              <i class="fas fa-edit"></i> Editează sistem
-            </button>
-            
-            <button class="btn-danger">
-              <i class="fas fa-trash"></i> Șterge sistem
-            </button>
+<!-- Settings Tab -->
+<div class="tab-content" *ngIf="activeTab === 'settings'">
+  <div class="settings-container">
+    <h3>Setări sistem de vot</h3>
+    
+    <!-- Mesaj de succes -->
+    <div class="success-message" *ngIf="editSuccess">
+      <i class="fas fa-check-circle"></i>
+      {{ editSuccess }}
+    </div>
+    
+    <!-- Mesaj de eroare -->
+    <div class="error-message" *ngIf="editError">
+      <i class="fas fa-exclamation-triangle"></i>
+      {{ editError }}
+    </div>
+    
+    <!-- Butoane de acțiune -->
+    <div class="settings-actions" *ngIf="!isEditing && !deleteConfirmationOpen">
+      <button 
+        class="btn-edit" 
+        [class.disabled]="!canEdit()" 
+        [disabled]="!canEdit()"
+        (click)="openEditForm()" 
+        [title]="getEditButtonTooltip()">
+        <i class="fas fa-edit"></i> Editează sistem
+      </button>
+      
+      <button class="btn-delete" (click)="openDeleteConfirmation()">
+        <i class="fas fa-trash"></i> Șterge sistem
+      </button>
+    </div>
+    
+    <!-- Formular de editare -->
+    <div class="edit-form-container" *ngIf="isEditing">
+      <form [formGroup]="editForm" (ngSubmit)="submitEditForm()">
+        <h4>Editare sistem de vot</h4>
+        
+        <div class="form-group">
+          <label for="name">Numele sistemului de vot<span class="required">*</span></label>
+          <input 
+            type="text" 
+            id="name" 
+            formControlName="name" 
+            [class.invalid]="hasError('name')"
+            placeholder="Ex: Alegerea președintelui asociației de locatari">
+          <div class="error-text" *ngIf="hasError('name')">
+            {{ getErrorMessage('name') }}
           </div>
+        </div>
+        
+        <div class="form-group">
+          <label for="description">Descriere<span class="required">*</span></label>
+          <textarea 
+            id="description" 
+            formControlName="description" 
+            [class.invalid]="hasError('description')"
+            placeholder="Descrieți scopul acestui vot și orice alte informații relevante pentru votanți."
+            rows="5"></textarea>
+          <div class="error-text" *ngIf="hasError('description')">
+            {{ getErrorMessage('description') }}
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label for="category">Categorie<span class="required">*</span></label>
+          <select 
+            id="category" 
+            formControlName="category"
+            [class.invalid]="hasError('category')">
+            <option value="">Selectați o categorie</option>
+            <option value="political">Vot politic/electoral</option>
+            <option value="organizational">Vot organizațional</option>
+            <option value="community">Vot comunitar</option>
+            <option value="survey">Sondaj/Chestionar</option>
+            <option value="decision">Luare de decizii</option>
+            <option value="other">Altele</option>
+          </select>
+        </div>
+        
+        <h4>Programare</h4>
+        
+        <div class="form-row">
+          <div class="form-group half-width">
+            <label for="start_date">Data începerii<span class="required">*</span></label>
+            <input 
+              type="date" 
+              id="start_date" 
+              formControlName="start_date"
+              [class.invalid]="hasError('start_date')">
+          </div>
+          
+          <div class="form-group half-width">
+            <label for="start_time">Ora începerii<span class="required">*</span></label>
+            <input 
+              type="time" 
+              id="start_time" 
+              formControlName="start_time"
+              [class.invalid]="hasError('start_time')">
+          </div>
+        </div>
+        
+        <div class="form-row">
+          <div class="form-group half-width">
+            <label for="end_date">Data încheierii<span class="required">*</span></label>
+            <input 
+              type="date" 
+              id="end_date" 
+              formControlName="end_date"
+              [class.invalid]="hasError('end_date')">
+          </div>
+          
+          <div class="form-group half-width">
+            <label for="end_time">Ora încheierii<span class="required">*</span></label>
+            <input 
+              type="time" 
+              id="end_time" 
+              formControlName="end_time"
+              [class.invalid]="hasError('end_time')">
+          </div>
+        </div>
+        
+        <h4>Opțiuni de vot</h4>
+        
+        <div formArrayName="options">
+          <div *ngFor="let option of optionsArray.controls; let i = index" class="option-item" [formGroupName]="i">
+            <div class="option-header">
+              <h4>Opțiunea {{ i + 1 }}</h4>
+              <button 
+                type="button" 
+                class="btn-remove-option" 
+                (click)="removeOption(i)" 
+                *ngIf="optionsArray.length > 2">
+                <i class="fas fa-times"></i>
+              </button>
+            </div>
+            
+            <div class="form-group">
+              <label [for]="'option-title-' + i">Titlu<span class="required">*</span></label>
+              <input 
+                type="text" 
+                [id]="'option-title-' + i" 
+                formControlName="title"
+                [class.invalid]="hasOptionError(i, 'title')"
+                placeholder="Numele opțiunii de vot">
+              <div class="error-text" *ngIf="hasOptionError(i, 'title')">
+                {{ getOptionErrorMessage(i, 'title') }}
+              </div>
+            </div>
+            
+            <div class="form-group">
+              <label [for]="'option-description-' + i">Descriere</label>
+              <textarea 
+                [id]="'option-description-' + i" 
+                formControlName="description"
+                placeholder="Descriere opțională pentru această opțiune"
+                rows="2"></textarea>
+            </div>
+            
+            <div class="form-group">
+              <label [for]="'option-image-' + i">URL imagine</label>
+              <input 
+                type="text" 
+                [id]="'option-image-' + i" 
+                formControlName="image_url"
+                placeholder="Link către imaginea reprezentativă (opțional)">
+            </div>
+          </div>
+        </div>
+        
+        <div class="option-actions">
+          <button type="button" class="btn-add-option" (click)="addOption()">
+            <i class="fas fa-plus"></i> Adaugă opțiune
+          </button>
+        </div>
+        
+        <!-- SECȚIUNE NOUĂ: Gestionare email-uri votanți -->
+        <h4>Gestionare email-uri votanți</h4>
+        
+        <div class="form-group">
+          <label for="voter-emails">Email-uri votanți<span class="required">*</span></label>
+          <div class="email-info-text">
+            <i class="fas fa-info-circle"></i>
+            <span>Introduceți câte un email pe fiecare linie. Email-urile adăugate sau modificate vor primi token-uri de vot la salvare.</span>
+          </div>
+          <textarea 
+            id="voter-emails" 
+            formControlName="voter_emails" 
+            [class.invalid]="hasError('voter_emails')"
+            placeholder="exemplu@domeniu.ro
+    alt.exemplu@domeniu.com
+    etc..."
+            rows="6"></textarea>
+          <div class="error-text" *ngIf="hasError('voter_emails')">
+            {{ getErrorMessage('voter_emails') }}
+          </div>
+          
+          <div class="email-count" *ngIf="getEmailCount() > 0">
+            <i class="fas fa-users"></i> {{ getEmailCount() }} adrese email
+          </div>
+        </div>
+        
+        <div class="form-actions">
+          <button type="button" class="btn-secondary" (click)="cancelEdit()">
+            <i class="fas fa-times"></i> Anulează
+          </button>
+          <button type="submit" class="btn-primary" [disabled]="isEditSubmitting">
+            <span *ngIf="!isEditSubmitting">
+              <i class="fas fa-save"></i> Salvează modificările
+            </span>
+            <span *ngIf="isEditSubmitting">
+              <i class="fas fa-spinner fa-spin"></i> Se salvează...
+            </span>
+          </button>
+        </div>
+      </form>
+    </div>
+    
+    <!-- Dialog confirmare ștergere -->
+    <div class="delete-confirmation" *ngIf="deleteConfirmationOpen">
+      <div class="confirmation-header">
+        <i class="fas fa-exclamation-triangle"></i>
+        <h4>Confirmați ștergerea</h4>
+      </div>
+      
+      <p class="confirmation-message">
+        Sunteți sigur că doriți să ștergeți sistemul de vot "<strong>{{ voteSystem?.name }}</strong>"?
+      </p>
+      
+      <p class="warning-text">
+        Această acțiune este <strong>ireversibilă</strong> și va șterge toate datele asociate, inclusiv voturile înregistrate.
+      </p>
+      
+      <div class="error-message" *ngIf="deleteError">
+        <i class="fas fa-exclamation-triangle"></i>
+        {{ deleteError }}
+      </div>
+      
+      <div class="confirmation-actions">
+        <button type="button" class="btn-secondary" (click)="cancelDelete()">
+          <i class="fas fa-times"></i> Anulează
+        </button>
+        <button type="button" class="btn-danger" [disabled]="isDeleting" (click)="deleteVoteSystem()">
+          <span *ngIf="!isDeleting">
+            <i class="fas fa-trash"></i> Da, șterge sistemul
+          </span>
+          <span *ngIf="isDeleting">
+            <i class="fas fa-spinner fa-spin"></i> Se șterge...
+          </span>
+        </button>
+      </div>
+    </div>
+    
+    <!-- Informații suplimentare -->
+    <div class="settings-info" *ngIf="!isEditing && !deleteConfirmationOpen">
+      <div class="info-box">
+        <div class="info-icon">
+          <i class="fas fa-info-circle"></i>
+        </div>
+        <div class="info-content">
+          <h4>Informații despre modificări</h4>
+          <ul>
+            <li>Puteți edita sistemul de vot doar dacă este în starea "În așteptare".</li>
+            <li>Odată ce votul a început sau s-a încheiat, nu mai puteți modifica setările.</li>
+            <li>Ștergerea sistemului de vot este permanentă și nu poate fi anulată.</li>
+          </ul>
         </div>
       </div>
     </div>
   </div>
+</div>

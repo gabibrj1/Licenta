@@ -2271,7 +2271,50 @@ class PublicVoteResultsView(APIView):
 class ManageVoterEmailsView(APIView):
     permission_classes = [IsAuthenticated]
     
+    def get(self, request, system_id):
+        """
+        Obține lista de email-uri pentru un sistem de vot specific
+        """
+        try:
+            # Obținem sistemul de vot
+            vote_system = VoteSystem.objects.get(id=system_id)
+            
+            # Verificăm dacă utilizatorul are dreptul să vadă email-urile
+            if vote_system.creator != request.user:
+                return Response({
+                    'error': 'Nu aveți permisiunea de a accesa email-urile pentru acest sistem de vot.'
+                }, status=status.HTTP_403_FORBIDDEN)
+            
+            # Verificăm dacă există email-uri pentru acest sistem
+            if not vote_system.allowed_emails:
+                return Response({
+                    'success': True,
+                    'emails': []
+                })
+            
+            # Obținem email-urile din câmpul allowed_emails al sistemului de vot
+            emails_list = [email.strip() for email in vote_system.allowed_emails.split(',') if email.strip()]
+            
+            return Response({
+                'success': True,
+                'emails': emails_list
+            })
+            
+        except VoteSystem.DoesNotExist:
+            return Response({
+                'error': 'Sistemul de vot nu a fost găsit.'
+            }, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            print(f"Eroare în obținerea email-urilor: {str(e)}")
+            return Response({
+                'success': False,
+                'error': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
     def post(self, request, system_id):
+        """
+        Adaugă sau actualizează email-urile votanților pentru un sistem de vot
+        """
         try:
             # Obținem sistemul de vot
             vote_system = VoteSystem.objects.get(id=system_id)
