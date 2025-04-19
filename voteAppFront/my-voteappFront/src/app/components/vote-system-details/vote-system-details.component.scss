@@ -822,6 +822,7 @@
             background-color: #3498db;
             color: white;
             border: none;
+            cursor: pointer;
             
             &:hover:not(:disabled) {
               background-color: #2980b9;
@@ -845,6 +846,7 @@
             background-color: rgba(231, 76, 60, 0.2);
             color: #e74c3c;
             border: 1px solid rgba(231, 76, 60, 0.3);
+            cursor: pointer;
             
             &:hover {
               background-color: rgba(231, 76, 60, 0.3);
@@ -966,6 +968,7 @@
               color: #fff;
               font-size: 1rem;
               transition: all 0.3s ease;
+              
               
               &:focus {
                 outline: none;

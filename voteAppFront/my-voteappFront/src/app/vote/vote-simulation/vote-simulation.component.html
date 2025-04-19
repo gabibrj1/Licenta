@@ -1,83 +1,819 @@
 <div class="vote-simulation">
-    <h2>Simulare Proces de Vot</h2>
-    
-    <div class="simulation-container">
-      <div class="step-indicator">
-        <div *ngFor="let step of [0, 1, 2, 3]; let i = index"
-             [class.active]="stepIndex >= i"
-             [class.current]="stepIndex === i"
-             class="step-dot">
-          {{ i + 1 }}
-        </div>
+  <h2>Simulare Proces de Vot</h2>
+  
+  <div class="simulation-tabs">
+    <div [class.active]="activeSystem === 'official'" (click)="setActiveSystem('official')" class="tab">
+      Sisteme Oficiale
+    </div>
+    <div [class.active]="activeSystem === 'custom'" (click)="setActiveSystem('custom')" class="tab">
+      Sisteme Particulare
+    </div>
+  </div>
+  
+  <div class="simulation-container">
+    <!-- Indicator de pași -->
+    <div class="step-indicator">
+      <div *ngFor="let step of getStepsForActiveSystem(); let i = index"
+           [class.active]="stepIndex >= i"
+           [class.current]="stepIndex === i"
+           class="step-dot">
+        {{ i + 1 }}
       </div>
-      
+    </div>
+    
+    <!-- Conținut pentru sisteme oficiale -->
+    <div *ngIf="activeSystem === 'official'">
       <!-- Pas 1: Autentificare -->
       <div *ngIf="stepIndex === 0" class="simulation-step">
-        <h3>Pasul 1: Autentificare</h3>
-        <p>În cadrul procesului real de vot, utilizatorul trebuie să se autentifice folosind:</p>
-        <ul>
-          <li>Scanarea buletinului de identitate</li>
-          <li>Verificare prin recunoaștere facială</li>
-          <li>Autentificare multi-factor</li>
-        </ul>
-        <p>Această simulare vă permite să vă familiarizați cu procesul de vot înainte de alegerile reale.</p>
+        <h3>Pasul 1: Autentificare cu Carte de Identitate</h3>
+        <div class="step-content">
+          <div class="step-image">
+            <img src="assets/simulation/id-card-auth.png" alt="Autentificare cu buletinul" 
+                 onerror="this.src='assets/images/default-placeholder.png'">
+          </div>
+          <div class="step-description">
+            <p>Pentru a participa la voturile oficiale:</p>
+            <ul>
+              <li>Conectați-vă în aplicație cu contul dvs.</li>
+              <li>Scanați buletinul de identitate folosind camera</li>
+              <li>Sistemul verifică automat datele personale</li>
+              <li>Eligibilitatea dvs. pentru vot este confirmată</li>
+            </ul>
+            <div class="note">
+              <i class="fa fa-info-circle"></i> Notă: Verificarea cu buletin este obligatorie pentru voturile oficiale!
+            </div>
+          </div>
+        </div>
+        <div class="animation-hint">
+          <i class="fa fa-arrow-right"></i> Sistemul verifică identitatea utilizatorului
+        </div>
         <button (click)="nextStep()" class="btn-primary">Continuă</button>
       </div>
       
-      <!-- Pas 2: Selectarea opțiunii de vot -->
+      <!-- Pas 2: Alegerea tipului de vot -->
       <div *ngIf="stepIndex === 1" class="simulation-step">
-        <h3>Pasul 2: Selectarea opțiunii de vot</h3>
-        <p>Utilizatorul va vedea buletinul de vot digital specific tipului de alegeri:</p>
-        <ul>
-          <li>Pentru alegeri prezidențiale: lista candidaților prezidențiali</li>
-          <li>Pentru alegeri parlamentare: lista partidelor politice</li>
-          <li>Pentru alegeri locale: lista candidaților locali</li>
-        </ul>
+        <h3>Pasul 2: Tipuri de Vot</h3>
+        <div class="step-content">
+          <div class="step-image">
+            <img src="assets/simulation/vote-types.png" alt="Tipuri de vot" 
+                 onerror="this.src='assets/images/default-placeholder.png'">
+          </div>
+          <div class="step-description">
+            <p>Sistemul vă permite să participați la diferite tipuri de vot oficial, active doar în perioadele electorale:</p>
+            <div class="vote-types">
+              <div class="vote-type-item">
+                <div class="vote-type-icon presidential">
+                  <i class="fa fa-user-tie"></i>
+                </div>
+                <div class="vote-type-title">Prezidențial</div>
+                <div class="vote-type-description">Alegeți candidatul pentru funcția de președinte</div>
+              </div>
+              <div class="vote-type-item">
+                <div class="vote-type-icon parliamentary">
+                  <i class="fa fa-landmark"></i>
+                </div>
+                <div class="vote-type-title">Parlamentar</div>
+                <div class="vote-type-description">Votați pentru partidele politice</div>
+              </div>
+              <div class="vote-type-item">
+                <div class="vote-type-icon local">
+                  <i class="fa fa-building"></i>
+                </div>
+                <div class="vote-type-title">Local</div>
+                <div class="vote-type-description">Alegeți candidații pentru funcțiile locale</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="animation-hint">
+          <i class="fa fa-arrow-right"></i> Utilizatorul selectează tipul de vot dorit
+        </div>
         <div class="nav-buttons">
           <button (click)="prevStep()" class="btn-secondary">Înapoi</button>
           <button (click)="nextStep()" class="btn-primary">Continuă</button>
         </div>
       </div>
       
-      <!-- Pas 3: Verificare și confirmare -->
+      <!-- Pas 3: Specific pentru fiecare tip de vot -->
       <div *ngIf="stepIndex === 2" class="simulation-step">
-        <h3>Pasul 3: Verificare și confirmare</h3>
-        <p>Înainte de a finaliza votul, utilizatorul are posibilitatea să verifice opțiunea selectată.</p>
-        <p>Sistemul va afișa un mesaj de confirmare pentru a se asigura că opțiunea selectată este cea dorită.</p>
+        <div [ngSwitch]="selectedVoteType">
+          <!-- Prezidențial -->
+          <div *ngSwitchCase="'presidential'">
+            <h3>Pasul 3: Alegeri Prezidențiale</h3>
+            <div class="step-content">
+              <div class="step-image">
+                <img src="assets/simulation/presidential-ballot.png" alt="Buletin de vot prezidențial" 
+                     onerror="this.src='assets/images/default-placeholder.png'">
+              </div>
+              <div class="step-description">
+                <p>Selectați candidatul pentru funcția de președinte:</p>
+                <div class="candidate-list">
+                  <div *ngFor="let candidate of presidentialCandidates; let i = index" 
+                      [class.selected]="selectedPrezCandidate === i"
+                      (click)="selectPrezCandidate(i)" 
+                      class="candidate-item">
+                    <div class="candidate-number">{{ i + 1 }}</div>
+                    <div class="candidate-details">
+                      <div class="candidate-name">{{ candidate.name }}</div>
+                      <div class="candidate-party">{{ candidate.party }}</div>
+                    </div>
+                    <div class="stamp" *ngIf="selectedPrezCandidate === i">
+                      <i class="fa fa-check-circle"></i>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="monitoring-note">
+              <i class="fa fa-video"></i> Procesul de vot este monitorizat video pentru verificarea identității
+            </div>
+          </div>
+          
+          <!-- Parlamentar -->
+          <div *ngSwitchCase="'parliamentary'">
+            <h3>Pasul 3: Alegeri Parlamentare</h3>
+            <div class="step-content">
+              <div class="step-image">
+                <img src="assets/simulation/parliamentary-ballot.png" alt="Buletin de vot parlamentar" 
+                     onerror="this.src='assets/images/default-placeholder.png'">
+              </div>
+              <div class="step-description">
+                <p>Selectați partidul pentru care doriți să votați:</p>
+                <div class="party-list">
+                  <div *ngFor="let party of parliamentaryParties; let i = index" 
+                      [class.selected]="selectedParliamentaryParty === i"
+                      (click)="selectParliamentaryParty(i)" 
+                      class="party-item">
+                    <div class="party-logo">
+                      <i class="fa fa-landmark"></i>
+                    </div>
+                    <div class="party-details">
+                      <div class="party-name">{{ party.name }}</div>
+                      <div class="party-abbr">{{ party.abbreviation }}</div>
+                    </div>
+                    <div class="stamp" *ngIf="selectedParliamentaryParty === i">
+                      <i class="fa fa-check-circle"></i>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="monitoring-note">
+              <i class="fa fa-video"></i> Procesul de vot este monitorizat video pentru verificarea identității
+            </div>
+          </div>
+          
+          <!-- Local -->
+          <div *ngSwitchCase="'local'">
+            <h3>Pasul 3: Alegeri Locale</h3>
+            <div class="step-content">
+              <div class="step-section">
+                <h4>1. Introduceți adresa locală</h4>
+                <div class="address-form">
+                  <div class="form-row">
+                    <div class="form-group">
+                      <label>Județ:</label>
+                      <input type="text" placeholder="Ex: B, CJ, IS" maxlength="2"
+                            [(ngModel)]="localAddress.county" class="form-control"
+                            [class.error]="validationErrors.local.county">
+                      <div class="hint">Cod județ (1-2 litere)</div>
+                      <div class="error-message" *ngIf="validationErrors.local.county">
+                        Introducerea județului este obligatorie
+                      </div>
+                    </div>
+                    <div class="form-group">
+                      <label>Oraș/Comună:</label>
+                      <input type="text" placeholder="Ex: BUCURESTI" 
+                            [(ngModel)]="localAddress.city" class="form-control"
+                            [class.error]="validationErrors.local.city">
+                      <div class="error-message" *ngIf="validationErrors.local.city">
+                        Introducerea orașului/comunei este obligatorie
+                      </div>
+                    </div>
+                  </div>
+                  <div class="form-group">
+                    <label>Adresa:</label>
+                    <input type="text" placeholder="Ex: Strada Victoriei numărul 10" 
+                          [(ngModel)]="localAddress.address" class="form-control"
+                          [class.error]="validationErrors.local.address">
+                    <div class="hint">Introduceți adresa completă fără prescurtări</div>
+                    <div class="error-message" *ngIf="validationErrors.local.address">
+                      Introducerea adresei este obligatorie
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="step-section">
+                <h4>2. Sistemul identifică secția de votare</h4>
+                <div class="voting-section">
+                  <div class="section-id">Secția nr. 120</div>
+                  <div class="section-details">
+                    <div class="section-name">Școala Gimnazială Nr. 5</div>
+                    <div class="section-address">Str. Victoriei 10, București, Sector 1</div>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="step-section">
+                <h4>3. Selectați candidații locali</h4>
+                <div class="positions-list">
+                  <div *ngFor="let position of localPositions" class="position-item">
+                    <div class="position-title">{{ position.title }}</div>
+                    <div class="candidates-grid">
+                      <div *ngFor="let candidate of position.candidates; let i = index" 
+                          [class.selected]="position.selected === i"
+                          (click)="selectLocalCandidate(position, i)" 
+                          class="local-candidate-item">
+                        <div class="candidate-name">{{ candidate.name }}</div>
+                        <div class="candidate-party">{{ candidate.party }}</div>
+                        <div class="stamp" *ngIf="position.selected === i">
+                          <i class="fa fa-check-circle"></i>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="error-message-global" *ngIf="validationErrors.local.candidateSelection">
+              Trebuie să selectați un candidat pentru fiecare poziție (Primar și Consilier Local)
+            </div>
+            <div class="monitoring-note">
+              <i class="fa fa-video"></i> Procesul de vot este monitorizat video pentru verificarea identității
+            </div>
+          </div>
+          
+          <!-- Default -->
+          <div *ngSwitchDefault>
+            <h3>Pasul 3: Selectați Tipul de Vot pentru Simulare</h3>
+            <div class="step-content vote-type-selection">
+              <div class="selection-item" (click)="selectVoteType('presidential')">
+                <div class="selection-icon"><i class="fa fa-user-tie"></i></div>
+                <div class="selection-title">Prezidențial</div>
+              </div>
+              <div class="selection-item" (click)="selectVoteType('parliamentary')">
+                <div class="selection-icon"><i class="fa fa-landmark"></i></div>
+                <div class="selection-title">Parlamentar</div>
+              </div>
+              <div class="selection-item" (click)="selectVoteType('local')">
+                <div class="selection-icon"><i class="fa fa-building"></i></div>
+                <div class="selection-title">Local</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="nav-buttons">
+          <button (click)="prevStep()" class="btn-secondary">Înapoi</button>
+          <button (click)="nextStep()" [disabled]="!isVoteTypeSelected()" class="btn-primary">Continuă</button>
+        </div>
+      </div>
+      
+      <!-- Pas 4: Confirmare -->
+      <div *ngIf="stepIndex === 3" class="simulation-step">
+        <h3>Pasul 4: Verificare și Confirmare</h3>
+        <div class="step-content">
+          <div class="confirmation-box">
+            <div class="confirmation-header">
+              <i class="fa fa-clipboard-check"></i> Verificați selecția înainte de a confirma
+            </div>
+            
+            <div class="confirmation-details">
+              <!-- Conținut specific pentru fiecare tip de vot -->
+              <div [ngSwitch]="selectedVoteType">
+                <div *ngSwitchCase="'presidential'" class="confirmation-section">
+                  <h4>Alegeri Prezidențiale</h4>
+                  <div class="confirmation-item">
+                    <div class="item-label">Candidatul selectat:</div>
+                    <div class="item-value">{{ getSelectedPrezCandidate().name }}</div>
+                  </div>
+                  <div class="confirmation-item">
+                    <div class="item-label">Partid:</div>
+                    <div class="item-value">{{ getSelectedPrezCandidate().party }}</div>
+                  </div>
+                </div>
+                <div class="error-message-global" *ngIf="validationErrors.presidential">
+                  Trebuie să selectați un candidat prezidențial pentru a continua
+                </div>
+                
+                <div *ngSwitchCase="'parliamentary'" class="confirmation-section">
+                  <h4>Alegeri Parlamentare</h4>
+                  <div class="confirmation-item">
+                    <div class="item-label">Partidul selectat:</div>
+                    <div class="item-value">{{ getSelectedParliamentaryParty().name }}</div>
+                  </div>
+                  <div class="confirmation-item">
+                    <div class="item-label">Abreviere:</div>
+                    <div class="item-value">{{ getSelectedParliamentaryParty().abbreviation }}</div>
+                  </div>
+                </div>
+                <div class="error-message-global" *ngIf="validationErrors.parliamentary">
+                  Trebuie să selectați un partid pentru a continua
+                </div>
+                
+                
+                <div *ngSwitchCase="'local'" class="confirmation-section">
+                  <h4>Alegeri Locale</h4>
+                  <div class="confirmation-item">
+                    <div class="item-label">Secția de votare:</div>
+                    <div class="item-value">Secția nr. 120 - Școala Gimnazială Nr. 5</div>
+                  </div>
+                  <div *ngFor="let position of localPositions" class="confirmation-position">
+                    <div class="item-label">{{ position.title }}:</div>
+                    <div class="item-value" *ngIf="position.selected !== null">
+                      {{ position.candidates[position.selected].name }} 
+                      ({{ position.candidates[position.selected].party }})
+                    </div>
+                    <div class="item-value" *ngIf="position.selected === null">
+                      <span class="text-muted">Nici un candidat selectat</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div class="confirmation-contact">
+              <h4>Opțional: Confirmarea votului</h4>
+              <div class="form-group">
+                <div class="checkbox-group">
+                  <input type="checkbox" id="sendConfirmation" [(ngModel)]="sendConfirmation">
+                  <label for="sendConfirmation">Doresc să primesc o confirmare a votului</label>
+                </div>
+              </div>
+              
+              <div *ngIf="sendConfirmation" class="contact-options">
+                <div class="form-group">
+                  <label>Adresa de email:</label>
+                  <input type="email" [(ngModel)]="contactInfo" class="form-control"
+                         placeholder="exemplu@email.com"
+                         [class.error]="contactInfoError">
+                  <div class="error-message" *ngIf="contactInfoError">
+                    Vă rugăm să introduceți o adresă de email validă
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="nav-buttons">
+          <button (click)="prevStep()" class="btn-secondary">Înapoi</button>
+          <button (click)="nextStep()" class="btn-primary">Confirm Votul</button>
+        </div>
+      </div>
+      
+      <!-- Pas 5: Finalizare vot -->
+      <div *ngIf="stepIndex === 4" class="simulation-step">
+        <h3>Pasul 5: Vot Înregistrat cu Succes</h3>
+        <div class="step-content">
+          <div class="success-animation">
+            <i class="fa fa-check-circle"></i>
+          </div>
+          
+          <div class="success-message">
+            <h4>Votul dumneavoastră a fost înregistrat!</h4>
+            <p>Vă mulțumim pentru participarea la procesul electoral.</p>
+            
+            <div class="vote-reference">
+              <div class="reference-code">Cod de referință: <span>BVP{{ officialReferenceCode }}</span></div>
+              <div class="reference-time">Data: {{ getCurrentDateTime() }}</div>
+            </div>
+            
+            <div *ngIf="sendConfirmation" class="confirmation-sent">
+              <i class="fa fa-envelope-open-text"></i>
+              <span>
+                A fost trimisă o confirmare la adresa de email: {{ contactInfo }}
+              </span>
+              <div class="confirmation-details">
+                <p>Confirmarea include:</p>
+                <ul>
+                  <li>Un document PDF cu detaliile votului</li>
+                  <li>Codul unic de verificare a votului</li>
+                  <li>Data și ora înregistrării</li>
+                  <li>Fiind o simulare, nu se vor primi datele confirmate pe mail</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="nav-buttons">
+          <button (click)="resetSimulation()" class="btn-primary">Reluați simularea</button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Conținut pentru sisteme particulare -->
+    <div *ngIf="activeSystem === 'custom'">
+      <!-- Pas 1: Creare sistem de vot -->
+      <div *ngIf="stepIndex === 0" class="simulation-step">
+        <h3>Pasul 1: Creare Sistem de Vot Personalizat</h3>
+        <div class="step-content">
+          <div class="step-image">
+            <img src="assets/simulation/custom-system-creation.png" alt="Creare sistem" 
+                 onerror="this.src='assets/images/default-placeholder.png'">
+          </div>
+          <div class="step-description">
+            <p>Creați propriul sistem de vot personalizat:</p>
+            <div class="custom-system-form">
+              <div class="form-group">
+                <label>Numele votului:</label>
+                <input type="text" class="form-control" [(ngModel)]="customSystem.name" 
+                       [class.error]="validationErrors.custom.name">
+                <div class="error-message" *ngIf="validationErrors.custom.name">
+                  Numele votului este obligatoriu
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Descriere:</label>
+                <textarea class="form-control" rows="2" [(ngModel)]="customSystem.description"
+                          [class.error]="validationErrors.custom.description"></textarea>
+                <div class="error-message" *ngIf="validationErrors.custom.description">
+                  Descrierea votului este obligatorie
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Categorie:</label>
+                <select class="form-control">
+                  <option selected>Organizațional</option>
+                  <option>Comunitar</option>
+                  <option>Decizie</option>
+                  <option>Sondaj</option>
+                  <option>Altele</option>
+                </select>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Data început:</label>
+                  <input type="date" class="form-control" value="2023-11-15">
+                </div>
+                <div class="form-group">
+                  <label>Ora început:</label>
+                  <input type="time" class="form-control" value="09:00">
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Data sfârșit:</label>
+                  <input type="date" class="form-control" value="2023-11-17">
+                </div>
+                <div class="form-group">
+                  <label>Ora sfârșit:</label>
+                  <input type="time" class="form-control" value="18:00">
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="animation-hint">
+          <i class="fa fa-arrow-right"></i> Utilizatorul creează configurația inițială a sistemului de vot
+        </div>
+        <button (click)="nextStep()" class="btn-primary">Continuă</button>
+      </div>
+      
+      <!-- Pas 2: Adăugare opțiuni de vot -->
+      <div *ngIf="stepIndex === 1" class="simulation-step">
+        <h3>Pasul 2: Configurare Opțiuni de Vot</h3>
+        <div class="step-content">
+          <div class="step-image">
+          </div>
+          <div class="step-description">
+            <p>Adăugați opțiunile de vot pentru sistemul personalizat:</p>
+            <div class="options-list">
+              <div class="option-item">
+                <div class="option-number">1</div>
+                <div class="option-content">
+                  <input type="text" class="form-control" value="Ana Popescu">
+                  <input type="text" class="form-control option-description" value="Reprezentant anul II, Facultatea de Drept">
+                </div>
+                <div class="option-actions">
+                  <button class="btn-icon"><i class="fa fa-trash"></i></button>
+                </div>
+              </div>
+              <div class="option-item">
+                <div class="option-number">2</div>
+                <div class="option-content">
+                  <input type="text" class="form-control" value="Mihai Ionescu">
+                  <input type="text" class="form-control option-description" value="Reprezentant anul III, Facultatea de Informatică">
+                </div>
+                <div class="option-actions">
+                  <button class="btn-icon"><i class="fa fa-trash"></i></button>
+                </div>
+              </div>
+              <div class="option-item">
+                <div class="option-number">3</div>
+                <div class="option-content">
+                  <input type="text" class="form-control" value="Elena Dumitrescu">
+                  <input type="text" class="form-control option-description" value="Reprezentant anul I, Facultatea de Economie">
+                </div>
+                <div class="option-actions">
+                  <button class="btn-icon"><i class="fa fa-trash"></i></button>
+                </div>
+              </div>
+              <div class="add-option">
+                <button class="btn-secondary btn-sm">
+                  <i class="fa fa-plus"></i> Adaugă opțiune
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="animation-hint">
+          <i class="fa fa-arrow-right"></i> Utilizatorul configurează opțiunile disponibile pentru vot
+        </div>
+        <div class="nav-buttons">
+          <button (click)="prevStep()" class="btn-secondary">Înapoi</button>
+          <button (click)="nextStep()" class="btn-primary">Continuă</button>
+        </div>
+      </div>
+      <div class="error-message-global" *ngIf="validationErrors.custom.options">
+        Trebuie să adăugați cel puțin o opțiune de vot cu un nume valid
+      </div>
+      
+      <!-- Pas 3: Configurare participanți -->
+      <div *ngIf="stepIndex === 2" class="simulation-step">
+        <h3>Pasul 3: Adăugare Participanți</h3>
+        <div class="step-content">
+          <div class="step-image">
+          </div>
+          <div class="step-description">
+            <p>Adăugați lista de participanți care pot vota:</p>
+            <div class="participants-form">
+              <div class="form-group">
+                <div class="checkbox-group">
+                  <input type="checkbox" id="requireVerification" checked>
+                  <label for="requireVerification">Verificare prin email obligatorie</label>
+                </div>
+                <div class="note">
+                  <i class="fa fa-info-circle"></i> Participanții vor primi un cod unic pentru a putea vota
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Adrese de email (un email per linie):</label>
+                <textarea class="form-control" rows="6" [(ngModel)]="customSystem.participants"
+                [class.error]="validationErrors.custom.participants"
+                readonly>
+              </textarea>
+              </div>
+              <div class="error-message" *ngIf="validationErrors.custom.participants">
+                Trebuie să adăugați cel puțin 5 adrese de email valide
+              </div>
+              <div class="participants-count">
+                <span>5 adrese de email adăugate</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="animation-hint">
+          <i class="fa fa-arrow-right"></i> Participanții primesc coduri unice prin email
+        </div>
         <div class="nav-buttons">
           <button (click)="prevStep()" class="btn-secondary">Înapoi</button>
           <button (click)="nextStep()" class="btn-primary">Continuă</button>
         </div>
       </div>
       
-      <!-- Pas 4: Confirmare finală -->
+      <!-- Pas 4: Trimitere invitații și verificare admin -->
       <div *ngIf="stepIndex === 3" class="simulation-step">
-        <h3>Pasul 4: Confirmare finală</h3>
-        <p>După confirmarea opțiunii, sistemul:</p>
-        <ul>
-          <li>Înregistrează votul în mod anonim</li>
-          <li>Generează un cod de verificare pentru utilizator</li>
-          <li>Afișează un mesaj de confirmare</li>
-        </ul>
-        <p>Utilizatorul poate folosi codul de verificare pentru a confirma ulterior că votul a fost înregistrat corect.</p>
+        <h3>Pasul 4: Trimitere Invitații și Aprobare</h3>
+        <div class="step-content">
+          <div class="approval-process">
+            <div class="approval-step completed">
+              <div class="step-icon">
+                <i class="fa fa-save"></i>
+              </div>
+              <div class="step-text">
+                <h4>Sistem Salvat</h4>
+                <p>Configurația sistemului de vot a fost salvată cu succes</p>
+              </div>
+            </div>
+            
+            <div class="approval-step completed">
+              <div class="step-icon">
+                <i class="fa fa-paper-plane"></i>
+              </div>
+              <div class="step-text">
+                <h4>Invitații Trimise</h4>
+                <p>Codurile unice au fost trimise către 5 adrese de email</p>
+              </div>
+            </div>
+            
+            <div class="approval-step active">
+              <div class="step-icon">
+                <i class="fa fa-user-shield"></i>
+              </div>
+              <div class="step-text">
+                <h4>Verificare Administrator</h4>
+                <p>Sistemul dvs. este în așteptarea aprobării de către administrator</p>
+                <div class="verification-status">
+                  <i class="fa fa-clock"></i> În așteptare
+                </div>
+              </div>
+            </div>
+            
+            <div class="approval-step">
+              <div class="step-icon">
+                <i class="fa fa-check-circle"></i>
+              </div>
+              <div class="step-text">
+                <h4>Sistem Activ</h4>
+                <p>După aprobare, sistemul va deveni activ la data de început configurată</p>
+              </div>
+            </div>
+          </div>
+          
+          <div class="admin-approval-simulation">
+            <h4>Simulare aprobare administrator:</h4>
+            <button class="btn-approve" (click)="simulateAdminApproval()">
+              Aprobă Sistemul de Vot
+            </button>
+            <div *ngIf="adminApproved" class="approval-message">
+              <i class="fa fa-check-circle"></i> Sistem de vot aprobat cu succes! 
+              Participanții pot acum vota folosind codurile primite.
+            </div>
+          </div>
+        </div>
         <div class="nav-buttons">
           <button (click)="prevStep()" class="btn-secondary">Înapoi</button>
-          <button (click)="nextStep()" class="btn-primary">Finalizează</button>
+          <button (click)="nextStep()" class="btn-primary">Continuă</button>
         </div>
       </div>
       
-      <!-- Simulare completă -->
-      <div *ngIf="simulationComplete" class="simulation-step simulation-complete">
-        <h3>Simulare completă!</h3>
-        <p>Felicitări! Ați parcurs cu succes simularea procesului de vot.</p>
-        <p>În timpul unui proces real de vot:</p>
-        <ul>
-          <li>Votul dumneavoastră va fi înregistrat în sistem</li>
-          <li>Datele vor fi criptate și stocate în siguranță</li>
-          <li>Confidențialitatea opțiunii dumneavoastră este garantată</li>
-        </ul>
-        <p class="note">Notă: Această simulare are scopul de a vă familiariza cu procesul digital de vot.</p>
-        <button (click)="resetSimulation()" class="btn-primary">Reluați simularea</button>
+      <!-- Pas 5: Procesul de vot ca participant -->
+      <div *ngIf="stepIndex === 4" class="simulation-step">
+        <h3>Pasul 5: Procesul de Vot pentru Participant</h3>
+        <div class="step-content">
+          <div class="participant-view">
+            <div class="email-notification">
+              <div class="email-header">
+                <div class="email-subject">[SmartVote] Codul tău de vot pentru "Alegerea reprezentantului de grup"</div>
+                <div class="email-from">De la: SmartVote &lt;no-reply&#64;smartvote.ro&gt;</div>
+                <div class="email-time">Acum 2 minute</div>
+              </div>
+              <div class="email-body">
+                <h4>SmartVote - Codul tău de vot</h4>
+                <p>Dragă participant,</p>
+                <p>Ai fost invitat să participi la votul: <strong>Alegerea reprezentantului de grup</strong>.</p>
+                <p>Pentru a-ți valida votul, te rugăm să folosești codul de mai jos:</p>
+                <div class="token-code">BX72F9</div>
+                <p><strong>Important:</strong> Acest cod este valabil doar pentru 3 minute și poate fi folosit o singură dată.</p>
+                <p>Pentru a vota, accesează link-ul de mai jos și introdu codul când ți se solicită:</p>
+                <div class="vote-link">http://192.168.29.140:4200/vote/56789</div>
+              </div>
+            </div>
+            
+            <div class="voting-interface">
+              <h4>Interfața de Vot pentru Participant</h4>
+              <div class="vote-form">
+                <div class="vote-header">
+                  <h5>Alegerea reprezentantului de grup</h5>
+                  <div class="vote-period">15 Nov 2023, 09:00 - 17 Nov 2023, 18:00</div>
+                </div>
+                
+                <div class="token-verification">
+                  <div class="form-group" *ngIf="!tokenVerified">
+                    <label>Introduceți codul de vot:</label>
+                    <div class="form-row">
+                      <input type="text" class="form-control" [(ngModel)]="tokenInput"
+                             [class.error]="validationErrors.custom.token">
+                      <button class="btn-primary btn-sm" (click)="simulateTokenVerification()">Verifică</button>
+                    </div>
+                    <div class="error-message" *ngIf="validationErrors.custom.token">
+                      Codul introdus nu este valid
+                    </div>
+                  </div>
+                  
+                  <div *ngIf="tokenVerified" class="token-success">
+                    <i class="fa fa-check-circle"></i> Cod valid! Poți continua cu votul.
+                  </div>
+                </div>
+                
+                <div *ngIf="tokenVerified" class="vote-options">
+                  <h5>Selectează opțiunea de vot:</h5>
+                  <div class="vote-options-list">
+                    <div *ngFor="let option of customVoteOptions; let i = index"
+                         [class.selected]="selectedCustomOption === i"
+                         (click)="selectCustomOption(i)"
+                         class="vote-option-item">
+                      <div class="option-name">{{ option.name }}</div>
+                      <div class="option-description">{{ option.description }}</div>
+                      <div class="vote-stamp" *ngIf="selectedCustomOption === i">
+                        <i class="fa fa-check-circle"></i>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div class="vote-actions">
+                    <button class="btn-primary" (click)="simulateCustomVote()" [disabled]="selectedCustomOption === null">
+                      Votează
+                    </button>
+                  </div>
+                </div>
+                
+                <div *ngIf="customVoteSubmitted" class="vote-success">
+                  <div class="success-icon">
+                    <i class="fa fa-check-circle"></i>
+                  </div>
+                  <h5>Votul tău a fost înregistrat!</h5>
+                  <p>Mulțumim pentru participare.</p>
+                  <div class="vote-confirmation">
+                    Cod de confirmare: VOTE{{ customReferenceCode }}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="nav-buttons">
+          <button (click)="prevStep()" class="btn-secondary">Înapoi</button>
+          <button (click)="nextStep()" class="btn-primary">Continuă</button>
+        </div>
+        <div class="error-message-global" *ngIf="validationErrors.custom.option">
+          Trebuie să selectați o opțiune pentru a putea vota
+        </div>
+      </div>
+      
+      <!-- Pas 6: Rezultate și statistici -->
+      <div *ngIf="stepIndex === 5" class="simulation-step">
+        <h3>Pasul 6: Rezultate și Statistici</h3>
+        <div class="step-content">
+          <div class="results-dashboard">
+            <div class="results-header">
+              <h4>Rezultate: Alegerea reprezentantului de grup</h4>
+              <div class="vote-status completed">
+                <i class="fa fa-check-circle"></i> Vot finalizat
+              </div>
+            </div>
+            
+            <div class="results-stats">
+              <div class="stat-item">
+                <div class="stat-value">5</div>
+                <div class="stat-label">Participanți</div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-value">5</div>
+                <div class="stat-label">Voturi exprimate</div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-value">100%</div>
+                <div class="stat-label">Rată participare</div>
+              </div>
+            </div>
+            
+            <div class="results-chart">
+              <div class="chart-container">
+                <!-- Aici ar veni un grafic real -->
+                <div class="placeholder-chart">
+                  <div class="chart-bar" style="height: 75%;">
+                    <div class="chart-label">Ana Popescu</div>
+                    <div class="votes-count">3 (60%)</div>
+                  </div>
+                  <div class="chart-bar" style="height: 30%;">
+                    <div class="chart-label">Mihai Ionescu</div>
+                    <div class="votes-count">1 (20%)</div>
+                  </div>
+                  <div class="chart-bar" style="height: 20%;">
+                    <div class="chart-label">Elena Dumitrescu</div>
+                    <div class="votes-count">1 (20%)</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div class="winner-announcement">
+              <div class="winner-badge">
+                <i class="fa fa-trophy"></i>
+              </div>
+              <div class="winner-info">
+                <div class="winner-title">Câștigător:</div>
+                <div class="winner-name">Ana Popescu</div>
+                <div class="winner-details">3 voturi (60%)</div>
+              </div>
+            </div>
+            
+            <div class="share-results">
+              <h5>Distribuie rezultatele</h5>
+              <div class="share-buttons">
+                <button class="btn-share facebook">
+                  <i class="fab fa-facebook-f"></i>
+                </button>
+                <button class="btn-share twitter">
+                  <i class="fab fa-twitter"></i>
+                </button>
+                <button class="btn-share email">
+                  <i class="fa fa-envelope"></i>
+                </button>
+                <button class="btn-share link">
+                  <i class="fa fa-link"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="nav-buttons">
+          <button (click)="prevStep()" class="btn-secondary">Înapoi</button>
+          <button (click)="resetSimulation()" class="btn-primary">Reluați simularea</button>
+        </div>
       </div>
     </div>
   </div>
+</div>
