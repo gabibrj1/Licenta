@@ -1,7 +1,7 @@
 from django.urls import path
 from .views import UserProfileView, ContactInfoView, MapInfoView
 from .views import send_contact_message, schedule_appointment, confirm_appointment, reject_appointment, check_availability
-
+from .views import mission_vision
 urlpatterns = [
     path('profile/', UserProfileView.as_view(), name='user-profile'),
     path('contact/', ContactInfoView.as_view(), name='contact-info'),
@@ -11,5 +11,6 @@ urlpatterns = [
     path('appointments/reject/<str:token>/', reject_appointment, name='reject-appointment'),
     path('appointments/availability/<str:date>/', check_availability, name='check-availability'),
     path('map/', MapInfoView.as_view(), name='map-info'),
+    path('mission-vision/', mission_vision, name='mission-vision'),
 
 ]

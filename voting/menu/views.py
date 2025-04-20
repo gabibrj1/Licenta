@@ -18,6 +18,7 @@ from .models import Appointment
 from django.http import HttpResponseRedirect
 from django.db import transaction
 from django.utils import timezone
+from django.shortcuts import render
 
 
 
@@ -477,3 +478,9 @@ def get(self, request):
     else:
         # Returnează informațiile existente pentru România
         return Response(self.map_info)
+    
+def mission_vision(request):
+    """
+    View pentru pagina de misiune și viziune a aplicației
+    """
+    return render(request, 'mission_vision.html')

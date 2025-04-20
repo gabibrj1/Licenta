@@ -1,0 +1,117 @@
+<div class="mission-vision-container">
+    <!-- Secțiunea de hero cu efect circular -->
+    <div class="hero-section">
+      <div class="hero-content">
+        <h1>Misiunea și Viziunea SmartVote</h1>
+        <p class="subtitle">O platformă modernă pentru transformarea procesului electoral din România</p>
+        <div class="hero-buttons">
+          <button class="btn-primary" (click)="scrollToVision()">Descoperă viziunea noastră</button>
+          <button class="btn-secondary" (click)="scrollToValues()">Valorile noastre</button>
+        </div>
+      </div>
+      <div class="hero-circles">
+        <div class="circle circle-1"></div>
+        <div class="circle circle-2"></div>
+        <div class="circle circle-3"></div>
+      </div>
+    </div>
+  
+    <!-- Secțiunea de misiune -->
+    <div class="mission-section" id="mission-section">
+      <div class="section-header">
+        <h2>Misiunea Noastră</h2>
+        <p class="section-description">Ne-am angajat să revoluționăm procesul electoral prin tehnologii moderne, 
+          asigurând un sistem de vot accesibil, sigur și transparent pentru toți cetățenii.</p>
+      </div>
+  
+      <div class="mission-grid">
+        <div class="mission-item" *ngFor="let item of missionSections; let i = index" [attr.data-aos]="item.animation" 
+            [attr.data-aos-delay]="i * 100">
+          <div class="mission-icon">
+            <i class="fas" [ngClass]="item.icon"></i>
+          </div>
+          <div class="mission-content">
+            <h3>{{item.title}}</h3>
+            <p>{{item.description}}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  
+    <!-- Secțiunea de viziune -->
+    <div class="vision-section" id="vision-section">
+      <div class="section-header">
+        <h2>Viziunea Noastră</h2>
+        <p class="section-description">Aspirăm să creăm un sistem electoral de referință la nivel european, 
+          care să devină un standard de excelență în domeniul votului electronic.</p>
+      </div>
+  
+      <div class="vision-grid">
+        <div class="vision-item" *ngFor="let item of visionSections; let i = index" [attr.data-aos]="item.animation" 
+            [attr.data-aos-delay]="i * 150">
+          <div class="vision-icon">
+            <i class="fas" [ngClass]="item.icon"></i>
+          </div>
+          <div class="vision-content">
+            <h3>{{item.title}}</h3>
+            <p>{{item.description}}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  
+    <!-- Secțiunea de valori fundamentale -->
+    <div class="values-section" id="values-section">
+      <div class="section-header">
+        <h2>Valorile Noastre Fundamentale</h2>
+        <p class="section-description">Principiile care ne ghidează în tot ceea ce facem și ne ajută să construim 
+          o platformă de încredere pentru toți utilizatorii.</p>
+      </div>
+  
+      <div class="values-grid">
+        <div class="value-item" *ngFor="let value of values; let i = index" [attr.data-aos]="'fade-up'" 
+            [attr.data-aos-delay]="i * 100">
+          <div class="value-icon">
+            <i class="fas" [ngClass]="value.icon"></i>
+          </div>
+          <h3>{{value.title}}</h3>
+          <p>{{value.description}}</p>
+        </div>
+      </div>
+    </div>
+  
+    <!-- Secțiunea cu caracteristici moderne -->
+    <div class="features-section">
+      <div class="section-header">
+        <h2>Caracteristici Moderne</h2>
+        <p class="section-description">Tehnologii de ultimă generație implementate pentru a asigura siguranța și eficiența procesului electoral.</p>
+      </div>
+  
+      <div class="features-grid">
+        <div class="feature-item" *ngFor="let feature of systemFeatures; let i = index" [attr.data-aos]="'zoom-in'" 
+            [attr.data-aos-delay]="i * 100">
+          <div class="feature-icon">
+            <i class="fas" [ngClass]="feature.icon"></i>
+          </div>
+          <h3>{{feature.title}}</h3>
+          <p>{{feature.description}}</p>
+        </div>
+      </div>
+    </div>
+  
+    <!-- Secțiunea de CTA -->
+    <div class="cta-section">
+      <div class="cta-content">
+        <h2>Contribuie la Viitorul Democrației Digitale</h2>
+        <p>Alătură-te nouă în revoluționarea procesului electoral și îmbunătățirea participării democratice prin tehnologie.</p>
+        <div class="cta-buttons">
+          <button class="btn-primary" routerLink="/menu/despre/contact">Contactează-ne</button>
+          <button class="btn-secondary" routerLink="/menu/simulare-vot">Încearcă simularea</button>
+        </div>
+      </div>
+      <div class="cta-circles">
+        <div class="circle circle-1"></div>
+        <div class="circle circle-2"></div>
+      </div>
+    </div>
+  </div>

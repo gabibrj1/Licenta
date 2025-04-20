@@ -18,6 +18,7 @@ import { VoteSystemStatusComponent } from './components/vote-system-status/vote-
 import { VoteSystemDetailsComponent } from './components/vote-system-details/vote-system-details.component';
 import { MyVoteSystemsComponent } from './components/my-vote-systems/my-vote-systems.component';
 import { PublicVoteComponent } from './components/public-vote/public-vote.component';
+import { MisiuneComponent } from './misiune/misiune.component';
 
 import { AppointmentConfirmedComponent } from './appointments/appointment-confirmed.component';
 import { AppointmentRejectedComponent } from './appointments/appointment-rejected.component';
@@ -32,6 +33,7 @@ const routes: Routes = [
     component: MenuComponent,
     children: [
       { path: 'despre/contact', component: ContactComponent },
+      { path: 'despre/misiune', component: MisiuneComponent},
       { path: 'despre/creeaza-sistem', component: CreateVoteSystemComponent, canActivate: [AuthGuard] },
       { path: 'despre/sisteme-vot', component: MyVoteSystemsComponent, canActivate: [AuthGuard] },
       { path: 'despre/sisteme-vot/:id', component: VoteSystemDetailsComponent, canActivate: [AuthGuard] },
