@@ -484,3 +484,9 @@ def mission_vision(request):
     View pentru pagina de misiune și viziune a aplicației
     """
     return render(request, 'mission_vision.html')
+
+def concept(request):
+    """
+    View pentru pagina de concept a aplicației
+    """
+    return render(request, 'concept.html')

@@ -55,6 +55,7 @@ import { VoteSystemStatusComponent } from './components/vote-system-status/vote-
 import { PublicVoteComponent } from './components/public-vote/public-vote.component';
 import { EmailTokenVerificationComponent } from './components/email-token-verification/email-token-verification.component';
 import { MisiuneComponent } from './misiune/misiune.component';
+import { ConceptComponent } from './concept/concept.component';
 
 
 @NgModule({
@@ -85,6 +86,7 @@ import { MisiuneComponent } from './misiune/misiune.component';
     PublicVoteComponent,
     EmailTokenVerificationComponent,
     MisiuneComponent,
+    ConceptComponent,
 
   ],
   imports: [

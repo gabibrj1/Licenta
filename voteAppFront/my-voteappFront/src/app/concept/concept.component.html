@@ -1,0 +1,262 @@
+<div class="concept-container">
+    <!-- Secțiunea hero -->
+    <div class="hero-section">
+      <div class="hero-content">
+        <h1>Conceptul SmartVote</h1>
+        <p class="subtitle">Arhitectura tehnică din spatele unui sistem electoral modern și sigur</p>
+        <div class="hero-buttons">
+          <button class="btn-primary" (click)="scrollToTechnologies()">Explorează tehnici și tehnologii</button>
+          <button class="btn-secondary" (click)="scrollToProcess()">Procesul electoral</button>
+        </div>
+      </div>
+    </div>
+  
+    <!-- Secțiunea principii arhitecturale -->
+    <div class="principles-section">
+      <div class="section-header">
+        <h2>Principii Arhitecturale</h2>
+        <p class="section-description">Fundamentele care stau la baza sistemului nostru de vot electronic.</p>
+      </div>
+  
+      <div class="principles-grid">
+        <div class="principle-item" *ngFor="let principle of architecturalPrinciples">
+          <div class="principle-icon">
+            <span>{{ principle.icon }}</span>
+          </div>
+          <div class="principle-content">
+            <h3>{{ principle.title }}</h3>
+            <p>{{ principle.description }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  
+    <!-- Secțiunea tehnologii -->
+    <div class="technologies-section" id="technologies-section">
+      <div class="section-header">
+        <h2>Tehnologii Utilizate</h2>
+        <p class="section-description">Platforma SmartVote utilizează un stack tehnologic modern pentru a asigura securitatea, performanța și scalabilitatea.</p>
+      </div>
+  
+      <div class="technologies-container">
+        <div class="technology-category" *ngFor="let category of technologiesUsed">
+          <h3 class="category-title">{{ category.category }}</h3>
+          <div class="technology-items">
+            <div class="tech-item" *ngFor="let item of category.items">
+              <h4>{{ item.name }}</h4>
+              <p>{{ item.description }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  
+    <!-- Secțiunea arhitectura tehnică -->
+    <div class="architecture-section">
+      <div class="section-header">
+        <h2>Arhitectura Sistemului</h2>
+        <p class="section-description">O privire de ansamblu asupra componentelor cheie ale platformei SmartVote.</p>
+      </div>
+  
+      <div class="architecture-diagram">
+        <div class="layer user-layer">
+          <h3 class="layer-title">Stratul de Interfață</h3>
+          <div class="layer-components">
+            <div class="component">
+              <div class="component-title">Interfața Web</div>
+            </div>
+            <div class="component">
+              <div class="component-title">Design Responsive</div>
+            </div>
+            <div class="component">
+              <div class="component-title">Interfața Administrativă</div>
+            </div>
+          </div>
+        </div>
+  
+        <div class="connector"></div>
+  
+        <div class="layer application-layer">
+          <h3 class="layer-title">Stratul de Aplicație</h3>
+          <div class="layer-components">
+            <div class="component">
+              <div class="component-title">Autentificare & Autorizare</div>
+            </div>
+            <div class="component">
+              <div class="component-title">Managementul Voturilor</div>
+            </div>
+            <div class="component">
+              <div class="component-title">Raportare & Analiză</div>
+            </div>
+          </div>
+        </div>
+  
+        <div class="connector"></div>
+  
+        <div class="layer data-layer">
+          <h3 class="layer-title">Stratul de Date</h3>
+          <div class="layer-components">
+            <div class="component">
+              <div class="component-title">Baze de Date MySql</div>
+            </div>
+            <div class="component">
+              <div class="component-title">Stocare fișiere și imagini</div>
+            </div>
+            <div class="component">
+              <div class="component-title">Criptografie Avansată</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  
+    <!-- Secțiunea procesul electoral -->
+    <div class="process-section" id="process-section">
+      <div class="section-header">
+        <h2>Procesul Electoral</h2>
+        <p class="section-description">De la înregistrare la confirmarea votului, procesul electoral este proiectat pentru a fi sigur, transparent și accesibil.</p>
+      </div>
+  
+      <div class="process-timeline">
+        <div class="process-stage" *ngFor="let stage of electoralProcess; let i = index">
+          <div class="stage-number">{{ i + 1 }}</div>
+          <div class="stage-content">
+            <h3>{{ stage.stage }}</h3>
+            <p>{{ stage.description }}</p>
+            <ul class="stage-steps">
+              <li *ngFor="let step of stage.steps">{{ step }}</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  
+    <!-- Secțiunea procesul de vot personalizat -->
+    <div class="custom-vote-section">
+      <div class="section-header">
+        <h2>Sisteme de Vot Personalizate</h2>
+        <p class="section-description">SmartVote permite crearea și gestionarea propriilor sisteme de vot pentru organizații, asociații sau comunități.</p>
+      </div>
+  
+      <div class="custom-vote-process">
+        <div class="custom-vote-step">
+          <div class="step-number">1</div>
+          <div class="step-content">
+            <h3>Creare Sistem de Vot</h3>
+            <p>Utilizatorul își configurează propriul sistem de vot cu titlu, descriere, opțiuni de vot și perioada de votare.</p>
+          </div>
+        </div>
+        
+        <div class="custom-vote-step">
+          <div class="step-number">2</div>
+          <div class="step-content">
+            <h3>Gestionarea Participanților</h3>
+            <p>Se introduc adresele de email ale participanților care vor primi un token unic pentru autentificare și vot.</p>
+          </div>
+        </div>
+        
+        <div class="custom-vote-step">
+          <div class="step-number">3</div>
+          <div class="step-content">
+            <h3>Aprobare și Distribuire</h3>
+            <p>După aprobarea administratorului, sistemul de vot poate fi distribuit prin link sau cod QR pentru vot în rețeaua locală.</p>
+          </div>
+        </div>
+        
+        <div class="custom-vote-step">
+          <div class="step-number">4</div>
+          <div class="step-content">
+            <h3>Participare și Vot</h3>
+            <p>Participanții primesc tokene temporare pe email și pot vota anonim în sistemul personalizat.</p>
+          </div>
+        </div>
+        
+        <div class="custom-vote-step">
+          <div class="step-number">5</div>
+          <div class="step-content">
+            <h3>Rezultate și Analiză</h3>
+            <p>După încheierea votului, rezultatele sunt disponibile imediat pentru analiză și pot fi distribuite participanților.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  
+    <!-- Secțiunea tehnologii AI -->
+    <div class="ai-section">
+      <div class="section-header">
+        <h2>Inteligență Artificială în SmartVote</h2>
+        <p class="section-description">Implementarea tehnologiilor de inteligență artificială pentru sporirea securității și a experienței utilizatorilor.</p>
+      </div>
+  
+      <div class="ai-features">
+        <div class="ai-feature">
+          <div class="feature-icon">🔍</div>
+          <div class="feature-content">
+            <h3>Extragere de Informații din Documente</h3>
+            <p>Utilizând modele YOLO antrenate cu date adnotate prin CVAT, sistemul extrage automat informații relevante din buletinele de identitate pentru autentificare și înregistrare.</p>
+          </div>
+        </div>
+        
+        <div class="ai-feature">
+          <div class="feature-icon">👤</div>
+          <div class="feature-content">
+            <h3>Recunoaștere Facială</h3>
+            <p>Tehnologiile de recunoaștere facială sunt implementate atât pentru înregistrarea utilizatorilor cât și pentru autentificarea sigură în timpul votului.</p>
+          </div>
+        </div>
+        
+        <div class="ai-feature">
+          <div class="feature-icon">🗺️</div>
+          <div class="feature-content">
+            <h3>Identificare Inteligentă a Secțiilor de Vot</h3>
+            <p>Un model AI dedicat identifică automat secția de vot potrivită pentru votul local în funcție de județul și adresa introduse de utilizator.</p>
+          </div>
+        </div>
+        
+        <div class="ai-feature">
+          <div class="feature-icon">🛡️</div>
+          <div class="feature-content">
+            <h3>Detectare Anti-Spoofing</h3>
+            <p>Sisteme avansate pentru detectarea încercărilor de fraudă prin utilizarea de fotografii sau înregistrări video în locul persoanei reale.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  
+    <!-- Secțiunea de inovație -->
+    <div class="innovation-section">
+      <div class="section-header">
+        <h2>Inovație Continuă</h2>
+        <p class="section-description">Platforma SmartVote evoluează constant pentru a integra cele mai noi tehnologii și practici de securitate.</p>
+      </div>
+  
+      <div class="innovation-content">
+        <div class="innovation-text">
+          <p>SmartVote reprezintă o abordare inovatoare în domeniul votului electronic, combinând tehnologii moderne cu principii solide de securitate. În cadrul acestui proiect de licență, implementarea continuă a noi funcționalități și optimizări vizează:</p>
+          
+          <ul class="innovation-list">
+            <li>Perfecționarea algoritmilor de recunoaștere facială și verificare a identității</li>
+            <li>Implementarea de noi metode pentru detecția fraudelor și tentativelor de spoofing</li>
+            <li>Optimizarea performanței pentru a susține un număr mare de utilizatori simultan</li>
+            <li>Îmbunătățirea accesibilității și experienței utilizator pentru toate categoriile de cetățeni</li>
+            <li>Dezvoltarea sistemului de vot personalizat pentru utilizare în diverse contexte organizaționale</li>
+          </ul>
+          
+          <p>Fiecare componentă a platformei este testată riguros pentru a asigura securitatea, fiabilitatea și accesibilitatea în situații reale de utilizare.</p>
+        </div>
+      </div>
+    </div>
+  
+    <!-- Secțiunea de concluzie -->
+    <div class="conclusion-section">
+      <div class="conclusion-content">
+        <h2>Viitorul Votului Electronic în România</h2>
+        <p>SmartVote reprezintă mai mult decât o aplicație - este o nouă paradigmă pentru democrația digitală în România, combinând cele mai avansate tehnologii cu principii fundamentale de securitate și accesibilitate.</p>
+        
+        <div class="cta-buttons">
+          <button class="btn-primary" routerLink="/menu/despre/misiune">Descoperă Misiunea Noastră</button>
+          <button class="btn-secondary" routerLink="/menu/simulare-vot">Încearcă Simularea</button>
+        </div>
+      </div>
+    </div>
+  </div>
