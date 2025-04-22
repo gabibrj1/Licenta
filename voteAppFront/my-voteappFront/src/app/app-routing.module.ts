@@ -25,6 +25,8 @@ import { AppointmentConfirmedComponent } from './appointments/appointment-confir
 import { AppointmentRejectedComponent } from './appointments/appointment-rejected.component';
 import { AppointmentErrorComponent } from './appointments/appointment-error.component';
 import { MapComponent } from './map/map.component';
+import { NewsComponent } from './news/news.component';
+import { ArticleDetailComponent } from './article-detail/article-detail.component';
 
 const routes: Routes = [
   { path: '', component: HomeComponent },
@@ -40,6 +42,10 @@ const routes: Routes = [
       { path: 'despre/sisteme-vot', component: MyVoteSystemsComponent, canActivate: [AuthGuard] },
       { path: 'despre/sisteme-vot/:id', component: VoteSystemDetailsComponent, canActivate: [AuthGuard] },
       { path: 'despre/status-vot/:id', component: VoteSystemStatusComponent, canActivate: [AuthGuard] },
+      {path: 'news', component: NewsComponent},
+      { path: 'news/article/:slug', component: ArticleDetailComponent },
+
+
       
       { path: 'harta', component: MapComponent},
       // Rute pentru vot și simulare

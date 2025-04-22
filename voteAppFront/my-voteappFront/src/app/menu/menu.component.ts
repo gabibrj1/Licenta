@@ -360,8 +360,8 @@ private loadUserProfile(): void {
         break;
       
       // Informații
-      case 'stiri-analize':
-        this.router.navigate(['menu/stiri-analize']);
+      case 'news':
+        this.router.navigate(['menu/news']);
         break;
       case 'forumuri':
         this.router.navigate(['menu/forumuri']);

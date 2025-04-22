@@ -1,0 +1,84 @@
+<div class="article-detail-container">
+  <!-- Indicator de încărcare -->
+  <div *ngIf="loading" class="loading-indicator">
+    <div class="spinner"></div>
+    <p>Se încarcă articolul...</p>
+  </div>
+  
+  <!-- Mesaj de eroare -->
+  <div *ngIf="error" class="error-message">
+    <h2>Nu s-a putut încărca articolul</h2>
+    <p>Ne pare rău, a apărut o eroare la încărcarea articolului solicitat. Vă rugăm să încercați din nou mai târziu.</p>
+    <button (click)="goBackToNews()" class="btn-back">Înapoi la știri</button>
+  </div>
+  
+  <!-- Conținutul articolului -->
+  <div *ngIf="!loading && !error && article" class="article-content">
+    <div class="article-header">
+      <div class="category-badge">{{ article.category.name || 'General' }}</div>
+      <h1 class="article-title">{{ article.title }}</h1>
+      <div class="article-meta">
+        <span class="article-date">{{ formatDate(article.publish_date) }}</span>
+        <span class="article-author">{{ article.author_name }}</span>
+        <span class="article-views">{{ article.views_count }} vizualizări</span>
+      </div>
+    </div>
+    
+    <!-- Folosim image_url în loc de image -->
+    <div *ngIf="article?.image_url" class="article-featured-image">
+      <img [src]="article.image_url" [alt]="article.title">
+      <div *ngIf="article.image_credit" class="image-credit">Sursa: {{ article.image_credit }}</div>
+    </div>
+    
+    <div class="article-summary">
+      <p>{{ article.summary }}</p>
+    </div>
+    
+    <div class="article-body">
+      <div class="content-paragraphs">
+        <p *ngFor="let paragraph of getParagraphs()">{{ paragraph }}</p>
+      </div>
+    </div>
+    
+    <div class="article-footer">
+      <div *ngIf="article.source" class="article-source">
+        Sursă: <a [href]="article.source_url || '#'" target="_blank">{{ article.source }}</a>
+      </div>
+      
+      <div class="share-buttons">
+        <h4>Distribuie articolul</h4>
+        <div class="social-buttons">
+          <button class="btn-social btn-facebook">Facebook</button>
+          <button class="btn-social btn-twitter">Twitter</button>
+          <button class="btn-social btn-email">Email</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Articole conexe -->
+  <div *ngIf="!loading && !error && relatedArticles.length > 0" class="related-articles">
+    <h2 class="section-title">Articole conexe</h2>
+    
+    <div class="related-articles-grid">
+      <div *ngFor="let related of relatedArticles" class="related-article">
+        <!-- Folosim image_url pentru articolele conexe -->
+        <div class="article-image" [style.background-image]="related.image_url ? ('url(' + related.image_url + ')') : 'url(/assets/images/news/default.jpg)'"></div>
+        <div class="article-content">
+          <h3 class="article-title">{{ related.title }}</h3>
+          <div class="article-meta">
+            <span class="article-date">{{ formatDate(related.publish_date) }}</span>
+          </div>
+          <a [routerLink]="['/menu/news/article', related.slug]" class="read-more">Citește articolul</a>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Buton de revenire la pagina de știri -->
+  <div class="back-navigation">
+    <a [routerLink]="['/menu/news']" class="btn-back">
+      <span class="back-icon">&larr;</span> Înapoi la știri
+    </a>
+  </div>
+</div>
