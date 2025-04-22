@@ -7,7 +7,7 @@ from rest_framework.permissions import AllowAny
 import requests
 import json
 from datetime import datetime, timedelta
-from .models import NewsArticle, Category, ExternalNewsSource
+from .models import NewsArticle, Category, ExternalNewsSource, ElectionAnalyticsChart, ChartDataset, ChartDataPoint
 from .serializers import NewsArticleSerializer, CategorySerializer, NewsArticleDetailSerializer
 import logging
 
@@ -239,8 +239,12 @@ class ElectionAnalyticsAPI(APIView):
         API endpoint pentru date analitice despre alegeri
         """
         try:
+            # În loc să returnăm date hardcodate, preluăm din baza de date
+            charts = ElectionAnalyticsChart.objects.filter(is_active=True)
+            data = [chart.to_dict() for chart in charts]
+            
             return Response(
-                self.get_mock_analytics(),
+                data,
                 status=status.HTTP_200_OK
             )
         except Exception as e:

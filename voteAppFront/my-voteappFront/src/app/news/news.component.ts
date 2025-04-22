@@ -4,6 +4,7 @@ import { NewsService, NewsArticle, ExternalNewsArticle, ElectionAnalytics } from
 import { forkJoin, of, Subject } from 'rxjs';
 import { catchError, debounceTime, distinctUntilChanged, finalize, takeUntil } from 'rxjs/operators';
 import { environment } from '../../src/environments/environment';
+import Chart from 'chart.js/auto';
 
 @Component({
   selector: 'app-news',
@@ -14,6 +15,9 @@ export class NewsComponent implements OnInit, OnDestroy {
 
   // base url pentru imagini
   private baseUrl = environment.apiUrl;
+
+  // Păstrăm referințe către grafice pentru a le putea distruge corect
+  private charts: { [key: string]: Chart } = {};
 
   // Știrile din aplicație
   featuredArticles: NewsArticle[] = [];
@@ -139,6 +143,13 @@ export class NewsComponent implements OnInit, OnDestroy {
   }
   
   ngOnDestroy(): void {
+    // Distrugem toate graficele pentru a preveni memory leaks
+    Object.keys(this.charts).forEach(key => {
+      if (this.charts[key]) {
+        this.charts[key].destroy();
+      }
+    });
+    
     // Curățare pentru a preveni memory leaks
     this.destroy$.next();
     this.destroy$.complete();
@@ -165,6 +176,7 @@ export class NewsComponent implements OnInit, OnDestroy {
     
     return iconMap[category] || '#featured-icon';
   }
+  
   getImageUrl(imagePath: string): string {
     if (!imagePath) {
       return '/assets/images/news/default.jpg';
@@ -265,6 +277,12 @@ export class NewsComponent implements OnInit, OnDestroy {
         this.electionAnalytics = data;
         this.analyticsLoading = false;
         console.log(`Loaded ${this.electionAnalytics.length} analytics datasets`);
+        
+        // După ce datele sunt încărcate, inițializăm graficele
+        // Setăm un timeout scurt pentru a ne asigura că DOM-ul a fost actualizat
+        setTimeout(() => {
+          this.initializeCharts();
+        }, 100);
       },
       (error) => {
         console.error('Error loading analytics', error);
@@ -272,6 +290,171 @@ export class NewsComponent implements OnInit, OnDestroy {
         this.analyticsLoading = false;
       }
     );
+  }
+
+  initializeCharts(): void {
+    // Distrugem orice grafice existente pentru a preveni duplicate
+    Object.keys(this.charts).forEach(key => {
+      if (this.charts[key]) {
+        this.charts[key].destroy();
+        delete this.charts[key];
+      }
+    });
+
+    // Definim paleta de culori pentru grafice
+    const colorPalette = {
+      line: {
+        borderColor: '#2e86de',
+        backgroundColor: 'rgba(46, 134, 222, 0.1)'
+      },
+      bar: {
+        backgroundColor: [
+          '#54a0ff', '#2e86de', '#0c75c7',
+          '#065a9d', '#044680', '#02386a'
+        ]
+      },
+      pie: {
+        backgroundColor: ['#ff6b6b', '#5f27cd', '#1dd1a1', '#feca57']
+      }
+    };
+
+    // Procesăm fiecare set de date analitice și creăm graficul corespunzător
+    this.electionAnalytics.forEach(analytics => {
+      const canvasId = `chart-${analytics.id}`;
+      const canvasElement = document.getElementById(canvasId) as HTMLCanvasElement;
+      
+      if (!canvasElement) {
+        console.error(`Canvas element with ID ${canvasId} not found`);
+        return;
+      }
+      
+      // Obținem contextul canvas-ului
+      const ctx = canvasElement.getContext('2d');
+      if (!ctx) {
+        console.error(`Could not get 2D context for canvas ${canvasId}`);
+        return;
+      }
+      
+      // Configurăm opțiunile graficului în funcție de tipul său
+      let chartConfig: any = {
+        type: analytics.type,
+        data: analytics.data,
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'top',
+              labels: {
+                color: 'rgba(255, 255, 255, 0.8)'
+              }
+            },
+            tooltip: {
+              backgroundColor: 'rgba(0, 0, 0, 0.8)',
+              titleColor: 'rgba(255, 255, 255, 1)',
+              bodyColor: 'rgba(255, 255, 255, 0.8)',
+              borderColor: 'rgba(255, 255, 255, 0.2)',
+              borderWidth: 1
+            }
+          }
+        }
+      };
+      
+      // Adăugăm configurări specifice pentru fiecare tip de grafic
+      switch (analytics.type) {
+        case 'line':
+          // Aplicăm setări de culori pentru graficul line
+          if (analytics.data && analytics.data.datasets && analytics.data.datasets.length > 0) {
+            analytics.data.datasets.forEach((dataset: any, index: number) => {
+              dataset.borderColor = dataset.borderColor || colorPalette.line.borderColor;
+              dataset.backgroundColor = dataset.backgroundColor || colorPalette.line.backgroundColor;
+              dataset.tension = 0.3; // Adăugăm curbe ușoare la linie
+              dataset.pointBackgroundColor = dataset.borderColor;
+            });
+          }
+          
+          chartConfig.options.scales = {
+            x: {
+              grid: {
+                color: 'rgba(255, 255, 255, 0.05)'
+              },
+              ticks: {
+                color: 'rgba(255, 255, 255, 0.7)'
+              }
+            },
+            y: {
+              grid: {
+                color: 'rgba(255, 255, 255, 0.05)'
+              },
+              ticks: {
+                color: 'rgba(255, 255, 255, 0.7)'
+              }
+            }
+          };
+          break;
+          case 'doughnut':
+            // Aplicăm setări de culori pentru graficul doughnut
+            if (analytics.data && analytics.data.datasets && analytics.data.datasets.length > 0) {
+              analytics.data.datasets.forEach((dataset: any, index: number) => {
+                dataset.backgroundColor = dataset.backgroundColor || colorPalette.pie.backgroundColor;
+                dataset.borderColor = 'rgba(255, 255, 255, 0.2)';
+                dataset.borderWidth = 2;
+                dataset.hoverOffset = 15;
+              });
+            }
+            
+            chartConfig.options.plugins.legend.position = 'right';
+            chartConfig.options.cutout = '60%'; // Specifică dimensiunea "găurii" din centru
+            break;
+        
+          
+        case 'bar':
+          // Aplicăm setări de culori pentru graficul bar
+          if (analytics.data && analytics.data.datasets && analytics.data.datasets.length > 0) {
+            analytics.data.datasets.forEach((dataset: any, index: number) => {
+              dataset.backgroundColor = dataset.backgroundColor || colorPalette.bar.backgroundColor;
+              dataset.borderColor = 'transparent';
+              dataset.borderRadius = 4;
+            });
+          }
+          
+          chartConfig.options.scales = {
+            x: {
+              grid: {
+                display: false
+              },
+              ticks: {
+                color: 'rgba(255, 255, 255, 0.7)'
+              }
+            },
+            y: {
+              grid: {
+                color: 'rgba(255, 255, 255, 0.05)'
+              },
+              ticks: {
+                color: 'rgba(255, 255, 255, 0.7)'
+              }
+            }
+          };
+          break;
+          
+        case 'pie':
+          // Aplicăm setări de culori pentru graficul pie
+          if (analytics.data && analytics.data.datasets && analytics.data.datasets.length > 0) {
+            analytics.data.datasets.forEach((dataset: any, index: number) => {
+              dataset.backgroundColor = dataset.backgroundColor || colorPalette.pie.backgroundColor;
+              dataset.borderColor = 'rgba(255, 255, 255, 0.1)';
+              dataset.borderWidth = 2;
+            });
+          }
+          
+          chartConfig.options.plugins.legend.position = 'right';
+          break;
+      }
+      
+      // Creăm graficul și păstrăm referința pentru a-l putea distruge mai târziu
+      this.charts[canvasId] = new Chart(ctx, chartConfig);
+    });
   }
 
   filterNews(): void {

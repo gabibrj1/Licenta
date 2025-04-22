@@ -264,17 +264,7 @@
       <div *ngFor="let analytics of electionAnalytics" class="analytics-item">
         <h3 class="analytics-title">{{ analytics.title }}</h3>
         <div class="chart-container">
-          <!-- În implementarea reală, aici ar trebui să fie un component de chart -->
-          <!-- Exemplu folosind Chart.js (trebuie importat separat) -->
-          <!-- <canvas [id]="'chart-' + analytics.id"></canvas> -->
-          
-          <!-- Pentru simulare în HTML static, folosim un placeholder pentru grafice -->
-          <div class="chart-placeholder" [ngClass]="'chart-type-' + analytics.type">
-            <div class="chart-info">
-              <span class="chart-type">{{ analytics.type | titlecase }} Chart</span>
-              <span class="data-points">{{ analytics.data?.labels?.length || 0 }} data points</span>
-            </div>
-          </div>
+          <canvas [id]="'chart-' + analytics.id"></canvas>
         </div>
       </div>
     </div>
