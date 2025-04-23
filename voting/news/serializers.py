@@ -28,12 +28,14 @@ class NewsArticleSerializer(serializers.ModelSerializer):
         if obj.image:
             # Returnează calea absolută, fără domeniu
             # Aceasta va fi /media/news/images/nume_imagine.jpg
-            return f"http://127.0.0.1:8000/media/news/images/{obj.image.name.split('/')[-1]}"
+            return f"http://127.0.0.1:8000/media/{obj.image}"
+        variant = (obj.id % 6) + 1
         
         # Returnează imagine implicită bazată pe categorie
         if obj.category:
-            return f"http://127.0.0.1:8000/media/news/images/defaults/{obj.category.slug}.jpg"
-        return f"http://127.0.0.1:8000/media/news/images/defaults/default.jpg"
+            category_slug = obj.category.slug
+            return f"http://127.0.0.1:8000/media/news/variants/{category_slug}_{variant}.jpg"
+        return f"http://127.0.0.1:8000/media/news/variants/defaults/default_{variant}.jpg"
     
 class NewsArticleDetailSerializer(serializers.ModelSerializer):
     category = CategorySerializer(read_only=True)

@@ -24,7 +24,7 @@ $background-color: rgba(0, 0, 0, 0.5);
   font-family: Arial, sans-serif;
 }
 
-// Indicator de încărcare
+// Indicator de încărcare - stilizat similar cu cel din news
 .loading-indicator {
   display: flex;
   flex-direction: column;
@@ -52,84 +52,142 @@ $background-color: rgba(0, 0, 0, 0.5);
   100% { transform: rotate(360deg); }
 }
 
-// Mesaj de eroare
+// Mesaj de eroare - adaptat la stilul news page
 .error-message {
   background-color: rgba($danger-color, 0.2);
   border-left: 4px solid $danger-color;
   padding: 20px;
-  border-radius: 4px;
+  border-radius: $border-radius;
   margin: 20px 0;
+  box-shadow: $box-shadow;
   
   h2 {
     color: $text-color;
     margin-top: 0;
-    font-size: 20px;
+    font-size: 22px;
+    margin-bottom: 10px;
   }
   
   p {
     color: $text-light;
     margin-bottom: 20px;
+    line-height: 1.6;
   }
   
   .btn-back {
     display: inline-block;
-    padding: 8px 16px;
-    background-color: rgba(255, 255, 255, 0.1);
+    padding: 10px 20px;
+    background-color: rgba($danger-color, 0.3);
     color: $text-color;
     text-decoration: none;
     border-radius: $border-radius;
     border: none;
     cursor: pointer;
     font-size: 14px;
+    transition: $transition;
     
     &:hover {
-      background-color: rgba(255, 255, 255, 0.2);
+      background-color: rgba($danger-color, 0.5);
+      transform: translateY(-2px);
     }
   }
 }
 
 // Conținutul articolului
 .article-content {
-  background-color: $background-color;
+  background-color: rgba(46, 134, 222, 0.1);
+  border: 1px solid rgba(46, 134, 222, 0.2);
   border-radius: $border-radius;
   overflow: hidden;
   margin-bottom: 30px;
   box-shadow: $box-shadow;
+  position: relative;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, rgba(46, 134, 222, 0.4) 0%, transparent 100%);
+    opacity: 0.05;
+    pointer-events: none;
+  }
 }
 
 // Header articol
 .article-header {
-  padding: 25px 30px 20px;
+  padding: 30px 35px 25px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  background-color: rgba(0, 0, 0, 0.3);
   
   .category-badge {
     display: inline-block;
-    padding: 4px 10px;
-    background-color: $primary-color;
+    padding: 5px 15px;
+    background: linear-gradient(to right, $primary-color, $primary-light);
     color: white;
     font-size: 13px;
-    font-weight: 500;
+    font-weight: 600;
     border-radius: 20px;
     margin-bottom: 15px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    
+    &.elections { background: linear-gradient(to right, #e74c3c, #c0392b); }
+    &.politics { background: linear-gradient(to right, #3498db, #2980b9); }
+    &.technology { background: linear-gradient(to right, #2ecc71, #27ae60); }
+    &.security { background: linear-gradient(to right, #9b59b6, #8e44ad); }
+    &.analysis { background: linear-gradient(to right, #f39c12, #e67e22); }
+    &.opinion { background: linear-gradient(to right, #1abc9c, #16a085); }
   }
   
   .article-title {
-    font-size: 32px;
+    font-size: 36px;
     font-weight: 700;
     line-height: 1.2;
-    margin: 0 0 15px;
+    margin: 0 0 20px;
     color: $text-color;
+    position: relative;
+    
+    &::after {
+      content: '';
+      position: absolute;
+      bottom: -10px;
+      left: 0;
+      width: 80px;
+      height: 3px;
+      background: linear-gradient(to right, $primary-color, transparent);
+      border-radius: 3px;
+    }
   }
   
   .article-meta {
     display: flex;
     flex-wrap: wrap;
-    gap: 20px;
+    gap: 25px;
     font-size: 14px;
-    color: rgba(255, 255, 255, 0.6);
+    color: rgba(255, 255, 255, 0.7);
+    margin-top: 15px;
+    
+    span {
+      display: flex;
+      align-items: center;
+      
+      &::before {
+        content: '';
+        display: inline-block;
+        width: 4px;
+        height: 4px;
+        background-color: rgba(255, 255, 255, 0.5);
+        border-radius: 50%;
+        margin-right: 8px;
+      }
+    }
     
     .article-author {
-      font-weight: 500;
+      font-weight: 600;
+      color: $primary-light;
     }
     
     .article-views {
@@ -143,8 +201,10 @@ $background-color: rgba(0, 0, 0, 0.5);
         height: 16px;
         background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23ffffff"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>');
         background-repeat: no-repeat;
-        margin-right: 5px;
-        opacity: 0.6;
+        margin-right: 8px;
+        width: 18px;
+        height: 18px;
+        opacity: 0.7;
       }
     }
   }
@@ -153,28 +213,99 @@ $background-color: rgba(0, 0, 0, 0.5);
 // Imaginea principală
 .article-featured-image {
   position: relative;
+  max-height: 600px;
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: rgba(0, 0, 0, 0.8);
+  
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 100px;
+    background: linear-gradient(to bottom, transparent, rgba(0,0,0,0.7));
+    pointer-events: none;
+    z-index: 2;
+  }
   
   img {
     width: 100%;
+    max-width: 100%;
     height: auto;
-    max-height: 500px;
-    object-fit: cover;
+    max-height: 600px; // Limitează înălțimea imaginii
+    object-fit: contain; // Schimbăm de la cover la contain pentru a nu tăia imaginea
+    display: block;
+    transition: transform 0.5s ease;
+
+    @media (min-width: 768px) {
+      object-fit: contain; // Păstrăm aspectul original pe ecrane mari
+    }
+
+    @media (max-width: 767px) {
+      object-fit: cover; // Pe mobile folosim cover pentru a umple spațiul
+    }
+    
+    &:hover {
+      transform: scale(1.02);
+    }
   }
   
   .image-credit {
     position: absolute;
-    bottom: 0;
-    right: 0;
-    background-color: rgba(0, 0, 0, 0.6);
-    color: white;
-    padding: 5px 10px;
+    bottom: 10px;
+    right: 10px;
+    background-color: rgba(0, 0, 0, 0.7);
+    color: rgba(255, 255, 255, 0.8);
+    padding: 5px 12px;
     font-size: 12px;
+    border-radius: 20px;
+    z-index: 3; // Asigură că creditul este deasupra gradientului
+    backdrop-filter: blur(4px);
+  }
+}
+.high-quality-image {
+  .article-featured-image {
+    max-height: none; // Eliminăm limita de înălțime pentru imagini de înaltă calitate
+    
+    img {
+      max-height: none; // Eliminăm limita de înălțime pentru imaginea în sine
+      object-fit: contain; // Păstrăm raportul aspectului original
+    }
+  }
+}
+
+// Adăugăm o clasă pentru imagini cu aspect landscape (orizontale)
+.landscape-image {
+  .article-featured-image {
+    img {
+      width: 100%;
+      object-fit: cover; // Pentru imagini landscape folosim cover
+      max-height: 500px; // Limităm înălțimea pentru a nu ocupa prea mult spațiu vertical
+    }
+  }
+}
+
+// Adăugăm o clasă pentru imagini cu aspect portrait (verticale)
+.portrait-image {
+  .article-featured-image {
+    max-height: 700px; // Permitem o înălțime mai mare pentru imagini portrait
+    
+    img {
+      height: auto;
+      max-height: 700px;
+      max-width: 100%;
+      object-fit: contain; // Pentru imagini portrait folosim contain
+    }
   }
 }
 
 // Rezumat articol
 .article-summary {
-  padding: 25px 30px;
+  padding: 25px 35px;
   background-color: rgba(255, 255, 255, 0.05);
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   
@@ -184,27 +315,43 @@ $background-color: rgba(0, 0, 0, 0.5);
     font-weight: 500;
     color: $text-light;
     margin: 0;
+    padding-left: 15px;
+    border-left: 3px solid $primary-color;
+    font-style: italic;
   }
 }
 
 // Corp articol
 .article-body {
-  padding: 30px;
+  padding: 35px;
   
   .content-paragraphs {
-    font-size: 16px;
-    line-height: 1.7;
-    color: $text-light;
+    font-size: 17px;
+    line-height: 1.8;
+    color: rgba(255, 255, 255, 0.9);
     
     p {
-      margin-bottom: 20px;
+      margin-bottom: 25px;
+      
+      &:first-of-type::first-letter {
+        font-size: 300%;
+        line-height: 0.85;
+        font-weight: 700;
+        float: left;
+        margin-right: 12px;
+        color: $primary-color;
+      }
+      
+      &:last-child {
+        margin-bottom: 0;
+      }
     }
   }
 }
 
 // Footer articol
 .article-footer {
-  padding: 20px 30px;
+  padding: 25px 35px;
   border-top: 1px solid rgba(255, 255, 255, 0.1);
   background-color: rgba(255, 255, 255, 0.05);
   display: flex;
@@ -219,8 +366,11 @@ $background-color: rgba(0, 0, 0, 0.5);
     a {
       color: $primary-light;
       text-decoration: none;
+      font-weight: 500;
+      transition: $transition;
       
       &:hover {
+        color: white;
         text-decoration: underline;
       }
     }
@@ -238,43 +388,78 @@ $background-color: rgba(0, 0, 0, 0.5);
       gap: 10px;
       
       .btn-social {
-        padding: 6px 12px;
+        padding: 8px 15px;
         border: none;
-        border-radius: 4px;
+        border-radius: 20px;
         cursor: pointer;
         font-size: 13px;
         color: white;
         display: flex;
         align-items: center;
+        transition: $transition;
+        font-weight: 500;
+        
+        &::before {
+          content: '';
+          display: inline-block;
+          width: 16px;
+          height: 16px;
+          margin-right: 8px;
+          background-repeat: no-repeat;
+          background-position: center;
+        }
         
         &.btn-facebook {
           background-color: #3b5998;
+          
+          &::before {
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23ffffff"><path d="M17,2V2H7C4.24,2 2,4.24 2,7V17C2,19.76 4.24,22 7,22H17C19.76,22 22,19.76 22,17V7C22,4.24 19.76,2 17,2M16,7H14C13.45,7 13,7.45 13,8V10H16V13H13V20H10V13H8V10H10V7.5C10,5.56 11.56,4 13.5,4H16V7Z"/></svg>');
+          }
+          
+          &:hover {
+            background-color: darken(#3b5998, 10%);
+            transform: translateY(-3px);
+          }
         }
         
         &.btn-twitter {
           background-color: #1da1f2;
+          
+          &::before {
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23ffffff"><path d="M22.46,6C21.69,6.35 20.86,6.58 20,6.69C20.88,6.16 21.56,5.32 21.88,4.31C21.05,4.81 20.13,5.16 19.16,5.36C18.37,4.5 17.26,4 16,4C13.65,4 11.73,5.92 11.73,8.29C11.73,8.63 11.77,8.96 11.84,9.27C8.28,9.09 5.11,7.38 3,4.79C2.63,5.42 2.42,6.16 2.42,6.94C2.42,8.43 3.17,9.75 4.33,10.5C3.62,10.5 2.96,10.3 2.38,10C2.38,10 2.38,10 2.38,10.03C2.38,12.11 3.86,13.85 5.82,14.24C5.46,14.34 5.08,14.39 4.69,14.39C4.42,14.39 4.15,14.36 3.89,14.31C4.43,16 6,17.26 7.89,17.29C6.43,18.45 4.58,19.13 2.56,19.13C2.22,19.13 1.88,19.11 1.54,19.07C3.44,20.29 5.7,21 8.12,21C16,21 20.33,14.46 20.33,8.79C20.33,8.6 20.33,8.42 20.32,8.23C21.16,7.63 21.88,6.87 22.46,6Z"/></svg>');
+          }
+          
+          &:hover {
+            background-color: darken(#1da1f2, 10%);
+            transform: translateY(-3px);
+          }
         }
         
         &.btn-email {
           background-color: $gray-dark;
-        }
-        
-        &:hover {
-          opacity: 0.9;
+          
+          &::before {
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23ffffff"><path d="M20,8L12,13L4,8V6L12,11L20,6M20,4H4C2.89,4 2,4.89 2,6V18A2,2 0 0,0 4,20H20A2,2 0 0,0 22,18V6C22,4.89 21.1,4 20,4Z"/></svg>');
+          }
+          
+          &:hover {
+            background-color: darken($gray-dark, 10%);
+            transform: translateY(-3px);
+          }
         }
       }
     }
   }
 }
 
-// Articole conexe
+// Articole conexe - stilizate pentru a se potrivi cu restul designului news
 .related-articles {
   margin-top: 40px;
   
   .section-title {
     font-size: 24px;
     color: $primary-color;
-    margin-bottom: 20px;
+    margin-bottom: 25px;
     position: relative;
     padding-bottom: 10px;
     
@@ -297,15 +482,40 @@ $background-color: rgba(0, 0, 0, 0.5);
   }
   
   .related-article {
-    background-color: $background-color;
+    background-color: rgba(46, 134, 222, 0.1);
+    border: 1px solid rgba(46, 134, 222, 0.2);
     border-radius: $border-radius;
     overflow: hidden;
     box-shadow: $box-shadow;
     transition: $transition;
+    position: relative;
     
     &:hover {
       transform: translateY(-5px);
-      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4);
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+      border-color: rgba(46, 134, 222, 0.5);
+      
+      .article-image {
+        transform: scale(1.05);
+      }
+    }
+    
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(135deg, rgba(46, 134, 222, 0.4) 0%, transparent 100%);
+      opacity: 0.05;
+      transition: opacity 0.3s ease;
+      pointer-events: none;
+      z-index: 1;
+    }
+    
+    &:hover::before {
+      opacity: 0.1;
     }
     
     .article-image {
@@ -313,111 +523,204 @@ $background-color: rgba(0, 0, 0, 0.5);
       background-size: cover;
       background-position: center;
       background-repeat: no-repeat;
+      transition: transform 0.5s ease;
+      position: relative;
+      
+      &::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: 50px;
+        background: linear-gradient(to bottom, transparent, rgba(0,0,0,0.7));
+      }
+      
+      &:not([style*="background-image"]) {
+        background-image: 
+          linear-gradient(45deg, rgba(255,255,255,0.05) 25%, transparent 25%, transparent 50%, rgba(255,255,255,0.05) 50%, rgba(255,255,255,0.05) 75%, transparent 75%, transparent);
+        background-size: 20px 20px;
+      }
     }
     
     .article-content {
-      padding: 15px;
-      box-shadow: none;
-      margin-bottom: 0;
+      padding: 20px;
       
       .article-title {
         font-size: 18px;
         font-weight: 600;
-        margin: 0 0 10px;
+        margin: 0 0 12px;
         line-height: 1.3;
         color: $text-color;
+        
+        // Limitarea titlului la 2 rânduri
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        text-overflow: ellipsis;
       }
       
       .article-meta {
         font-size: 13px;
         color: rgba(255, 255, 255, 0.6);
         margin-bottom: 15px;
+        display: flex;
+        align-items: center;
+        
+        .article-date {
+          display: flex;
+          align-items: center;
+          
+          &::before {
+            content: '';
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23ffffff" opacity="0.6"><path d="M12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22C6.47,22 2,17.5 2,12A10,10 0 0,1 12,2M12.5,7V12.25L17,14.92L16.25,16.15L11,13V7H12.5Z"/></svg>');
+            background-repeat: no-repeat;
+            margin-right: 5px;
+          }
+        }
       }
       
       .read-more {
-        display: inline-block;
-        padding: 6px 12px;
-        background-color: $primary-color;
+        display: inline-flex;
+        align-items: center;
+        padding: 8px 16px;
+        background-color: rgba($primary-color, 0.8);
         color: white;
         text-decoration: none;
-        border-radius: 4px;
+        border-radius: 20px;
         font-size: 13px;
-        transition: background-color 0.2s ease;
+        font-weight: 500;
+        transition: $transition;
+        position: relative;
+        overflow: hidden;
+        
+        &::after {
+          content: '→';
+          margin-left: 8px;
+          font-size: 16px;
+          transition: transform 0.2s ease;
+        }
         
         &:hover {
-          background-color: $primary-dark;
+          background-color: $primary-color;
+          
+          &::after {
+            transform: translateX(3px);
+          }
         }
       }
     }
   }
 }
 
-// Buton de navigare înapoi
+// Buton de navigare înapoi - stilizat pentru a se potrivi cu restul designului
 .back-navigation {
-  margin-top: 30px;
+  margin-top: 40px;
+  margin-bottom: 20px;
   
   .btn-back {
     display: inline-flex;
     align-items: center;
-    padding: 10px 20px;
-    background-color: rgba(255, 255, 255, 0.1);
+    padding: 12px 25px;
+    background-color: rgba(46, 134, 222, 0.15);
     color: $text-color;
     text-decoration: none;
-    border-radius: $border-radius;
+    border-radius: 25px;
     transition: $transition;
+    font-weight: 500;
+    border: 1px solid rgba(46, 134, 222, 0.3);
     
     .back-icon {
-      margin-right: 8px;
-      font-size: 18px;
+      margin-right: 10px;
+      font-size: 20px;
+      transition: transform 0.2s ease;
     }
     
     &:hover {
-      background-color: rgba(255, 255, 255, 0.2);
+      background-color: rgba(46, 134, 222, 0.25);
+      transform: translateY(-2px);
+      
+      .back-icon {
+        transform: translateX(-3px);
+      }
     }
   }
 }
 
 // Stări pentru date lipsă
 .empty-state {
-  padding: 20px;
+  padding: 25px;
   background-color: rgba(255, 255, 255, 0.05);
   border-radius: $border-radius;
   text-align: center;
   margin-bottom: 20px;
+  border: 1px dashed rgba(255, 255, 255, 0.2);
   
   p {
     color: rgba(255, 255, 255, 0.6);
-    font-size: 14px;
+    font-size: 15px;
     margin: 0;
   }
 }
 
-/* Responsive adjustments */
-@media (max-width: 768px) {
+/* Responsive adjustments - îmbunătățite pentru a asigura o experiență optimă pe dispozitive mobile */
+@media (max-width: 992px) {
   .article-header {
-    padding: 20px;
-    
     .article-title {
-      font-size: 24px;
-    }
-    
-    .article-meta {
-      flex-direction: column;
-      gap: 5px;
+      font-size: 30px;
     }
   }
   
   .article-summary p {
+    font-size: 17px;
+  }
+  
+  .article-body .content-paragraphs {
     font-size: 16px;
+  }
+}
+
+@media (max-width: 768px) {
+  .article-header {
+    padding: 20px 25px;
+    
+    .article-title {
+      font-size: 26px;
+    }
+    
+    .article-meta {
+      flex-direction: column;
+      gap: 8px;
+      align-items: flex-start;
+    }
+  }
+  
+  .article-summary {
+    padding: 20px 25px;
+    
+    p {
+      font-size: 16px;
+    }
+  }
+  
+  .article-body {
+    padding: 25px;
+    
+    .content-paragraphs {
+      font-size: 15px;
+    }
   }
   
   .article-footer {
+    padding: 20px 25px;
     flex-direction: column;
     align-items: flex-start;
-    
-    .article-source {
-      margin-bottom: 15px;
-    }
+    gap: 15px;
   }
   
   .related-articles-grid {
@@ -431,18 +734,60 @@ $background-color: rgba(0, 0, 0, 0.5);
   }
   
   .article-header {
-    padding: 15px;
+    padding: 18px;
     
     .article-title {
       font-size: 22px;
+      margin-bottom: 15px;
+    }
+    
+    .category-badge {
+      font-size: 11px;
+      padding: 4px 12px;
+    }
+  }
+  
+  .article-summary {
+    padding: 18px;
+    
+    p {
+      font-size: 15px;
+      line-height: 1.5;
     }
   }
   
   .article-body {
-    padding: 15px;
+    padding: 18px;
+    
+    .content-paragraphs {
+      font-size: 15px;
+      line-height: 1.6;
+      
+      p:first-of-type::first-letter {
+        font-size: 250%;
+      }
+    }
   }
   
   .article-footer {
-    padding: 15px;
+    padding: 18px;
+    
+    .share-buttons .social-buttons {
+      flex-wrap: wrap;
+      
+      .btn-social {
+        flex: 1 0 100%;
+        justify-content: center;
+      }
+    }
+  }
+  
+  .related-article .article-image {
+    height: 150px;
+  }
+  
+  .back-navigation .btn-back {
+    width: 100%;
+    justify-content: center;
   }
 }

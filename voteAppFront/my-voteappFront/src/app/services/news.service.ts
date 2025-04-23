@@ -119,5 +119,16 @@ export class NewsService {
         catchError(this.handleError<NewsArticle>('getArticleDetail'))
       );
   }
+  getOpinions(limit: number = 5): Observable<NewsArticle[]> {
+    let params = new HttpParams()
+      .set('limit', limit.toString());
+    
+    return this.http.get<NewsArticle[]>(`${this.apiUrl}api/opinions/`, { params })
+      .pipe(
+        retry(1),
+        tap(data => console.log(`Received ${data.length} opinions from API`)),
+        catchError(this.handleError<NewsArticle[]>('getOpinions', []))
+      );
+  }
 
 }

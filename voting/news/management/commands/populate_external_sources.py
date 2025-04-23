@@ -11,48 +11,46 @@ class Command(BaseCommand):
         # Sursele care vor fi create
         sources_data = [
             {
-                'name': 'E-Democracy News',
-                'url': 'https://edemocracynews.example.com',
-                'api_endpoint': 'https://api.edemocracynews.example.com/v1/news',
+                'name': 'Centrul pentru studiul democratiei',
+                'url': 'https://democracycenter.ro',
+                'api_endpoint': 'https://democracycenter.ro/api/news',
                 'is_active': True
             },
             {
-                'name': 'TechVote',
-                'url': 'https://techvote.example.com',
-                'api_endpoint': 'https://api.techvote.example.com/news',
+                'name': 'Code for Romania',
+                'url': 'https://www.code4.ro',
+                'api_endpoint': 'https://www.code4.ro/api/news',
                 'is_active': True
             },
             {
-                'name': 'Election Observer',
-                'url': 'https://electionobserver.example.com',
-                'api_endpoint': 'https://api.electionobserver.example.com/latest',
+                'name': 'DIGI 24',
+                'url': 'https://www.digi24.ro',
+                'api_endpoint': 'https://www.digi24.ro/api/news',
                 'is_active': True
             },
             {
-                'name': 'SmartVote Analysis',
-                'url': 'https://smartvote.example.com/analysis',
-                'api_endpoint': 'https://api.smartvote.example.com/analysis',
+                'name': 'Guvernul României',
+                'url': 'https://sgg.gov.ro',
+                'api_endpoint': 'https://sgg.gov.ro/api/news',
                 'is_active': True
             },
             {
-                'name': 'VoteWatch',
-                'url': 'https://votewatch.example.com',
-                'api_endpoint': 'https://api.votewatch.example.com/feed',
+                'name': 'PressOne',
+                'url': 'https://pressone.ro',
+                'api_endpoint': 'https://pressone.ro/api/news',
                 'is_active': True
             }
         ]
         
         # Folosim transaction pentru a asigura integritatea datelor
         with transaction.atomic():
+            # Mai întâi ștergem sursele existente pentru a evita duplicate
+            ExternalNewsSource.objects.all().delete()
+            self.stdout.write(self.style.WARNING("Sursele externe existente au fost șterse."))
+            
+            # Apoi adăugăm noile surse
             for source_data in sources_data:
-                source, created = ExternalNewsSource.objects.get_or_create(
-                    name=source_data['name'],
-                    defaults=source_data
-                )
-                
-                if created:
-                    self.stdout.write(self.style.SUCCESS(f"Sursa externă '{source.name}' a fost creată."))
-                else:
-                    self.stdout.write(self.style.WARNING(f"Sursa externă '{source.name}' există deja."))
+                source = ExternalNewsSource.objects.create(**source_data)
+                self.stdout.write(self.style.SUCCESS(f"Sursa externă '{source.name}' a fost creată."))
         
         self.stdout.write(self.style.SUCCESS('Popularea surselor externe de știri a fost finalizată cu succes!'))

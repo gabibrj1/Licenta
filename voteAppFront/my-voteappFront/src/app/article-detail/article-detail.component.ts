@@ -59,6 +59,31 @@ export class ArticleDetailComponent implements OnInit {
     // Pentru alte cazuri
     return `http://127.0.0.1:8000${imagePath.startsWith('/') ? '' : '/'}${imagePath}`;
   }
+  detectImageOrientation() {
+    if (this.article && this.article.image_url) {
+      const img = new Image();
+      img.onload = () => {
+        const container = document.querySelector('.article-detail-container');
+        if (container) {
+          // Elimină orice clase de orientare existente
+          container.classList.remove('landscape-image', 'portrait-image', 'high-quality-image');
+          
+          // Adaugă clasa potrivită în funcție de raportul aspectului
+          if (img.width > img.height) {
+            container.classList.add('landscape-image');
+          } else if (img.height > img.width) {
+            container.classList.add('portrait-image');
+          }
+          
+          // Verifică dacă imaginea are rezoluție înaltă
+          if (img.width > 1200 || img.height > 900) {
+            container.classList.add('high-quality-image');
+          }
+        }
+      };
+      img.src = this.article.image_url;
+    }
+  }
 
 
   loadArticle(slug: string): void {
@@ -72,6 +97,8 @@ export class ArticleDetailComponent implements OnInit {
           // Setăm articolul curent
           this.article = article;
           this.titleService.setTitle(`${article.title} | SmartVote`);
+
+          setTimeout(() => this.detectImageOrientation(), 10);
           
           // Apoi obținem articolele conexe din aceeași categorie
           if (article.category && article.category.slug) {

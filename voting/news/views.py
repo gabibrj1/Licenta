@@ -18,7 +18,7 @@ def news_home(request):
     """
     View pentru pagina principală de știri
     """
-    featured_articles = NewsArticle.objects.filter(is_featured=True, is_published=True)[:5]
+    featured_articles = NewsArticle.objects.filter(is_featured=True, is_published=True)[:6]
     latest_news = NewsArticle.objects.filter(is_published=True, article_type='news')[:8]
     latest_analysis = NewsArticle.objects.filter(is_published=True, article_type='analysis')[:5]
     categories = Category.objects.all()
@@ -143,41 +143,57 @@ class ExternalNewsAPI(APIView):
         """
         news = []
         
-        # Site-uri românești de știri politice
-        romanian_news_sites = [
-            'https://www.hotnews.ro/stiri-politic',
-            'https://www.digi24.ro/stiri/actualitate/politica',
-            'https://adevarul.ro/news/politica',
-            'https://www.g4media.ro/politic',
-            'https://romania.europalibera.org/politica',
-            'https://www.libertatea.ro/stiri/politica',
-            'https://www.antena3.ro/politica'
+        # Definim datele pentru știrile unice
+        news_data = [
+            {
+                'title': 'Analiză: Impactul votului electronic în contextul actual al României',
+                'description': 'O evaluare detaliată a modului în care votul electronic poate transforma procesul democratic în era digitală în România.',
+                'url': 'https://democracycenter.ro/publicatii/cat-de-oportuna-este-introducerea-votului-prin-internet-romania/',
+                'urlToImage': '/static/images/news/default1.jpg',
+                'source': {'name': 'Centrul pentru studiul democratiei'},
+                'author': 'Echipa de analiză'
+            },
+            {
+                'title': 'Securitate și transparență: Provocările implementării votului electronic în România',
+                'description': 'Experții dezbat echilibrul optim între securitate și accesibilitate în sistemele moderne de vot electronic pentru alegerile românești.',
+                'url': 'https://www.code4.ro/ro/blog/securitatea-sistemelor-de-vot-electronic',
+                'urlToImage': '/static/images/news/default2.jpg',
+                'source': {'name': 'Code for Romania'},
+                'author': 'Echipa de cercetare'
+            },
+            {
+                'title': 'Știri politice de ultimă oră',
+                'description': 'Ultimele informații din sfera politică românească și impactul asupra sistemelor de vot.',
+                'url': 'https://www.digi24.ro/stiri/actualitate/politica',
+                'urlToImage': '/static/images/news/default3.jpg',
+                'source': {'name': 'DIGI 24'},
+                'author': 'Redacția Digi24'
+            },
+            {
+                'title': 'Actualizări legislative și reglementări',
+                'description': 'Cele mai recente modificări legislative care afectează implementarea sistemelor de vot electronic în România.',
+                'url': 'https://sgg.gov.ro/1/wp-content/uploads/2023/01/INFORMARE.pdf',
+                'urlToImage': '/static/images/news/default4.jpg',
+                'source': {'name': 'Guvernul României'},
+                'author': 'Secretariatul General al Guvernului'
+            },
+            {
+                'title': 'Votul electronic: avantaje și riscuri de securitate',
+                'description': 'O analiză comprehensivă a beneficiilor și vulnerabilităților potențiale ale implementării votului electronic în România.',
+                'url': 'https://pressone.ro/votul-electronic-avantaje-si-riscuri-de-securitate',
+                'urlToImage': '/static/images/news/default5.jpg',
+                'source': {'name': 'PressOne'},
+                'author': 'Echipa editorială'
+            }
         ]
         
-        for idx, source in enumerate(sources):
-            site_idx = idx % len(romanian_news_sites)
-            
-            news.append({
-                'title': f'Analiză: Impactul votului electronic în contextul actual al României',
-                'description': f'O evaluare detaliată a modului în care votul electronic poate transforma procesul democratic în era digitală în România.',
-                'url': romanian_news_sites[site_idx],
-                'urlToImage': f'/static/images/news/default{idx+1}.jpg',
-                'publishedAt': datetime.now().isoformat(),
-                'source': {'name': source.name},
-                'author': 'Echipa de analiză'
-            })
-            
-            news.append({
-                'title': f'Securitate și transparență: Provocările implementării votului electronic în România',
-                'description': f'Experții dezbat echilibrul optim între securitate și accesibilitate în sistemele moderne de vot electronic pentru alegerile românești.',
-                'url': romanian_news_sites[(site_idx + 1) % len(romanian_news_sites)],
-                'urlToImage': f'/static/images/news/default{idx+2}.jpg',
-                'publishedAt': (datetime.now() - timedelta(days=idx+1)).isoformat(),
-                'source': {'name': source.name},
-                'author': 'Echipa de cercetare'
-            })
+        # Adăugăm datele de publicare (timestamp actual pentru prima știre, 
+        # apoi decrementăm cu câte o zi pentru fiecare știre următoare)
+        for i, news_item in enumerate(news_data):
+            news_item['publishedAt'] = (datetime.now() - timedelta(days=i)).isoformat()
+            news.append(news_item)
         
-        return news[:5]  # Limitam la 5 știri
+        return news
     
     def get_mock_news(self):
         """
@@ -185,49 +201,49 @@ class ExternalNewsAPI(APIView):
         """
         return [
             {
-                'title': 'Analiză: Impactul votului electronic asupra prezenței la urne',
-                'description': 'Studii recente arată că implementarea sistemelor de vot electronic poate crește prezența la urne cu până la 15% în rândul tinerilor în România.',
-                'url': 'https://www.hotnews.ro/stiri-politic',
+                'title': 'Analiză: Impactul votului electronic în contextul actual al României',
+                'description': 'O evaluare detaliată a modului în care votul electronic poate transforma procesul democratic în era digitală în România.',
+                'url': 'https://democracycenter.ro/publicatii/cat-de-oportuna-este-introducerea-votului-prin-internet-romania/',
                 'urlToImage': '/static/images/news/default1.jpg',
                 'publishedAt': datetime.now().isoformat(),
-                'source': {'name': 'SmartVote Analysis'},
-                'author': 'Echipa SmartVote'
+                'source': {'name': 'Centrul pentru studiul democratiei'},
+                'author': 'Echipa de analiză'
             },
             {
-                'title': 'Securitatea votului electronic: mituri și realități',
-                'description': 'Experții în securitate informatică dezbat miturile comune despre vulnerabilitățile sistemelor de vot electronic în contextul electoral românesc.',
-                'url': 'https://www.digi24.ro/stiri/actualitate/politica',
+                'title': 'Securitate și transparență: Provocările implementării votului electronic în România',
+                'description': 'Experții dezbat echilibrul optim între securitate și accesibilitate în sistemele moderne de vot electronic pentru alegerile românești.',
+                'url': 'https://www.code4.ro/ro/blog/securitatea-sistemelor-de-vot-electronic',
                 'urlToImage': '/static/images/news/default2.jpg',
                 'publishedAt': (datetime.now() - timedelta(days=1)).isoformat(),
-                'source': {'name': 'SmartVote Analysis'},
-                'author': 'Echipa SmartVote'
+                'source': {'name': 'Code for Romania'},
+                'author': 'Echipa de cercetare'
             },
             {
-                'title': 'Estonia: 15 ani de vot electronic - lecții pentru România',
-                'description': 'Estonia, pionier în implementarea votului electronic, oferă lecții valoroase pentru România în contextul modernizării sistemului electoral.',
-                'url': 'https://adevarul.ro/news/politica',
+                'title': 'Știri politice de ultimă oră',
+                'description': 'Ultimele informații din sfera politică românească și impactul asupra sistemelor de vot.',
+                'url': 'https://www.digi24.ro/stiri/actualitate/politica',
                 'urlToImage': '/static/images/news/default3.jpg',
                 'publishedAt': (datetime.now() - timedelta(days=2)).isoformat(),
-                'source': {'name': 'SmartVote Analysis'},
-                'author': 'Echipa SmartVote'
+                'source': {'name': 'DIGI 24'},
+                'author': 'Redacția Digi24'
             },
             {
-                'title': 'Tendințe internaționale în adoptarea votului electronic',
-                'description': 'Analiza comparativă a țărilor care au implementat votul electronic și cum România ar putea beneficia de aceste experiențe.',
-                'url': 'https://www.g4media.ro/politic',
+                'title': 'Actualizări legislative și reglementări',
+                'description': 'Cele mai recente modificări legislative care afectează implementarea sistemelor de vot electronic în România.',
+                'url': 'https://sgg.gov.ro/1/wp-content/uploads/2023/01/INFORMARE.pdf',
                 'urlToImage': '/static/images/news/default4.jpg',
                 'publishedAt': (datetime.now() - timedelta(days=3)).isoformat(),
-                'source': {'name': 'SmartVote Analysis'},
-                'author': 'Echipa SmartVote'
+                'source': {'name': 'Guvernul României'},
+                'author': 'Secretariatul General al Guvernului'
             },
             {
-                'title': 'Perspective legislative privind votul electronic în România',
-                'description': 'Analiză a cadrului legislativ actual și a schimbărilor necesare pentru implementarea votului electronic în România.',
-                'url': 'https://romania.europalibera.org/politica',
+                'title': 'Votul electronic: avantaje și riscuri de securitate',
+                'description': 'O analiză comprehensivă a beneficiilor și vulnerabilităților potențiale ale implementării votului electronic în România.',
+                'url': 'https://pressone.ro/votul-electronic-avantaje-si-riscuri-de-securitate',
                 'urlToImage': '/static/images/news/default5.jpg',
                 'publishedAt': (datetime.now() - timedelta(days=4)).isoformat(),
-                'source': {'name': 'SmartVote Analysis'},
-                'author': 'Echipa SmartVote'
+                'source': {'name': 'PressOne'},
+                'author': 'Echipa editorială'
             }
         ]
 
@@ -347,3 +363,26 @@ def get_default_image_path(category_slug=None):
     }
     
     return default_images.get(category_slug, default_images['general'])
+
+class OpinionsAPI(APIView):
+    permission_classes = [AllowAny]
+    
+    def get(self, request):
+        """
+        API endpoint pentru opinii
+        """
+        try:
+            limit = int(request.query_params.get('limit', 5))
+            
+            # Obținem articolele de tip opinie
+            opinions = NewsArticle.objects.filter(
+                is_published=True, 
+                article_type='opinion'
+            ).order_by('-publish_date')[:limit]
+            
+            serializer = NewsArticleSerializer(opinions, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        
+        except Exception as e:
+            logger.error(f"Eroare la obținerea opiniilor: {str(e)}")
+            return Response([], status=status.HTTP_200_OK)

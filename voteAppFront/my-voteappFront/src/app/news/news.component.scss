@@ -1099,3 +1099,138 @@ $background-color: rgba(0, 0, 0, 0.5);
     }
   }
 }
+.opinions-section {
+  margin-top: 40px;
+  margin-bottom: 40px;
+  
+  .opinions-list {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+  
+  .opinion-item {
+    position: relative;
+    background-color: rgba(26, 188, 156, 0.1);
+    border-radius: $border-radius;
+    padding: 20px;
+    border-left: 3px solid $success-color;
+    transition: $transition;
+    overflow: hidden;
+    
+    &:hover {
+      background-color: rgba(26, 188, 156, 0.15);
+      transform: translateY(-3px);
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+    }
+    
+    .opinion-icon {
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      opacity: 0.15;
+    }
+    
+    .opinion-quote {
+      position: absolute;
+      top: -20px;
+      left: 10px;
+      font-size: 120px;
+      color: rgba(26, 188, 156, 0.1);
+      font-family: Georgia, serif;
+    }
+    
+    .opinion-content {
+      position: relative;
+      z-index: 1;
+    }
+    
+    .opinion-title {
+      font-size: 18px;
+      margin-bottom: 10px;
+      color: white;
+      font-style: italic;
+    }
+    
+    .opinion-summary {
+      font-size: 14px;
+      line-height: 1.6;
+      color: rgba(255, 255, 255, 0.85);
+      margin-bottom: 15px;
+      font-style: italic;
+      padding-left: 15px;
+      border-left: 2px solid rgba(26, 188, 156, 0.3);
+    }
+    
+    .opinion-meta {
+      display: flex;
+      justify-content: space-between;
+      font-size: 13px;
+      color: rgba(255, 255, 255, 0.7);
+      margin-bottom: 10px;
+      
+      .opinion-author {
+        font-weight: 600;
+        color: #1abc9c;
+      }
+    }
+    
+    .read-more {
+      color: #1abc9c;
+      font-size: 13px;
+      font-weight: 500;
+      text-decoration: none;
+      display: inline-block;
+      margin-top: 5px;
+      
+      &:hover {
+        text-decoration: underline;
+      }
+    }
+  }
+}
+.opinion-trends {
+  position: relative;
+  background-color: rgba(26, 188, 156, 0.05);
+  border-radius: $border-radius;
+  padding: 15px 20px;
+  border-left: 3px solid #1abc9c;
+  margin-top: 5px;
+  height: 130px;
+  
+  
+  .trends-title {
+    font-size: 18px;
+    color: #1abc9c;
+    margin-bottom: 10px;
+    font-weight: 500;
+  }
+  
+  .trends-description {
+    font-size: 14px;
+    line-height: 1.5;
+    color: rgba(255, 255, 255, 0.85);
+    margin-bottom: 12px;
+  }
+  
+  .trend-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    
+    .trend-tag {
+      background-color: rgba(26, 188, 156, 0.15);
+      color: #1abc9c;
+      font-size: 12px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-weight: 500;
+      transition: all 0.2s ease;
+      
+      &:hover {
+        background-color: rgba(26, 188, 156, 0.25);
+        transform: translateY(-2px);
+      }
+    }
+  }
+}

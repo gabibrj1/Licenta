@@ -167,6 +167,56 @@
             <a [routerLink]="['article', article.slug]" class="read-more">Citește mai mult</a>
           </div>
         </div>
+        <div class="opinions-section">
+          <h2 class="section-title">Opinii</h2>
+          
+          <div *ngIf="opinionsLoading" class="loading-indicator">
+            <div class="spinner"></div>
+            <p>Se încarcă opiniile...</p>
+          </div>
+          
+          <div *ngIf="!opinionsLoading && opinionsError" class="error-message">
+            <p>Nu s-au putut încărca opiniile. Vă rugăm încercați din nou mai târziu.</p>
+          </div>
+          
+          <div *ngIf="!opinionsLoading && !opinionsError && latestOpinions.length === 0" class="empty-state">
+            <p>Nu există opinii disponibile în acest moment. Reveniți mai târziu pentru actualizări.</p>
+          </div>
+          
+          <div *ngIf="!opinionsLoading && !opinionsError && latestOpinions.length > 0" class="opinions-list">
+            <div *ngFor="let opinion of latestOpinions" class="opinion-item">
+              <div class="opinion-icon">
+                <svg viewBox="0 0 24 24" width="40" height="40">
+                  <use href="#opinion-icon"></use>
+                </svg>
+              </div>
+              <div class="opinion-content">
+                <div class="opinion-quote">"</div>
+                <h3 class="opinion-title">{{ opinion.title }}</h3>
+                <p class="opinion-summary">{{ opinion.summary }}</p>
+                <div class="opinion-meta">
+                  <span class="opinion-author">{{ opinion.author_name }}</span>
+                  <span class="opinion-date">{{ formatDate(opinion.publish_date) }}</span>
+                </div>
+                <a [routerLink]="['article', opinion.slug]" class="read-more">Citește opinia completă</a>
+              </div>
+            </div>
+            
+            <!-- ADĂUGAT AICI: Secțiunea de tendințe opinii -->
+            <div class="opinion-trends">
+              <h3 class="trends-title">Tendințe de opinie</h3>
+              <p class="trends-description">
+                Majoritatea experților sunt de acord că implementarea votului electronic în România necesită o abordare graduală, cu accent pe securitate și educație digitală.
+              </p>
+              <div class="trend-tags">
+                <span class="trend-tag">Securitate</span>
+                <span class="trend-tag">Participare</span>
+                <span class="trend-tag">Transparență</span>
+                <span class="trend-tag">Educație</span>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
     

@@ -23,6 +23,10 @@ export class NewsComponent implements OnInit, OnDestroy {
   featuredArticles: NewsArticle[] = [];
   latestNews: NewsArticle[] = [];
   latestAnalysis: NewsArticle[] = [];
+
+  latestOpinions: NewsArticle[] = [];
+  opinionsLoading = true;
+  opinionsError = false;
   
   // Știri externe
   externalNews: ExternalNewsArticle[] = [];
@@ -120,7 +124,13 @@ export class NewsComponent implements OnInit, OnDestroy {
       risk: 'Pierderea anonimității',
       solution: 'Separarea identității de votul propriu-zis',
       description: 'După verificarea identității, votul este complet separat de datele personale, asigurând anonimitatea.'
+    },
+    {
+      risk: 'Fraudă electorală',
+      solution: 'Transparență și verificabilitate',
+      description: 'Sistemul permite verificarea independentă a votului fără a compromite secretul votului, oferind transparență completă în procesul electoral.'
     }
+
   ];
 
   constructor(
@@ -159,7 +169,10 @@ export class NewsComponent implements OnInit, OnDestroy {
     this.loadNewsData();
     this.loadExternalNews();
     this.loadElectionAnalytics();
+    this.loadOpinions();
   }
+  
+
 
   getCategoryIcon(category: string): string {
     const iconMap: { [key: string]: string } = {
@@ -175,6 +188,23 @@ export class NewsComponent implements OnInit, OnDestroy {
     };
     
     return iconMap[category] || '#featured-icon';
+  }
+  loadOpinions(): void {
+    this.opinionsLoading = true;
+    this.opinionsError = false;
+    
+    this.newsService.getOpinions(5).subscribe(
+      (data) => {
+        this.latestOpinions = data;
+        this.opinionsLoading = false;
+        console.log(`Loaded ${this.latestOpinions.length} opinions`);
+      },
+      (error) => {
+        console.error('Error loading opinions', error);
+        this.opinionsError = true;
+        this.opinionsLoading = false;
+      }
+    );
   }
   
   getImageUrl(imagePath: string): string {
@@ -209,7 +239,7 @@ export class NewsComponent implements OnInit, OnDestroy {
     
     // Utilizăm forkJoin pentru a face toate cererile în paralel
     forkJoin({
-      featured: this.newsService.getLatestNews(5, this.selectedCategory, this.selectedType).pipe(
+      featured: this.newsService.getLatestNews(6, this.selectedCategory, this.selectedType).pipe(
         catchError(err => {
           console.error('Eroare la încărcarea articolelor promovate', err);
           return of([]);
