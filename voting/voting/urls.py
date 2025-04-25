@@ -13,6 +13,7 @@ urlpatterns = [
     path('api/menu/', include('menu.urls')),
     path('api/', include('vote.urls')),
     path('api/', include('news.urls')),
+    path('api/forum/', include('forum.urls')),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT) \
   + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
 

@@ -1,0 +1,640 @@
+// Variables pentru culori și fonturi - preluate pentru consistență
+$primary-color: #2e86de;
+$primary-light: #54a0ff;
+$primary-dark: #2259b0;
+$secondary-color: #ff6b6b;
+$success-color: #1dd1a1;
+$warning-color: #feca57;
+$danger-color: #ee5253;
+$gray-light: rgba(255, 255, 255, 0.05);
+$gray-medium: rgba(255, 255, 255, 0.1);
+$gray-dark: #747d8c;
+$text-color: #fff;
+$text-light: #f1f2f6;
+$border-radius: 12px;
+$box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+$transition: all 0.3s ease;
+$background-color: rgba(0, 0, 0, 0.5);
+
+// Container principal
+.forum-category-container {
+  max-width: 1300px;
+  margin: 0 auto;
+  padding: 20px;
+  color: $text-color;
+  font-family: Arial, sans-serif;
+}
+
+// Breadcrumbs
+.forum-breadcrumbs {
+  display: flex;
+  align-items: center;
+  font-size: 14px;
+  margin-bottom: 20px;
+  color: $gray-dark;
+  
+  a {
+    color: $text-light;
+    text-decoration: none;
+    transition: $transition;
+    
+    &:hover {
+      color: $primary-light;
+    }
+  }
+  
+  .separator {
+    margin: 0 8px;
+    color: $gray-dark;
+  }
+  
+  .current {
+    color: $primary-color;
+  }
+}
+
+// Header categorie
+.category-header {
+  display: flex;
+  align-items: center;
+  background-color: $background-color;
+  border-radius: $border-radius;
+  padding: 20px;
+  margin-bottom: 30px;
+  box-shadow: $box-shadow;
+  
+  @media (max-width: 768px) {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 15px;
+  }
+  
+  .category-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 20px;
+    flex-shrink: 0;
+    
+    @media (max-width: 768px) {
+      margin-bottom: 10px;
+    }
+    
+    svg {
+      width: 28px;
+      height: 28px;
+    }
+  }
+  
+  .category-details {
+    flex: 1;
+    
+    h1 {
+      font-size: 24px;
+      color: $text-color;
+      margin: 0 0 8px 0;
+    }
+    
+    p {
+      font-size: 15px;
+      color: rgba(255, 255, 255, 0.7);
+      margin: 0;
+      line-height: 1.5;
+      max-width: 600px;
+    }
+  }
+  
+  .btn-new-topic {
+    background: linear-gradient(135deg, $primary-color, $primary-dark);
+    color: white;
+    border: none;
+    border-radius: 20px;
+    padding: 10px 18px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: $transition;
+    margin-left: 20px;
+    
+    @media (max-width: 768px) {
+      margin-left: 0;
+      align-self: flex-end;
+    }
+    
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    }
+    
+    i {
+      font-size: 14px;
+    }
+  }
+}
+
+// Loading spinner
+.loading-spinner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 40px 20px;
+  
+  .spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid rgba(255, 255, 255, 0.1);
+    border-top-color: $primary-color;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 15px;
+  }
+  
+  p {
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.7);
+    margin: 0;
+  }
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+// Error message
+.error-message {
+  background-color: rgba($danger-color, 0.1);
+  border-left: 3px solid $danger-color;
+  border-radius: $border-radius;
+  padding: 20px;
+  text-align: center;
+  margin-bottom: 30px;
+  
+  i {
+    font-size: 28px;
+    color: $danger-color;
+    margin-bottom: 10px;
+    display: block;
+  }
+  
+  p {
+    font-size: 15px;
+    color: $text-color;
+    margin: 0 0 15px 0;
+  }
+  
+  .btn-retry {
+    background-color: transparent;
+    border: 1px solid $danger-color;
+    color: $danger-color;
+    padding: 8px 20px;
+    border-radius: 20px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: $transition;
+    
+    &:hover {
+      background-color: rgba($danger-color, 0.1);
+      transform: translateY(-2px);
+    }
+  }
+}
+
+// Lista de subiecte
+.topic-list-container {
+  margin-bottom: 30px;
+}
+
+// Toolbar cu opțiuni de sortare
+.topic-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  padding: 0 10px;
+  
+  @media (max-width: 576px) {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  
+  .topic-count {
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.7);
+  }
+  
+  .sort-options {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    
+    span {
+      font-size: 14px;
+      color: rgba(255, 255, 255, 0.7);
+    }
+    
+    select {
+      background-color: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 15px;
+      color: $text-color;
+      padding: 5px 25px 5px 12px;
+      font-size: 13px;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 8px center;
+      cursor: pointer;
+      
+      &:focus {
+        outline: none;
+        border-color: $primary-color;
+      }
+      
+      option {
+        background-color: #1a1f25;
+        color: $text-light;
+      }
+    }
+  }
+}
+
+// Lista de subiecte
+.topic-list {
+  background-color: $background-color;
+  border-radius: $border-radius;
+  overflow: hidden;
+  box-shadow: $box-shadow;
+  
+  .topic-header {
+    display: grid;
+    grid-template-columns: 30px minmax(250px, 1fr) 150px 220px;
+    background-color: rgba(0, 0, 0, 0.3);
+    padding: 12px 15px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    
+    @media (max-width: 992px) {
+      grid-template-columns: 30px minmax(200px, 1fr) 120px 150px;
+    }
+    
+    @media (max-width: 768px) {
+      display: none;
+    }
+    
+    .topic-title-header, .topic-stats-header, .topic-last-post-header {
+      font-size: 14px;
+      font-weight: 500;
+      color: $text-light;
+    }
+    
+    .topic-title-header {
+      grid-column: 1 / 3;
+      padding-left: 30px;
+    }
+  }
+  
+  .topic-item {
+    display: grid;
+    grid-template-columns: 30px minmax(250px, 1fr) 150px 220px;
+    padding: 15px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    transition: $transition;
+    cursor: pointer;
+    
+    @media (max-width: 992px) {
+      grid-template-columns: 30px minmax(200px, 1fr) 120px 150px;
+    }
+    
+    @media (max-width: 768px) {
+      grid-template-columns: 30px 1fr;
+      gap: 15px;
+      grid-template-areas: 
+        "status info"
+        "stats stats"
+        "last-post last-post";
+    }
+    
+    &:last-child {
+      border-bottom: none;
+    }
+    
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.05);
+    }
+    
+    &.pinned {
+      background-color: rgba($primary-color, 0.05);
+      border-left: 3px solid $primary-color;
+      
+      .topic-status .status-icon.pinned {
+        color: $primary-color;
+      }
+    }
+    
+    &.closed {
+      opacity: 0.8;
+      
+      .topic-status .status-icon.closed {
+        color: $warning-color;
+      }
+    }
+    
+    .topic-status {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      
+      @media (max-width: 768px) {
+        grid-area: status;
+      }
+      
+      .status-icon {
+        width: 24px;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        
+        &.pinned {
+          color: $text-light;
+        }
+        
+        &.closed {
+          color: $text-light;
+        }
+      }
+    }
+    
+    .topic-info {
+      padding-right: 15px;
+      
+      @media (max-width: 768px) {
+        grid-area: info;
+      }
+      
+      .topic-title {
+        font-size: 16px;
+        font-weight: 500;
+        color: $text-color;
+        margin: 0 0 10px 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        line-clamp: 2;
+        -webkit-box-orient: vertical;
+      }
+      
+      .topic-meta {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        
+        @media (max-width: 576px) {
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 5px;
+        }
+        
+        .topic-author {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          font-size: 13px;
+          color: rgba(255, 255, 255, 0.7);
+          
+          .author-avatar {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            object-fit: cover;
+          }
+        }
+        
+        .topic-date {
+          font-size: 13px;
+          color: rgba(255, 255, 255, 0.6);
+        }
+      }
+    }
+    
+    .topic-stats {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 8px;
+      
+      @media (max-width: 768px) {
+        grid-area: stats;
+        flex-direction: row;
+        justify-content: flex-start;
+        gap: 20px;
+        padding: 10px 0;
+        border-top: 1px solid rgba(255, 255, 255, 0.05);
+      }
+      
+      .stat-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 13px;
+        color: rgba(255, 255, 255, 0.7);
+        
+        svg {
+          opacity: 0.7;
+        }
+        
+        span {
+          font-weight: 600;
+          color: $text-light;
+        }
+      }
+    }
+    
+    .topic-last-post {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 8px;
+      padding-left: 15px;
+      border-left: 1px solid rgba(255, 255, 255, 0.1);
+      
+      @media (max-width: 768px) {
+        grid-area: last-post;
+        padding-left: 0;
+        border-left: none;
+        padding-top: 10px;
+        border-top: 1px solid rgba(255, 255, 255, 0.05);
+      }
+      
+      .last-post-date {
+        font-size: 13px;
+        color: rgba(255, 255, 255, 0.6);
+      }
+      
+      .last-post-author {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 13px;
+        color: rgba(255, 255, 255, 0.7);
+        white-space: normal; /* Permite textului să se întindă pe mai multe linii */
+        word-break: break-all; /* Forțează ruperea cuvintelor dacă e nevoie */
+        
+        span {
+          overflow: hidden;
+          text-overflow: ellipsis;
+          display: block;
+          white-space: normal; /* Permite înfășurarea pe mai multe linii */
+          line-height: 1.3;
+        }
+        
+        .author-avatar-small {
+          width: 20px;
+          height: 20px;
+          border-radius: 50%;
+          object-fit: cover;
+          flex-shrink: 0; /* Previne micșorarea avatarului */
+        }
+      }
+    }
+  }
+}
+
+// Paginație
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 25px;
+  gap: 8px;
+  
+  .btn-page {
+    background-color: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: $text-light;
+    padding: 8px 15px;
+    border-radius: 20px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: $transition;
+    min-width: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    
+    &:hover:not(:disabled) {
+      background-color: rgba(255, 255, 255, 0.12);
+      transform: translateY(-2px);
+    }
+    
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    
+    &.active {
+      background-color: $primary-color;
+      border-color: $primary-color;
+      color: white;
+      font-weight: 500;
+    }
+    
+    &.prev, &.next {
+      padding: 8px 15px;
+    }
+  }
+  
+  .page-numbers {
+    display: flex;
+    gap: 5px;
+    
+    @media (max-width: 576px) {
+      display: none;
+    }
+  }
+}
+
+// Empty state
+.empty-state {
+  background-color: $background-color;
+  border-radius: $border-radius;
+  padding: 40px 20px;
+  text-align: center;
+  box-shadow: $box-shadow;
+  
+  i {
+    font-size: 36px;
+    color: $gray-dark;
+    margin-bottom: 15px;
+    display: block;
+  }
+  
+  p {
+    font-size: 16px;
+    color: rgba(255, 255, 255, 0.7);
+    margin: 0 0 20px 0;
+  }
+  
+  .btn-new-topic {
+    background: linear-gradient(135deg, $primary-color, $primary-dark);
+    color: white;
+    border: none;
+    border-radius: 25px;
+    padding: 10px 20px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: $transition;
+    
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    }
+    
+    i {
+      font-size: 14px;
+      color: white;
+      margin-bottom: 0;
+      display: inline;
+    }
+  }
+}
+
+/* SVG Icons - ascunse dar disponibile pentru referințe */
+.svg-icons {
+  display: none;
+}
+
+/* Stiluri utilizate în mai multe locuri */
+.author-avatar, .author-avatar-small {
+  background-color: $gray-medium;
+  color: $text-color;
+  text-align: center;
+  line-height: 1;
+  font-weight: 500;
+}
+
+.author-avatar {
+  width: 24px;
+  height: 24px;
+  font-size: 12px;
+  line-height: 24px;
+}
+
+.author-avatar-small {
+  width: 20px;
+  height: 20px;
+  font-size: 10px;
+  line-height: 20px;
+}

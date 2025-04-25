@@ -27,6 +27,12 @@ import { AppointmentErrorComponent } from './appointments/appointment-error.comp
 import { MapComponent } from './map/map.component';
 import { NewsComponent } from './news/news.component';
 import { ArticleDetailComponent } from './article-detail/article-detail.component';
+import { ForumuriComponent } from './forumuri/forumuri.component';
+
+import { ForumCategoryComponent } from './forum/forum-category/forum-category.component';
+import { ForumTopicComponent } from './forum/forum-topic/forum-topic.component';
+import { ForumNewTopicComponent } from './forum/forum-new-topic/forum-new-topic.component';
+import { ForumNotificationsComponent } from './forum/forum-notifications/forum-notifications.component';
 
 const routes: Routes = [
   { path: '', component: HomeComponent },
@@ -44,6 +50,13 @@ const routes: Routes = [
       { path: 'despre/status-vot/:id', component: VoteSystemStatusComponent, canActivate: [AuthGuard] },
       {path: 'news', component: NewsComponent},
       { path: 'news/article/:slug', component: ArticleDetailComponent },
+      { path: 'forumuri', component: ForumuriComponent},
+
+      { path: 'forum/category/:slug', component: ForumCategoryComponent },
+      { path: 'forum/topic/:slug', component: ForumTopicComponent },
+      { path: 'forum/new-topic', component: ForumNewTopicComponent, canActivate: [AuthGuard] },
+      { path: 'forum/notifications', component: ForumNotificationsComponent, canActivate: [AuthGuard] },
+      
 
 
       
@@ -55,7 +68,7 @@ const routes: Routes = [
       { path: 'vot/locale', component: LocalVoteComponent, canActivate: [AuthGuard] },
 
       // Aici poți adăuga alte rute pentru conținutul din meniu
-      { path: '', redirectTo: '', pathMatch: 'full' } // Modificat: nu mai redirecționăm
+      { path: '', redirectTo: '', pathMatch: 'full' } 
     ]
   },
   { path: 'verify-email', component: VerifyEmailComponent },

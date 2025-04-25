@@ -1,0 +1,123 @@
+<!-- Empty state îmbunătățit pentru notificări -->
+<div *ngIf="filteredNotifications.length === 0" class="empty-state">
+    <div class="empty-icon">
+      <i class="fa fa-bell-slash"></i>
+    </div>
+    
+    <h3 class="empty-title">Nu aveți nicio notificare momentan</h3>
+    
+    <p class="empty-description">
+      Notificările vă ajută să fiți la curent cu răspunsurile la postările dvs., mențiuni și alte activități importante din forum.
+    </p>
+    
+    <div class="settings-container">
+      <div class="settings-panel">
+        <div class="panel-section">
+          <h4>Preferințe notificări</h4>
+          
+          <div class="notification-toggles">
+            <div class="toggle-option">
+              <label class="toggle-switch">
+                <input type="checkbox" [(ngModel)]="notificationSettings.replies" name="notifReplies">
+                <span class="toggle-slider"></span>
+              </label>
+              <span class="toggle-label">Notificări pentru răspunsuri</span>
+            </div>
+            
+            <div class="toggle-option">
+              <label class="toggle-switch">
+                <input type="checkbox" [(ngModel)]="notificationSettings.mentions" name="notifMentions">
+                <span class="toggle-slider"></span>
+              </label>
+              <span class="toggle-label">Notificări pentru mențiuni</span>
+            </div>
+            
+            <div class="toggle-option">
+              <label class="toggle-switch">
+                <input type="checkbox" [(ngModel)]="notificationSettings.topicReplies" name="notifTopicReplies">
+                <span class="toggle-slider"></span>
+              </label>
+              <span class="toggle-label">Notificări pentru subiecte urmărite</span>
+            </div>
+          </div>
+          
+          <button class="btn-save-preferences" (click)="saveNotificationPreferences()">
+            <i class="fa fa-save"></i> Salvează preferințe
+          </button>
+        </div>
+        
+        <div class="panel-section">
+          <h4>Abonare la newsletter</h4>
+          
+          <p>Primiți actualizări despre noi funcționalități și îmbunătățiri ale platformei SmartVote</p>
+          
+          <div class="newsletter-form" [formGroup]="newsletterForm">
+            <div class="checkbox-container">
+              <input 
+                type="checkbox" 
+                id="newsletter-subscription" 
+                formControlName="subscribed"
+                (change)="toggleEmailField()"
+              >
+              <label for="newsletter-subscription">
+                Abonează-mă la newsletter-ul SmartVote
+              </label>
+            </div>
+            
+            <div class="email-field" *ngIf="showEmailField">
+              <input 
+                type="email" 
+                formControlName="email" 
+                placeholder="Introduceți adresa de email"
+                [class.invalid]="newsletterForm.get('email')?.invalid && newsletterForm.get('email')?.touched"
+              >
+              <div class="error-message" *ngIf="newsletterForm.get('email')?.invalid && newsletterForm.get('email')?.touched">
+                Introduceți o adresă de email validă
+              </div>
+            </div>
+            
+            <button 
+              class="btn-subscribe" 
+              *ngIf="showEmailField" 
+              [disabled]="newsletterForm.invalid"
+              (click)="subscribeToNewsletter()"
+            >
+              <i class="fa fa-paper-plane"></i> Abonează-te
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="empty-footer">
+      <button class="btn-explore" (click)="navigateToForum()">
+        <i class="fa fa-comments"></i> Explorează forumul
+      </button>
+    </div>
+  </div>
+  
+  <!-- Dialog de confirmare pentru abonarea la newsletter -->
+  <div class="newsletter-dialog" *ngIf="showNewsletterConfirmation">
+    <div class="dialog-content">
+      <div class="dialog-icon success">
+        <i class="fa fa-check-circle"></i>
+      </div>
+      <h3>Abonare confirmată!</h3>
+      <p>V-ați abonat cu succes la newsletter-ul SmartVote. Veți primi un email de confirmare în curând.</p>
+      <button class="btn-dialog-close" (click)="closeNewsletterConfirmation()">Închide</button>
+    </div>
+  </div>
+
+  <!-- Dialog de confirmare pentru preferințe -->
+  <div class="preferences-dialog" *ngIf="showPreferencesConfirmation">
+    <div class="dialog-content">
+      <div class="dialog-icon success">
+        <i class="fa fa-check-circle"></i>
+      </div>
+      <h3>Preferințe actualizate!</h3>
+      <p>{{ preferencesMessage }}</p>
+      <button class="btn-dialog-close" (click)="closePreferencesConfirmation()">Închide</button>
+    </div>
+  </div>
+  
+  <div class="overlay" *ngIf="showNewsletterConfirmation || showPreferencesConfirmation" (click)="closeAllDialogs()"></div>

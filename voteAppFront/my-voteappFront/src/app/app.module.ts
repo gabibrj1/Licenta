@@ -58,6 +58,9 @@ import { MisiuneComponent } from './misiune/misiune.component';
 import { ConceptComponent } from './concept/concept.component';
 import { NewsComponent } from './news/news.component';
 import { ArticleDetailComponent } from './article-detail/article-detail.component';
+import { ForumModule } from './forum/forum.module';
+import { ForumuriComponent } from './forumuri/forumuri.component';
+ 
 
 
 @NgModule({
@@ -91,6 +94,7 @@ import { ArticleDetailComponent } from './article-detail/article-detail.componen
     ConceptComponent,
     NewsComponent,
     ArticleDetailComponent,
+    ForumuriComponent,
 
   ],
   imports: [
@@ -116,6 +120,7 @@ import { ArticleDetailComponent } from './article-detail/article-detail.componen
     SpinnerModule,
     MatDialogModule,
     MatButtonModule,
+    ForumModule,
     VoteModule,
     NgxEchartsModule.forRoot({
       echarts: () => import('echarts')

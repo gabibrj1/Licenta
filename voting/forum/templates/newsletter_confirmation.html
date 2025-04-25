@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Confirmare abonare newsletter</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        .container {
+            padding: 20px;
+            border: 1px solid #e0e0e0;
+            border-radius: 5px;
+        }
+        .header {
+            background-color: #3498db;
+            color: white;
+            padding: 10px 20px;
+            text-align: center;
+            border-radius: 5px 5px 0 0;
+        }
+        .content {
+            padding: 20px;
+        }
+        .footer {
+            font-size: 12px;
+            color: #777;
+            text-align: center;
+            margin-top: 30px;
+            padding-top: 10px;
+            border-top: 1px solid #e0e0e0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2>Confirmare abonare newsletter</h2>
+        </div>
+        <div class="content">
+            <p>Bună!</p>
+            
+            <p>Îți mulțumim pentru că te-ai abonat la newsletter-ul platformei {{ app_name }}.</p>
+            
+            <p>Vei primi periodic informații despre:</p>
+            <ul>
+                <li>Noi funcționalități ale platformei</li>
+                <li>Îmbunătățiri și actualizări</li>
+                <li>Noutăți și evenimente relevante</li>
+            </ul>
+            
+            <p>Dacă dorești să te dezabonezi în viitor, poți face acest lucru oricând din secțiunea de notificări a contului tău.</p>
+            
+            <p>Cu stimă,<br>Echipa {{ app_name }}</p>
+        </div>
+        <div class="footer">
+            <p>&copy; {{ current_year }} {{ app_name }}. Toate drepturile rezervate.</p>
+            <p>Acest email a fost trimis automat. Te rugăm să nu răspunzi la acest mesaj.</p>
+        </div>
+    </div>
+</body>
+</html>

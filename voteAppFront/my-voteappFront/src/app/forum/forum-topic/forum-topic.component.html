@@ -1,0 +1,104 @@
+<div class="forum-topic-container">
+    <!-- Breadcrumbs -->
+    <div class="forum-breadcrumbs">
+      <a routerLink="/menu">Acasă</a>
+      <span class="separator">/</span>
+      <a routerLink="/menu/forumuri">Forum</a>
+      <span class="separator">/</span>
+      <ng-container *ngIf="topic && topic.category">
+        <a [routerLink]="['/menu/forum/category', topic.category.slug]" [queryParams]="{id: topic.category.id}">
+          {{ topic.category.name }}
+        </a>
+        <span class="separator">/</span>
+        <span class="current">{{ topic.title }}</span>
+      </ng-container>
+    </div>
+  
+    <!-- Loading state -->
+    <div *ngIf="loading.topic" class="loading-spinner">
+      <div class="spinner"></div>
+      <p>Se încarcă subiectul...</p>
+    </div>
+  
+    <!-- Error state -->
+    <div *ngIf="error.topic && !loading.topic" class="error-message">
+      <i class="fa fa-exclamation-triangle"></i>
+      <p>Nu s-a putut încărca subiectul. Vă rugăm să încercați din nou mai târziu.</p>
+      <button class="btn-retry" (click)="loadTopic()">Reîncarcă</button>
+    </div>
+  
+    <!-- Topic content -->
+    <div *ngIf="topic && !loading.topic" class="topic-content">
+      <div class="topic-header">
+        <h1>{{ topic.title }}</h1>
+        <div class="topic-meta">
+          <div class="author-info">
+            <img [src]="getUserAvatar(topic.author.email)" alt="Avatar" class="author-avatar">
+            <span class="author-name">{{ topic.author.full_name || topic.author.email }}</span>
+          </div>
+          <div class="topic-stats">
+            <span class="post-date">{{ getTimeAgo(topic.created_at) }}</span>
+            <span class="views-count">
+              <svg viewBox="0 0 24 24" width="16" height="16">
+                <use href="#icon-eye"></use>
+              </svg>
+              {{ topic.views_count }} vizualizări
+            </span>
+          </div>
+        </div>
+      </div>
+  
+      <!-- Posts list -->
+      <div class="posts-list">
+        <div *ngFor="let post of posts" class="post-item">
+          <div class="post-author">
+            <img [src]="getUserAvatar(post.author.email)" alt="Avatar" class="author-avatar">
+            <div class="author-details">
+              <span class="author-name">{{ post.author.full_name || post.author.email }}</span>
+              <span class="post-date">{{ getTimeAgo(post.created_at) }}</span>
+            </div>
+          </div>
+          <div class="post-content" [innerHTML]="post.content"></div>
+        </div>
+      </div>
+  
+      <!-- Reply form -->
+      <div *ngIf="isLoggedIn" class="reply-form">
+        <h3>Adaugă un răspuns</h3>
+        <textarea [formControl]="replyContent" placeholder="Scrieți răspunsul aici..."></textarea>
+        <div class="character-count" [ngClass]="{ 
+            'not-enough': (replyContent.value || '').length < 10, 
+            'enough': (replyContent.value || '').length >= 10 
+          }">
+            {{ (replyContent.value || '').length }}/10 caractere minim
+        </div>
+        
+        <div class="form-footer">
+            <div class="min-chars-message" [ngClass]="{ 
+                'warning': (replyContent.value || '').length < 10,
+                'success': (replyContent.value || '').length >= 10 
+              }">
+                <span *ngIf="(replyContent.value || '').length < 10">
+                  Răspunsul trebuie să conțină minim 10 caractere
+                </span>
+                <span *ngIf="(replyContent.value || '').length >= 10">
+                  Răspunsul îndeplinește cerințele de lungime
+                </span>
+            </div>
+          <button 
+            class="btn-submit" 
+            (click)="submitReply()"
+            [disabled]="replyContent.invalid || loading.posting"
+          >
+            <span *ngIf="!loading.posting">Trimite răspuns</span>
+            <span *ngIf="loading.posting">Se trimite...</span>
+          </button>
+        </div>
+        <div *ngIf="error.posting" class="error-message">
+          <i class="fa fa-exclamation-triangle"></i>
+          <p>Eroare la trimiterea răspunsului. Vă rugăm să încercați din nou.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  

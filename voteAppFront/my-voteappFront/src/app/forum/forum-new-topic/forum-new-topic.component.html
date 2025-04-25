@@ -1,0 +1,138 @@
+<div class="new-topic-container">
+    <div class="forum-breadcrumbs">
+      <a routerLink="/menu">Acasă</a>
+      <span class="separator">/</span>
+      <a routerLink="/menu/forumuri">Forum</a>
+      <span class="separator">/</span>
+      <span class="current">Subiect nou</span>
+    </div>
+  
+    <h1>Creează subiect nou</h1>
+    
+    <!-- Informații și ghid -->
+    <div class="form-info">
+      <h3>Ghid pentru un subiect bun</h3>
+      <p>Pentru a crea un subiect de calitate și a primi răspunsuri relevante, vă rugăm să:</p>
+      <ul>
+        <li>Folosiți un titlu clar și descriptiv</li>
+        <li>Alegeți categoria potrivită pentru subiectul dvs.</li>
+        <li>Descrieți în detaliu problema sau întrebarea</li>
+        <li>Fiți respectuos și constructiv în exprimare</li>
+      </ul>
+    </div>
+  
+    <form [formGroup]="form" (ngSubmit)="onSubmit()">
+      <div class="form-group">
+        <label for="title">Titlu subiect</label>
+        <input 
+          type="text" 
+          id="title" 
+          formControlName="title"
+          placeholder="Introduceți un titlu descriptiv..."
+        >
+        <div class="character-count" [ngClass]="{ 
+            'not-enough': (form.get('title')?.value || '').length < 10, 
+            'enough': (form.get('title')?.value || '').length >= 10 
+          }">
+          {{ (form.get('title')?.value || '').length }}/10 caractere minim
+        </div>
+        <div 
+          class="error-message" 
+          *ngIf="form.get('title')?.invalid && form.get('title')?.touched"
+        >
+          <i class="fa fa-exclamation-circle"></i>
+          Titlul trebuie să conțină minim 10 caractere
+        </div>
+      </div>
+  
+      <div class="form-group">
+        <label for="category">Categorie</label>
+        <select id="category" formControlName="category">
+          <option value="" disabled>Alegeți o categorie</option>
+          <option 
+            *ngFor="let category of categories" 
+            [value]="category.id"
+          >
+            {{ category.name }}
+          </option>
+        </select>
+        <div 
+          class="error-message" 
+          *ngIf="form.get('category')?.invalid && form.get('category')?.touched"
+        >
+          <i class="fa fa-exclamation-circle"></i>
+          Selectarea unei categorii este obligatorie
+        </div>
+      </div>
+  
+      <div class="form-group">
+        <label for="content">Conținut</label>
+        <textarea 
+          id="content" 
+          formControlName="content"
+          placeholder="Descrieți subiectul în detaliu..."
+          rows="8"
+        ></textarea>
+        <div class="character-count" [ngClass]="{ 
+            'not-enough': (form.get('content')?.value || '').length < 20, 
+            'enough': (form.get('content')?.value || '').length >= 20 
+          }">
+          {{ (form.get('content')?.value || '').length }}/20 caractere minim
+        </div>
+        <div 
+          class="error-message" 
+          *ngIf="form.get('content')?.invalid && form.get('content')?.touched"
+        >
+          <i class="fa fa-exclamation-circle"></i>
+          Conținutul trebuie să conțină minim 20 de caractere
+        </div>
+      </div>
+  
+      <div class="form-actions">
+        <button 
+          type="button" 
+          class="btn-cancel"
+          (click)="navigateToForumuri()"
+        >
+          Anulează
+        </button>
+        <button 
+          type="submit" 
+          class="btn-submit"
+          [disabled]="form.invalid || loading"
+        >
+          <span *ngIf="!loading">Publică subiect</span>
+          <span *ngIf="loading">Se trimite...</span>
+        </button>
+      </div>
+  
+      <div *ngIf="error" class="error-message">
+        <i class="fa fa-exclamation-triangle"></i>
+        <p>Eroare la crearea subiectului. Vă rugăm să încercați din nou.</p>
+      </div>
+    </form>
+  </div>
+  
+  <!-- Overlay pentru fundal blurat -->
+  <div class="overlay" [ngClass]="{'show': showResultMessage}"></div>
+  
+  <!-- Mesaj de confirmare sau eroare -->
+  <div class="submit-result" [ngClass]="{'show': showResultMessage}">
+    <div class="icon-container" [ngClass]="{'success': submitSuccess, 'error': !submitSuccess}">
+      <!-- Iconița de succes (bifă) -->
+      <svg *ngIf="submitSuccess" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+        <polyline points="22 4 12 14.01 9 11.01"></polyline>
+      </svg>
+      
+      <!-- Iconița de eroare (X) -->
+      <svg *ngIf="!submitSuccess" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="15" y1="9" x2="9" y2="15"></line>
+        <line x1="9" y1="9" x2="15" y2="15"></line>
+      </svg>
+    </div>
+    
+    <div class="message">{{ submitSuccess ? 'Subiect publicat cu succes!' : 'Eroare la publicare' }}</div>
+    <div class="sub-message">{{ submitSuccess ? 'Vei fi redirecționat în curând...' : 'Vă rugăm să încercați din nou.' }}</div>
+  </div>
