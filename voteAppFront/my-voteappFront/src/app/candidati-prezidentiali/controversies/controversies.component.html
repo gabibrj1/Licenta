@@ -1,0 +1,59 @@
+<div class="controversies-container">
+    <!-- Filtrare după an electoral -->
+    <div class="filter-section">
+      <span>Filtrează după an electoral:</span>
+      <div class="year-filter">
+        <div class="year-option" 
+             [class.active]="selectedYear === null"
+             (click)="applyYearFilter(null)">
+          Toate
+        </div>
+        <div *ngFor="let year of electionYears" 
+             class="year-option" 
+             [class.active]="selectedYear === year.year"
+             (click)="applyYearFilter(year.year)">
+          {{ year.year }}
+        </div>
+      </div>
+    </div>
+    
+    <!-- Loading indicator -->
+    <div *ngIf="isLoading" class="loading-container">
+      <div class="spinner"></div>
+      <p>Se încarcă controversele...</p>
+    </div>
+    
+    <!-- Error message -->
+    <div *ngIf="loadingError" class="error-message">
+      <i class="fas fa-exclamation-triangle"></i>
+      <p>{{ loadingError }}</p>
+      <button (click)="loadControversies(selectedYear || undefined)">Reîncercați</button>
+    </div>
+    
+    <!-- Lista controverselor -->
+    <div *ngIf="!isLoading && !loadingError" class="controversies-list">
+      <div *ngIf="controversies.length === 0" class="no-data-message">
+        <p>Nu există controverse înregistrate pentru filtrele selectate.</p>
+      </div>
+      
+      <div *ngFor="let controversy of controversies" class="controversy-card">
+        <div class="controversy-date">{{ getFormattedDate(controversy.date) }}</div>
+        <h3>{{ controversy.title }}</h3>
+        
+        <div *ngIf="controversy.candidate_name" class="controversy-candidate">
+          Candidat implicat: <strong>{{ controversy.candidate_name }}</strong>
+        </div>
+        
+        <div *ngIf="controversy.election_year_value" class="controversy-election-year">
+          Alegeri {{ controversy.election_year_value }}
+        </div>
+        
+        <p class="controversy-description">{{ controversy.description }}</p>
+        
+        <div *ngIf="controversy.impact" class="controversy-impact">
+          <h4>Impact:</h4>
+          <p>{{ controversy.impact }}</p>
+        </div>
+      </div>
+    </div>
+  </div>

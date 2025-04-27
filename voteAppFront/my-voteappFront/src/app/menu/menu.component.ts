@@ -350,6 +350,12 @@ private loadUserProfile(): void {
       case 'candidati-locali':
         this.router.navigate(['menu/candidati-locali']);
         break;
+
+      case 'candidati_prezidentiali':
+        this.router.navigate(['menu/candidati_prezidentiali'], {
+          queryParams: { location: this.locationFilter }
+        });
+        break;
       
       // Procese-verbale
       case 'rezultate':

@@ -1,0 +1,51 @@
+<div class="media-influence-container">
+    <!-- Filtrare după tipul de media -->
+    <div class="filter-section">
+      <span>Filtrează după tip de media:</span>
+      <div class="media-type-filter">
+        <div *ngFor="let type of mediaTypes" 
+             class="media-type-option" 
+             [class.active]="selectedMediaType === type.value"
+             (click)="applyMediaTypeFilter(type.value)">
+          {{ type.label }}
+        </div>
+      </div>
+    </div>
+    
+    <!-- Loading indicator -->
+    <div *ngIf="isLoading" class="loading-container">
+      <div class="spinner"></div>
+      <p>Se încarcă datele despre influența media...</p>
+    </div>
+    
+    <!-- Error message -->
+    <div *ngIf="loadingError" class="error-message">
+      <i class="fas fa-exclamation-triangle"></i>
+      <p>{{ loadingError }}</p>
+      <button (click)="loadMediaInfluences(selectedMediaType || undefined)">Reîncercați</button>
+    </div>
+    
+    <!-- Lista influențelor media grupate pe ani -->
+    <div *ngIf="!isLoading && !loadingError" class="media-influences-list">
+      <div *ngIf="mediaInfluences.length === 0" class="no-data-message">
+        <p>Nu există date despre influența media pentru filtrele selectate.</p>
+      </div>
+      
+      <div *ngFor="let year of electionYears" class="election-year-section">
+        <h3 *ngIf="getMediaInfluencesByYear(year.id).length > 0">Alegeri {{ year.year }}</h3>
+        
+        <div class="media-influences-grid">
+          <div *ngFor="let influence of getMediaInfluencesByYear(year.id)" 
+               class="media-influence-card"
+               [ngClass]="getImpactLevelClass(influence.impact_level)">
+            
+            <div class="media-type-badge">{{ influence.media_type_display }}</div>
+            <div class="impact-badge">{{ influence.impact_level_display }}</div>
+            
+            <h4>{{ influence.title }}</h4>
+            <p>{{ influence.description }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>

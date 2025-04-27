@@ -1,0 +1,142 @@
+<div class="candidates-container">
+  <div class="page-header">
+    <h1>Candidați Prezidențiali</h1>
+    <p class="subtitle">Informații despre candidații la alegerile prezidențiale din România</p>
+  </div>
+  
+  <!-- Navigation tabs -->
+  <div class="nav-tabs">
+    <div class="tab" [class.active]="activeTab === 'current'" (click)="changeTab('current')">
+      <i class="fas fa-user-tie"></i> Candidați Actuali
+    </div>
+    <div class="tab" [class.active]="activeTab === 'historical'" (click)="changeTab('historical')">
+      <i class="fas fa-history"></i> Candidați Istorici
+    </div>
+    <div class="tab" [class.active]="activeTab === 'timeline'" (click)="changeTab('timeline')">
+      <i class="fas fa-stream"></i> Cronologie Electorală
+    </div>
+    <div class="tab" [class.active]="activeTab === 'controversies'" (click)="changeTab('controversies')">
+      <i class="fas fa-exclamation-circle"></i> Controverse
+    </div>
+    <div class="tab" [class.active]="activeTab === 'media-influence'" (click)="changeTab('media-influence')">
+      <i class="fas fa-broadcast-tower"></i> Influența Media
+    </div>
+  </div>
+  
+  <!-- Loading indicator -->
+  <div *ngIf="isLoading" class="loading-container">
+    <div class="spinner"></div>
+    <p>Se încarcă datele...</p>
+  </div>
+  
+  <!-- Error message -->
+  <div *ngIf="loadingError" class="error-message">
+    <i class="fas fa-exclamation-triangle"></i>
+    <p>{{ loadingError }}</p>
+    <button (click)="loadCurrentCandidates()">Reîncercați</button>
+  </div>
+  
+  <!-- Current candidates tab -->
+  <div *ngIf="activeTab === 'current' && !isLoading && !loadingError" class="tab-content">
+    <h2>Candidați la Alegerile Prezidențiale 2025</h2>
+    <p class="description">
+      În urma anulării turului doi al alegerilor prezidențiale din 2024 de către CCR, 
+      România organizează alegeri anticipate în 2025. Iată principalii candidați:
+    </p>
+    
+    <div class="candidates-grid">
+      <div *ngFor="let candidate of currentCandidates" class="candidate-card">
+        <div class="candidate-photo" [style.background-image]="'url(assets/images/candidates/' + candidate.slug + '.jpg)'">
+          <div class="party-label">{{ candidate.party }}</div>
+        </div>
+        <div class="candidate-info">
+          <h3>{{ candidate.name }}</h3>
+          <p class="candidate-bio">{{ candidate.biography | slice:0:150 }}...</p>
+          <a [routerLink]="['/menu/candidati_prezidentiali', candidate.slug]" class="details-button">
+            Vezi detalii
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Historical candidates tab -->
+  <div *ngIf="activeTab === 'historical' && !isLoading && !loadingError" class="tab-content">
+    <h2>Candidați din Alegerile Trecute</h2>
+    <p class="description">
+      Explorați candidații care au participat la alegerile prezidențiale din România post-comunistă.
+    </p>
+    
+    <div class="election-years-filter">
+      <span>Filtrează după an:</span>
+      <div class="years-grid">
+        <div *ngFor="let year of electionYears" class="year-item" (click)="setSelectedYear(year.year)" 
+             [class.active]="selectedYear === year.year">
+          {{ year.year }}
+        </div>
+      </div>
+    </div>
+    
+    <div *ngIf="selectedYear" class="candidates-grid">
+      <div *ngFor="let candidate of filterCandidatesByElectionYear(selectedYear)" class="candidate-card">
+        <div class="candidate-photo" [style.background-image]="'url(assets/images/candidates/' + candidate.slug + '.jpg)'">
+          <div class="party-label">{{ candidate.party }}</div>
+        </div>
+        <div class="candidate-info">
+          <h3>{{ candidate.name }}</h3>
+          <p class="candidate-bio">{{ candidate.biography | slice:0:150 }}...</p>
+          <a [routerLink]="['/menu/candidati_prezidentiali', candidate.slug]" class="details-button">
+            Vezi detalii
+          </a>
+        </div>
+      </div>
+    </div>
+    
+    <div *ngIf="!selectedYear" class="select-year-message">
+      <p>Selectați un an electoral pentru a vedea candidații</p>
+    </div>
+  </div>
+  
+  <!-- Electoral timeline tab -->
+  <div *ngIf="activeTab === 'timeline' && !isLoading" class="tab-content">
+    <h2>Cronologia Alegerilor Prezidențiale</h2>
+    <p class="description">
+      Explorați istoria alegerilor prezidențiale din România post-comunistă, 
+      principalele evenimente și momente care au marcat democrația românească.
+    </p>
+    
+    <div class="timeline">
+      <div *ngFor="let event of historicalEvents" class="timeline-item" [ngClass]="'importance-' + event.importance">
+        <div class="timeline-year">{{ event.year }}</div>
+        <div class="timeline-content">
+          <h3>{{ event.title }}</h3>
+          <p>{{ event.description }}</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Controversies tab -->
+  <div *ngIf="activeTab === 'controversies'" class="tab-content">
+    <h2>Controverse Electorale</h2>
+    <p class="description">
+      De-a lungul istoriei alegerilor prezidențiale din România au existat numeroase controverse 
+      care au influențat rezultatele electorale și percepția publică.
+    </p>
+    
+    <!-- Componenta pentru afișarea controverselor va fi adăugată aici -->
+    <app-controversies></app-controversies>
+  </div>
+  
+  <!-- Media influence tab -->
+  <div *ngIf="activeTab === 'media-influence'" class="tab-content">
+    <h2>Influența Media în Alegerile Prezidențiale</h2>
+    <p class="description">
+      Mass-media și rețelele sociale au jucat un rol crucial în formarea opiniei publice și 
+      în rezultatele alegerilor prezidențiale din România.
+    </p>
+    
+    <!-- Componenta pentru afișarea influențelor media va fi adăugată aici -->
+    <app-media-influence></app-media-influence>
+  </div>
+</div>

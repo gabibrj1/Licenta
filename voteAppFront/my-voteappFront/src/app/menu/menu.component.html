@@ -109,13 +109,13 @@
      </div>
 
      <ul class="nav-menu">
-      <li class="nav-item" [class.active]="currentView === 'candidati-prezidentiali'">
-        <a (click)="navigateTo('candidati-prezidentiali')">
+      <li class="nav-item" [class.active]="currentView === 'candidati_prezidentiali'">
+        <a (click)="navigateTo('candidati_prezidentiali')">
           <i class="fas fa-user-tie"></i> Candidați prezidențiali
         </a>
       </li>
-      <li class="nav-item" *ngIf="locationFilter === 'romania'" [class.active]="currentView === 'candidati-locali'">
-        <a (click)="navigateTo('candidati-locali')">
+      <li class="nav-item" *ngIf="locationFilter === 'romania'" [class.active]="currentView === 'candidati_locali'">
+        <a (click)="navigateTo('candidati_locali')">
           <i class="fas fa-users"></i> Candidați locali
         </a>
       </li>

@@ -33,6 +33,9 @@ import { ForumCategoryComponent } from './forum/forum-category/forum-category.co
 import { ForumTopicComponent } from './forum/forum-topic/forum-topic.component';
 import { ForumNewTopicComponent } from './forum/forum-new-topic/forum-new-topic.component';
 import { ForumNotificationsComponent } from './forum/forum-notifications/forum-notifications.component';
+import { CandidatiPrezidentialiComponent } from './candidati-prezidentiali/candidati-prezidentiali.component';
+import { CandidatDetailComponent } from './candidati-prezidentiali/candidat-detail/candidat-detail.component';
+
 
 const routes: Routes = [
   { path: '', component: HomeComponent },
@@ -48,17 +51,17 @@ const routes: Routes = [
       { path: 'despre/sisteme-vot', component: MyVoteSystemsComponent, canActivate: [AuthGuard] },
       { path: 'despre/sisteme-vot/:id', component: VoteSystemDetailsComponent, canActivate: [AuthGuard] },
       { path: 'despre/status-vot/:id', component: VoteSystemStatusComponent, canActivate: [AuthGuard] },
-      {path: 'news', component: NewsComponent},
+      { path: 'news', component: NewsComponent},
       { path: 'news/article/:slug', component: ArticleDetailComponent },
       { path: 'forumuri', component: ForumuriComponent},
+    
+      { path: 'candidati_prezidentiali', component: CandidatiPrezidentialiComponent},
+      { path: 'candidati_prezidentiali/:slug', component: CandidatDetailComponent},
 
       { path: 'forum/category/:slug', component: ForumCategoryComponent },
       { path: 'forum/topic/:slug', component: ForumTopicComponent },
       { path: 'forum/new-topic', component: ForumNewTopicComponent, canActivate: [AuthGuard] },
       { path: 'forum/notifications', component: ForumNotificationsComponent, canActivate: [AuthGuard] },
-      
-
-
       
       { path: 'harta', component: MapComponent},
       // Rute pentru vot și simulare

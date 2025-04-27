@@ -1,0 +1,61 @@
+<div class="timeline-container">
+    <!-- Filtrare după importanță -->
+    <div class="filter-section">
+      <span>Filtrează după importanță:</span>
+      <div class="importance-filter">
+        <div class="importance-option" 
+             [class.active]="importanceFilter === null"
+             (click)="applyImportanceFilter(null)">
+          Toate
+        </div>
+        <div class="importance-option" 
+             [class.active]="importanceFilter === 1"
+             (click)="applyImportanceFilter(1)">
+          Normale
+        </div>
+        <div class="importance-option" 
+             [class.active]="importanceFilter === 2"
+             (click)="applyImportanceFilter(2)">
+          Importante
+        </div>
+        <div class="importance-option" 
+             [class.active]="importanceFilter === 3"
+             (click)="applyImportanceFilter(3)">
+          Foarte importante
+        </div>
+      </div>
+    </div>
+    
+    <!-- Loading indicator -->
+    <div *ngIf="isLoading" class="loading-container">
+      <div class="spinner"></div>
+      <p>Se încarcă cronologia evenimentelor...</p>
+    </div>
+    
+    <!-- Error message -->
+    <div *ngIf="loadingError" class="error-message">
+      <i class="fas fa-exclamation-triangle"></i>
+      <p>{{ loadingError }}</p>
+      <button (click)="loadHistoricalEvents()">Reîncercați</button>
+    </div>
+    
+    <!-- Timeline -->
+    <div *ngIf="!isLoading && !loadingError" class="timeline">
+      <div *ngFor="let event of getFilteredEvents(); let i = index" 
+           class="timeline-item"
+           [ngClass]="[getImportanceClass(event.importance), i % 2 === 0 ? 'left' : 'right']">
+        
+        <div class="timeline-content">
+          <div class="timeline-year">{{ event.year }}</div>
+          <h3>{{ event.title }}</h3>
+          <p>{{ event.description }}</p>
+          
+          <div class="importance-indicator" [ngClass]="getImportanceClass(event.importance)">
+            <span *ngIf="event.importance === 3">Eveniment crucial</span>
+            <span *ngIf="event.importance === 2">Eveniment important</span>
+            <span *ngIf="event.importance === 1">Eveniment notabil</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>

@@ -60,7 +60,12 @@ import { NewsComponent } from './news/news.component';
 import { ArticleDetailComponent } from './article-detail/article-detail.component';
 import { ForumModule } from './forum/forum.module';
 import { ForumuriComponent } from './forumuri/forumuri.component';
- 
+import { CandidatiPrezidentialiComponent } from './candidati-prezidentiali/candidati-prezidentiali.component';
+import { CandidatDetailComponent } from './candidati-prezidentiali/candidat-detail/candidat-detail.component';
+import { ControversiesComponent } from './candidati-prezidentiali/controversies/controversies.component';
+import { MediaInfluenceComponent } from './candidati-prezidentiali/media-influence/media-influence.component';
+import { TimelineComponent } from './candidati-prezidentiali/timeline/timeline.component';
+import { PresidentialCandidatesService } from './candidati-prezidentiali/candidati-prezidentiali/services/presidential-candidates.service'; 
 
 
 @NgModule({
@@ -95,6 +100,11 @@ import { ForumuriComponent } from './forumuri/forumuri.component';
     NewsComponent,
     ArticleDetailComponent,
     ForumuriComponent,
+    CandidatiPrezidentialiComponent,
+    CandidatDetailComponent,
+    ControversiesComponent,
+    MediaInfluenceComponent,
+    TimelineComponent,
 
   ],
   imports: [
@@ -133,7 +143,8 @@ import { ForumuriComponent } from './forumuri/forumuri.component';
     { provide: HTTP_INTERCEPTORS, useClass: AuthInterceptor, multi: true },
     { provide: HTTP_INTERCEPTORS, useClass: AuthBypassInterceptor, multi: true },
     VoteMonitoringService,
-    PresidentialVoteService
+    PresidentialVoteService,
+    PresidentialCandidatesService
   ],
   bootstrap: [AppComponent]
 })
