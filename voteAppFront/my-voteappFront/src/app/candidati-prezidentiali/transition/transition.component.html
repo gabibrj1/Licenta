@@ -1,0 +1,61 @@
+<div class="transition-container">
+    <h2>Tranziția de la regimul comunist la democrație</h2>
+    
+    <div class="transition-description">
+        <p>
+            Înainte de alegerile prezidențiale democratice din România, țara a fost condusă de regimul 
+            comunist, culminând cu perioada lui Nicolae Ceaușescu (1965-1989). Tranziția către sistemul democratic 
+            actual a fost marcată de evenimente dramatice și controverse semnificative.
+        </p>
+    </div>
+    
+    <div *ngIf="ceausescu" class="ceausescu-profile">
+        <h3>Ultimul conducător comunist</h3>
+        <div class="profile-content">
+            <div class="profile-image">
+                <img src="assets/images/candidates/nicolae-ceausescu.jpg" alt="Nicolae Ceaușescu"
+                     onerror="this.src='assets/images/candidates/placeholder.jpg'">
+            </div>
+            <div class="profile-info">
+                <h4>{{ ceausescu.name }} (1918-1989)</h4>
+                <p><strong>Funcții:</strong> {{ ceausescu.political_experience }}</p>
+                <p><strong>Partid:</strong> {{ ceausescu.party }}</p>
+                <p>{{ ceausescu.biography }}</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="transition-timeline">
+        <h3>Cronologia tranziției</h3>
+        <div *ngIf="transitionEvents.length === 0">
+            <p class="loading-indicator">Se încarcă evenimentele istorice...</p>
+        </div>
+        <div *ngIf="transitionEvents.length > 0">
+            <div *ngFor="let event of transitionEvents" class="timeline-item">
+                <div class="timeline-year">{{ event.year }}</div>
+                <div class="timeline-content">
+                    <h4>{{ event.title }}</h4>
+                    <p>{{ event.description }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="transition-controversies">
+        <h3>Controverse ale tranziției</h3>
+        <div *ngIf="transitionControversies.length === 0">
+            <p class="loading-indicator">Se încarcă controversele...</p>
+        </div>
+        <div *ngIf="transitionControversies.length > 0">
+            <div *ngFor="let controversy of transitionControversies" class="controversy-card">
+                <h4>{{ controversy.title }}</h4>
+                <div class="controversy-date">{{ controversy.date | date:'dd.MM.yyyy' }}</div>
+                <p>{{ controversy.description }}</p>
+                <p *ngIf="controversy.impact"><strong>Impact:</strong> {{ controversy.impact }}</p>
+                <p *ngIf="controversy.candidate_name">
+                    <strong>Candidat implicat:</strong> {{ controversy.candidate_name }}
+                </p>
+            </div>
+        </div>
+    </div>
+</div>

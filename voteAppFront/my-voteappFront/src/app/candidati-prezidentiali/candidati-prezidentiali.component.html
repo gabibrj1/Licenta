@@ -5,23 +5,33 @@
   </div>
   
   <!-- Navigation tabs -->
-  <div class="nav-tabs">
-    <div class="tab" [class.active]="activeTab === 'current'" (click)="changeTab('current')">
-      <i class="fas fa-user-tie"></i> Candidați Actuali
-    </div>
-    <div class="tab" [class.active]="activeTab === 'historical'" (click)="changeTab('historical')">
-      <i class="fas fa-history"></i> Candidați Istorici
-    </div>
-    <div class="tab" [class.active]="activeTab === 'timeline'" (click)="changeTab('timeline')">
-      <i class="fas fa-stream"></i> Cronologie Electorală
-    </div>
-    <div class="tab" [class.active]="activeTab === 'controversies'" (click)="changeTab('controversies')">
-      <i class="fas fa-exclamation-circle"></i> Controverse
-    </div>
-    <div class="tab" [class.active]="activeTab === 'media-influence'" (click)="changeTab('media-influence')">
-      <i class="fas fa-broadcast-tower"></i> Influența Media
-    </div>
+<!-- Navigation tabs -->
+<div class="nav-tabs">
+  <div class="tab" [class.active]="activeTab === 'current'" (click)="changeTab('current')">
+    <i class="fas fa-user-tie"></i> Candidați Actuali
   </div>
+  <div class="tab" [class.active]="activeTab === 'historical'" (click)="changeTab('historical')">
+    <i class="fas fa-history"></i> Candidați Istorici
+  </div>
+  <div class="tab" [class.active]="activeTab === 'timeline'" (click)="changeTab('timeline')">
+    <i class="fas fa-stream"></i> Cronologie Electorală
+  </div>
+  <div class="tab" [class.active]="activeTab === 'controversies'" (click)="changeTab('controversies')">
+    <i class="fas fa-exclamation-circle"></i> Controverse
+  </div>
+  <div class="tab" [class.active]="activeTab === 'media-influence'" (click)="changeTab('media-influence')">
+    <i class="fas fa-broadcast-tower"></i> Influența Media
+  </div>
+  <!-- Noua filă de tranziție -->
+  <div class="tab" [class.active]="activeTab === 'transition'" (click)="changeTab('transition')">
+    <i class="fas fa-exchange-alt"></i> Tranziția de la Comunism
+  </div>
+</div>
+
+<!-- La finalul documentului, adaugă noul conținut pentru tab-ul de tranziție -->
+<div *ngIf="activeTab === 'transition' && !isLoading && !loadingError" class="tab-content">
+  <app-transition></app-transition>
+</div>
   
   <!-- Loading indicator -->
   <div *ngIf="isLoading" class="loading-container">

@@ -65,7 +65,8 @@ import { CandidatDetailComponent } from './candidati-prezidentiali/candidat-deta
 import { ControversiesComponent } from './candidati-prezidentiali/controversies/controversies.component';
 import { MediaInfluenceComponent } from './candidati-prezidentiali/media-influence/media-influence.component';
 import { TimelineComponent } from './candidati-prezidentiali/timeline/timeline.component';
-import { PresidentialCandidatesService } from './candidati-prezidentiali/candidati-prezidentiali/services/presidential-candidates.service'; 
+import { PresidentialCandidatesService } from './candidati-prezidentiali/candidati-prezidentiali/services/presidential-candidates.service';
+import { TransitionComponent } from './candidati-prezidentiali/transition/transition.component'; 
 
 
 @NgModule({
@@ -105,6 +106,7 @@ import { PresidentialCandidatesService } from './candidati-prezidentiali/candida
     ControversiesComponent,
     MediaInfluenceComponent,
     TimelineComponent,
+    TransitionComponent,
 
   ],
   imports: [

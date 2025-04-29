@@ -74,4 +74,16 @@ export class PresidentialCandidatesService {
     
     return this.http.get<Controversy[]>(`${this.apiUrl}presidential-candidates/controversies/`, { params });
   }
+  getTransitionEvents(): Observable<HistoricalEvent[]> {
+    let params = new HttpParams().set('transition', 'true');
+    return this.http.get<HistoricalEvent[]>(`${this.apiUrl}presidential-candidates/historical-events/`, { params });
+  }
+  
+  getTransitionControversies(): Observable<Controversy[]> {
+    let params = new HttpParams().set('transition', 'true');
+    return this.http.get<Controversy[]>(`${this.apiUrl}presidential-candidates/controversies/`, { params });
+  }
+  getCeausescuProfile(): Observable<PresidentialCandidate> {
+    return this.http.get<PresidentialCandidate>(`${this.apiUrl}presidential-candidates/candidates/nicolae-ceausescu/`);
+  }
 }

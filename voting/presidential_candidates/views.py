@@ -3,6 +3,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from django.shortcuts import get_object_or_404
+import datetime
 
 from .models import (
     PresidentialCandidate, ElectionYear, ElectionParticipation,
@@ -20,11 +21,16 @@ class PresidentialCandidateListView(APIView):
     
     def get(self, request):
         """Lista tuturor candidaților prezidențiali"""
-        # Opțional filtrare pentru candidații actuali
+        # Opțional filtrare pentru candidații actuali sau lideri istorici
         current_only = request.query_params.get('current', '').lower() in ['true', '1', 'yes']
+        historical_only = request.query_params.get('historical', '').lower() in ['true', '1', 'yes']
         
+        # Aplicăm filtrele solicitate
         if current_only:
             candidates = PresidentialCandidate.objects.filter(is_current=True)
+        elif historical_only:
+            # Ceaușescu va fi inclus aici dacă există în baza de date
+            candidates = PresidentialCandidate.objects.filter(name__icontains='ceausescu')
         else:
             candidates = PresidentialCandidate.objects.all()
             
@@ -66,8 +72,14 @@ class HistoricalEventListView(APIView):
     permission_classes = [AllowAny]
     
     def get(self, request):
-        """Lista evenimentelor istorice legate de alegerile prezidențiale"""
+        """Lista evenimentelor istorice legate de alegerile prezidențiale sau perioada de tranziție"""
         events = HistoricalEvent.objects.all()
+        
+        # Filtrare opțională pentru perioada de tranziție (1965-1990)
+        transition_only = request.query_params.get('transition', '').lower() in ['true', '1', 'yes']
+        if transition_only:
+            events = events.filter(year__gte=1965, year__lte=1990)
+            
         serializer = HistoricalEventSerializer(events, many=True)
         return Response(serializer.data)
 
@@ -90,17 +102,23 @@ class ControversyListView(APIView):
     permission_classes = [AllowAny]
     
     def get(self, request):
-        """Lista controverselor legate de alegerile prezidențiale"""
+        """Lista controverselor legate de alegerile prezidențiale sau perioada de tranziție"""
         controversies = Controversy.objects.all()
         
-        # Filtrare opțională pe candidat sau an electoral
+        # Filtrare opțională pe candidat, an electoral sau perioada de tranziție
         candidate_id = request.query_params.get('candidate_id')
         election_year = request.query_params.get('election_year')
+        transition_only = request.query_params.get('transition', '').lower() in ['true', '1', 'yes']
         
         if candidate_id:
             controversies = controversies.filter(candidate_id=candidate_id)
         if election_year:
             controversies = controversies.filter(election_year__year=election_year)
+        if transition_only:
+            # Filtrăm controversele din perioada 1965-1990 bazat pe dată
+            start_date = datetime.date(1965, 1, 1)
+            end_date = datetime.date(1990, 12, 31)
+            controversies = controversies.filter(date__gte=start_date, date__lte=end_date)
             
         serializer = ControversySerializer(controversies, many=True)
         return Response(serializer.data)
