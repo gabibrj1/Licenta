@@ -1,0 +1,205 @@
+<div class="local-candidates-container">
+    <div class="page-header">
+      <h1>Alegeri Locale în România</h1>
+      <p class="subtitle">Informații despre alegerile locale, reguli electorale și candidați notabili</p>
+    </div>
+    
+    <!-- Navigation tabs -->
+    <div class="nav-tabs">
+      <div class="tab" [class.active]="activeTab === 'overview'" (click)="loadTabData('overview')">
+        <i class="fas fa-info-circle"></i> Prezentare Generală
+      </div>
+      <div class="tab" [class.active]="activeTab === 'rules'" (click)="loadTabData('rules')">
+        <i class="fas fa-gavel"></i> Reguli Electorale
+      </div>
+      <div class="tab" [class.active]="activeTab === 'candidates'" (click)="loadTabData('candidates')">
+        <i class="fas fa-user-tie"></i> Candidați Notabili
+      </div>
+      <div class="tab" [class.active]="activeTab === 'timeline'" (click)="loadTabData('timeline')">
+        <i class="fas fa-stream"></i> Cronologie Electorală
+      </div>
+      <div class="tab" [class.active]="activeTab === 'legislation'" (click)="loadTabData('legislation')">
+        <i class="fas fa-balance-scale"></i> Legislație
+      </div>
+    </div>
+    
+    <!-- Loading indicator -->
+    <div *ngIf="isLoading" class="loading-container">
+      <div class="spinner"></div>
+      <p>Se încarcă datele...</p>
+    </div>
+    
+    <!-- Error message -->
+    <div *ngIf="loadingError" class="error-message">
+      <i class="fas fa-exclamation-triangle"></i>
+      <p>{{ loadingError }}</p>
+      <button (click)="loadInitialData()">Reîncercați</button>
+    </div>
+    
+    <!-- Overview tab -->
+    <div *ngIf="activeTab === 'overview' && !isLoading && !loadingError" class="tab-content">
+      <h2>Alegerile Locale în România</h2>
+      
+      <div class="overview-section">
+        <h3>Despre Alegerile Locale</h3>
+        <p>
+          Alegerile locale reprezintă procesul electoral prin care cetățenii români își aleg reprezentanții 
+          în administrația publică locală: primari, consilieri locali, consilieri județeni și președinți 
+          de consilii județene.
+        </p>
+        <p>
+          Aceste alegeri au loc o dată la 4 ani și sunt esențiale pentru democrația locală, permițând 
+          cetățenilor să decidă cine va conduce comunitățile lor și va gestiona resursele locale.
+        </p>
+      </div>
+      
+      <div class="overview-section">
+        <h3>Tipuri de Alegeri Locale</h3>
+        <div class="election-types-grid">
+          <div *ngFor="let type of electionTypes" class="election-type-card">
+            <h4>{{ type.name }}</h4>
+            <p>{{ type.description }}</p>
+          </div>
+        </div>
+      </div>
+      
+      <div class="overview-section">
+        <h3>Reguli Electorale Actuale</h3>
+        <div class="rules-list">
+          <div *ngFor="let rule of currentRules" class="rule-card">
+            <h4>{{ rule.title }}</h4>
+            <p>{{ rule.description }}</p>
+            <div class="rule-meta">
+              <span>În vigoare din: {{ rule.since_year }}</span>
+              <span>Tip alegeri: {{ getElectionTypeName(rule.election_type) }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="overview-section">
+        <h3>Istoric Cicluri Electorale</h3>
+        <div class="election-cycles-table">
+          <table>
+            <thead>
+              <tr>
+                <th>Anul</th>
+                <th>Prezența la vot</th>
+                <th>Număr alegători</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let cycle of electionCycles">
+                <td>{{ cycle.year }}</td>
+                <td>{{ cycle.turnout_percentage }}%</td>
+                <td>{{ cycle.total_voters | number }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Rules tab -->
+    <div *ngIf="activeTab === 'rules' && !isLoading && !loadingError" class="tab-content">
+      <h2>Reguli Electorale pentru Alegerile Locale</h2>
+      
+      <div class="filter-section">
+        <span>Filtrează după tipul de alegeri:</span>
+        <div class="filter-buttons">
+          <button (click)="resetFilters()" [class.active]="selectedElectionType === null">Toate</button>
+          <button *ngFor="let type of electionTypes" 
+                  (click)="filterRulesByElectionType(type.id)" 
+                  [class.active]="selectedElectionType === type.id">
+            {{ type.name }}
+          </button>
+        </div>
+      </div>
+      
+      <div class="rules-grid">
+        <div *ngFor="let rule of rules" class="rule-card">
+          <div class="rule-header" [class.current]="rule.is_current">
+            <h3>{{ rule.title }}</h3>
+            <span class="rule-status">{{ rule.is_current ? 'Regula actuală' : 'Regulă anterioară' }}</span>
+          </div>
+          <div class="rule-content">
+            <p>{{ rule.description }}</p>
+            <div class="rule-meta">
+              <span><i class="fas fa-calendar-alt"></i> Din anul: {{ rule.since_year }}</span>
+              <span><i class="fas fa-vote-yea"></i> {{ getElectionTypeName(rule.election_type) }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Candidates tab -->
+    <div *ngIf="activeTab === 'candidates' && !isLoading && !loadingError" class="tab-content">
+      <h2>Candidați Locali Notabili</h2>
+      
+      <div class="filter-section">
+        <span>Filtrează după ciclu electoral:</span>
+        <div class="filter-buttons">
+          <button (click)="resetFilters()" [class.active]="selectedElectionCycle === null">Toate</button>
+          <button *ngFor="let cycle of electionCycles" 
+                  (click)="filterCandidatesByElectionCycle(cycle.id)" 
+                  [class.active]="selectedElectionCycle === cycle.id">
+            {{ cycle.year }}
+          </button>
+        </div>
+      </div>
+      
+      <div class="candidates-grid">
+        <div *ngFor="let candidate of significantCandidates" class="candidate-card">
+          <div class="candidate-photo">
+            <div class="photo-container" [style.background-image]="getCandidateImageUrl(candidate)">
+              <div class="position-badge">{{ candidate.position_name }}</div>
+              <div class="location-badge">{{ candidate.location }}</div>
+            </div>
+          </div>
+          <div class="candidate-info">
+            <h3>{{ candidate.name }}</h3>
+            <p class="candidate-party">{{ candidate.party }}</p>
+            <p class="candidate-year">Alegerile din {{ candidate.election_year }}</p>
+            <p class="candidate-achievement">{{ candidate.achievement }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Timeline tab -->
+    <div *ngIf="activeTab === 'timeline' && !isLoading" class="tab-content">
+      <h2>Cronologia Alegerilor Locale</h2>
+      
+      <div class="timeline">
+        <div *ngFor="let event of importantEvents" class="timeline-item" [ngClass]="'importance-' + event.importance">
+          <div class="timeline-year">{{ event.year }}</div>
+          <div class="timeline-content">
+            <h3>{{ event.title }}</h3>
+            <p>{{ event.description }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Legislation tab -->
+    <div *ngIf="activeTab === 'legislation' && !isLoading" class="tab-content">
+      <h2>Legislația Alegerilor Locale</h2>
+      
+      <div class="legislation-list">
+        <div *ngFor="let change of legislationChanges" class="legislation-card">
+          <div class="legislation-header">
+            <h3>{{ change.title }}</h3>
+            <span class="legislation-year">{{ change.year }}</span>
+          </div>
+          <div class="legislation-content">
+            <p class="legislation-description">{{ change.description }}</p>
+            <div class="legislation-meta">
+              <p><strong>Act normativ:</strong> {{ change.law_number || 'Nespecificat' }}</p>
+              <p><strong>Impact:</strong> {{ change.impact }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>

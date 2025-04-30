@@ -35,7 +35,7 @@ import { ForumNewTopicComponent } from './forum/forum-new-topic/forum-new-topic.
 import { ForumNotificationsComponent } from './forum/forum-notifications/forum-notifications.component';
 import { CandidatiPrezidentialiComponent } from './candidati-prezidentiali/candidati-prezidentiali.component';
 import { CandidatDetailComponent } from './candidati-prezidentiali/candidat-detail/candidat-detail.component';
-
+import { CandidatiLocaliComponent } from './candidati-locali/candidati-locali.component';
 
 const routes: Routes = [
   { path: '', component: HomeComponent },
@@ -57,6 +57,8 @@ const routes: Routes = [
     
       { path: 'candidati_prezidentiali', component: CandidatiPrezidentialiComponent},
       { path: 'candidati_prezidentiali/:slug', component: CandidatDetailComponent},
+
+      { path : 'candidati_locali', component: CandidatiLocaliComponent},
 
       { path: 'forum/category/:slug', component: ForumCategoryComponent },
       { path: 'forum/topic/:slug', component: ForumTopicComponent },

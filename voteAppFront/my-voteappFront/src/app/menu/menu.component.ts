@@ -347,8 +347,8 @@ private loadUserProfile(): void {
         break;
       
       // Candidați
-      case 'candidati-locali':
-        this.router.navigate(['menu/candidati-locali']);
+      case 'candidati_locali':
+        this.router.navigate(['menu/candidati_locali']);
         break;
 
       case 'candidati_prezidentiali':
