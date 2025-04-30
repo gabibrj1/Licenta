@@ -210,7 +210,7 @@ $background-color: rgba(0, 0, 0, 0.5);
   // Grid pentru candidați
   .candidates-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     gap: 25px;
     
     @media (max-width: 576px) {
@@ -219,81 +219,111 @@ $background-color: rgba(0, 0, 0, 0.5);
     
     .candidate-card {
       background-color: rgba(46, 134, 222, 0.1);
-      border: 1px solid rgba(46, 134, 222, 0.2);
-      border-radius: $border-radius;
+      border-radius: 12px;
       overflow: hidden;
       transition: all 0.3s ease;
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      border: 1px solid rgba(46, 134, 222, 0.2);
       
       &:hover {
         transform: translateY(-5px);
-        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
         border-color: rgba(46, 134, 222, 0.5);
       }
       
       .candidate-photo {
-        height: 220px;
-        background-size: cover;
-        background-position: center 30%;
+        height: 0;
+        padding-bottom: 75%; // Aspect ratio 4:3
         position: relative;
-        flex: 0 0 auto;
-
-        &[style*="antonescu"] {
-          background-position: center 15%;
-        }
-        &[style*="lasconi"] {
-          background-position: center 15%;
-        }
-        &[style*="simion"] {
-          background-position: center 45%;
-        }
-        &[style*="sandru"] {
-          background-position: center 15%;
-        }
-        &[style*="dan"] {
-          background-position: center 10%;
-        }
-        &[style*="ponta"] {
-          background-position: center 25%;
-        }
+        overflow: hidden;
         
-        &::before {
-          content: '';
+        .photo-container {
           position: absolute;
           top: 0;
           left: 0;
           width: 100%;
           height: 100%;
-          background: linear-gradient(to bottom, transparent 60%, rgba(0,0,0,0.7) 100%);
-          z-index: 1;
+          background-size: cover;
+          background-position: center 20%;
+          
+          // Overlay pentru contrast cu textul
+          &::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(180deg, 
+              rgba(0,0,0,0) 0%, 
+              rgba(0,0,0,0.7) 90%);
+          }
+          
+          // Override-uri pentru poziționarea anumitor candidați
+          &[style*="antonescu"] {
+            background-position: center 15%;
+          }
+          &[style*="lasconi"] {
+            background-position: center 15%;
+          }
+          &[style*="simion"] {
+            background-position: center 45%;
+          }
+          &[style*="sandru"] {
+            background-position: center 15%;
+          }
+          &[style*="dan"] {
+            background-position: center 10%;
+          }
+          &[style*="ponta"] {
+            background-position: center 25%;
+          }
         }
         
-        .party-label {
+        .party-badge {
           position: absolute;
-          bottom: 10px;
+          top: 10px;
           right: 10px;
           background-color: rgba(0, 0, 0, 0.7);
           color: white;
-          padding: 5px 10px;
-          border-radius: 4px;
           font-size: 12px;
+          padding: 5px 10px;
+          border-radius: 20px;
           z-index: 2;
+        }
+        
+        .name-badge {
+          position: absolute;
+          bottom: 10px;
+          left: 10px;
+          color: white;
+          font-weight: 600;
+          font-size: 16px;
+          z-index: 2;
+          text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
         }
       }
       
       .candidate-info {
-        padding: 20px;
+        padding: 15px;
+        flex-grow: 1;
+        display: flex;
+        flex-direction: column;
         
         h3 {
           font-size: 18px;
-          margin-bottom: 10px;
+          margin-bottom: 5px;
           color: white;
         }
         
         .candidate-bio {
           font-size: 14px;
           line-height: 1.5;
+          color: rgba(255, 255, 255, 0.9);
           margin-bottom: 15px;
-          color: rgba(255, 255, 255, 0.8);
+          flex-grow: 1;
         }
         
         .details-button {
@@ -301,13 +331,16 @@ $background-color: rgba(0, 0, 0, 0.5);
           background-color: $primary-color;
           color: white;
           padding: 8px 15px;
-          border-radius: 4px;
+          border-radius: 20px;
           text-decoration: none;
           font-size: 14px;
+          text-align: center;
           transition: all 0.3s ease;
+          align-self: flex-start;
           
           &:hover {
             background-color: darken($primary-color, 10%);
+            transform: translateY(-2px);
           }
         }
       }

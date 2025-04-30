@@ -56,8 +56,11 @@
     
     <div class="candidates-grid">
       <div *ngFor="let candidate of currentCandidates" class="candidate-card">
-        <div class="candidate-photo" [style.background-image]="'url(assets/images/candidates/' + candidate.slug + '.jpg)'">
-          <div class="party-label">{{ candidate.party }}</div>
+        <div class="candidate-photo">
+          <div class="photo-container" [style.background-image]="'url(assets/images/candidates/' + candidate.slug + '.jpg)'">
+            <div class="party-badge">{{ candidate.party }}</div>
+            <div class="name-badge">{{ candidate.name }}</div>
+          </div>
         </div>
         <div class="candidate-info">
           <h3>{{ candidate.name }}</h3>
@@ -68,7 +71,7 @@
         </div>
       </div>
     </div>
-  </div>
+    </div>
   
   <!-- Historical candidates tab -->
   <div *ngIf="activeTab === 'historical' && !isLoading && !loadingError" class="tab-content">
@@ -89,8 +92,11 @@
     
     <div *ngIf="selectedYear" class="candidates-grid">
       <div *ngFor="let candidate of filterCandidatesByElectionYear(selectedYear)" class="candidate-card">
-        <div class="candidate-photo" [style.background-image]="'url(assets/images/candidates/' + candidate.slug + '.jpg)'">
-          <div class="party-label">{{ candidate.party }}</div>
+        <div class="candidate-photo">
+          <div class="photo-container" [style.background-image]="getCandidateImageUrl(candidate, selectedYear)">
+            <div class="party-badge">{{ candidate.party }}</div>
+            <div class="name-badge">{{ candidate.name }}</div>
+          </div>
         </div>
         <div class="candidate-info">
           <h3>{{ candidate.name }}</h3>
