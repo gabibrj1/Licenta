@@ -1,0 +1,322 @@
+<div class="account-settings-container">
+    <div class="page-header">
+      <h1>Setări cont</h1>
+      <p class="subtitle">Gestionează informațiile și preferințele contului tău</p>
+    </div>
+  
+    <div class="loading-overlay" *ngIf="isLoading">
+      <mat-spinner diameter="50"></mat-spinner>
+      <p>Se încarcă informațiile...</p>
+    </div>
+  
+    <div class="settings-content" *ngIf="!isLoading">
+      <!-- Profile header section -->
+      <div class="profile-header">
+        <div class="profile-avatar">
+          <div *ngIf="!profileImageUrl" class="avatar-placeholder" [style.background-color]="avatarColor">
+            {{ getInitials() }}
+          </div>
+          <img *ngIf="profileImageUrl" [src]="profileImageUrl" alt="Imagine profil" class="profile-image">
+          
+          <div class="avatar-actions">
+            <button mat-mini-fab color="primary" (click)="openFileInput()" matTooltip="Încarcă imagine">
+              <mat-icon>photo_camera</mat-icon>
+            </button>
+            <button *ngIf="profileImageUrl" mat-mini-fab color="warn" (click)="deleteProfileImage()" matTooltip="Șterge imaginea">
+              <mat-icon>delete</mat-icon>
+            </button>
+          </div>
+          <!-- Hidden file input -->
+          <input type="file" hidden #fileInput (change)="onFileSelected($event)" accept="image/jpeg,image/png">
+        </div>
+        
+        <div class="profile-info">
+          <h2>{{ firstName }} {{ lastName }}</h2>
+          <div class="auth-info">
+            <mat-icon *ngIf="authMethod === 'email'">email</mat-icon>
+            <mat-icon *ngIf="authMethod === 'id_card'">badge</mat-icon>
+            <span *ngIf="authMethod === 'email'">{{ userEmail }}</span>
+            <span *ngIf="authMethod === 'id_card' && userCNP">Autentificare cu buletin - CNP: {{ maskCNP(userCNP) }}</span>
+            <span *ngIf="authMethod === 'id_card' && !userCNP">Autentificare cu buletin</span>
+          </div>
+        </div>
+      </div>
+  
+      <!-- Tabs for different settings sections -->
+      <mat-tab-group [selectedIndex]="activeTab === 'profile' ? 0 : activeTab === 'settings' ? 1 : 2" 
+                    (selectedIndexChange)="setActiveTab($event === 0 ? 'profile' : $event === 1 ? 'settings' : 'security')"
+                    animationDuration="300ms" class="settings-tabs">
+        <!-- Profile Tab -->
+        <mat-tab>
+          <ng-template mat-tab-label>
+            <mat-icon class="tab-icon">person</mat-icon>
+            Profil
+          </ng-template>
+          
+          <div class="tab-content">
+            <form [formGroup]="profileForm" (ngSubmit)="saveProfile()">
+              <div class="form-section">
+                <h3>Informații personale</h3>
+                
+                <mat-form-field appearance="outline" class="full-width">
+                  <mat-label>Email</mat-label>
+                  <input matInput formControlName="email" type="email" [readonly]="authMethod === 'id_card'">
+                  <mat-icon matSuffix>email</mat-icon>
+                  <mat-error *ngIf="profileForm.get('email')?.hasError('email')">
+                    Te rugăm să introduci un email valid
+                  </mat-error>
+                  <mat-hint *ngIf="authMethod === 'id_card'">
+                    Emailul nu poate fi modificat pentru conturile autentificate cu buletin
+                  </mat-hint>
+                </mat-form-field>
+                
+                <div class="two-columns">
+                  <mat-form-field appearance="outline">
+                    <mat-label>Prenume</mat-label>
+                    <input matInput formControlName="first_name">
+                  </mat-form-field>
+                  
+                  <mat-form-field appearance="outline">
+                    <mat-label>Nume</mat-label>
+                    <input matInput formControlName="last_name">
+                  </mat-form-field>
+                </div>
+                
+                <mat-form-field appearance="outline" class="full-width">
+                  <mat-label>Adresă</mat-label>
+                  <textarea matInput formControlName="address" rows="3"></textarea>
+                </mat-form-field>
+              </div>
+              
+              <div class="form-actions">
+                <button mat-raised-button color="primary" type="submit" 
+                        [disabled]="profileForm.invalid || isSubmitting">
+                  <mat-icon>save</mat-icon>
+                  Salvează modificările
+                </button>
+              </div>
+            </form>
+          </div>
+        </mat-tab>
+  
+        <!-- Settings Tab -->
+        <mat-tab>
+          <ng-template mat-tab-label>
+            <mat-icon class="tab-icon">settings</mat-icon>
+            Setări
+          </ng-template>
+          
+          <div class="tab-content">
+            <form [formGroup]="settingsForm" (ngSubmit)="saveSettings()">
+              <div class="form-section">
+                <h3>Preferințe notificări</h3>
+                
+                <mat-slide-toggle formControlName="email_notifications" color="primary" class="setting-toggle">
+                  Permite notificări prin email
+                </mat-slide-toggle>
+                <small class="setting-description">
+                  Primește actualizări importante despre contul tău și activitățile de vot
+                </small>
+                
+                <mat-slide-toggle formControlName="vote_reminders" color="primary" class="setting-toggle">
+                  Primește remindere de vot
+                </mat-slide-toggle>
+                <small class="setting-description">
+                  Primește alerte înainte și în ziua alegerilor
+                </small>
+                
+                <mat-slide-toggle formControlName="security_alerts" color="primary" class="setting-toggle">
+                  Alerte de securitate
+                </mat-slide-toggle>
+                <small class="setting-description">
+                  Primește alerte despre activitate suspectă sau schimbări de securitate
+                </small>
+              </div>
+              
+              <div class="divider-section">
+                <mat-divider></mat-divider>
+              </div>
+              
+              <div class="form-section">
+                <h3>Preferințe confidențialitate</h3>
+                
+                <mat-slide-toggle formControlName="show_name_in_forums" color="primary" class="setting-toggle">
+                  Arată numele meu în forumuri
+                </mat-slide-toggle>
+                <small class="setting-description">
+                  Permite afișarea numelui tău în discuțiile din forum
+                </small>
+                
+                <mat-slide-toggle formControlName="show_activity_history" color="primary" class="setting-toggle">
+                  Fă publică activitatea mea de participare
+                </mat-slide-toggle>
+                <small class="setting-description">
+                  Permite altora să vadă istoricul tău de participare (fără detalii despre voturile tale)
+                </small>
+              </div>
+              
+              <div class="divider-section">
+                <mat-divider></mat-divider>
+              </div>
+              
+              <div class="form-section">
+                <h3>Accesibilitate</h3>
+                
+                <mat-slide-toggle formControlName="high_contrast" color="primary" class="setting-toggle">
+                  Mod contrast ridicat
+                </mat-slide-toggle>
+                <small class="setting-description">
+                  Activează modul de contrast ridicat pentru vizibilitate îmbunătățită
+                </small>
+                
+                <mat-slide-toggle formControlName="large_font" color="primary" class="setting-toggle">
+                  Font mărit
+                </mat-slide-toggle>
+                <small class="setting-description">
+                  Mărește dimensiunea textului în toată aplicația
+                </small>
+              </div>
+              
+              <div class="divider-section">
+                <mat-divider></mat-divider>
+              </div>
+              
+              <div class="form-section">
+                <h3>Preferințe limbă</h3>
+                
+                <mat-form-field appearance="outline">
+                  <mat-label>Limbă</mat-label>
+                  <mat-select formControlName="language">
+                    <mat-option value="ro">Română</mat-option>
+                    <mat-option value="en">English</mat-option>
+                    <mat-option value="hu">Magyar</mat-option>
+                  </mat-select>
+                </mat-form-field>
+              </div>
+              
+              <div class="form-actions">
+                <button mat-raised-button color="primary" type="submit" 
+                        [disabled]="settingsForm.invalid || isSubmitting">
+                  <mat-icon>save</mat-icon>
+                  Salvează setările
+                </button>
+              </div>
+            </form>
+          </div>
+        </mat-tab>
+  
+        <!-- Security Tab -->
+        <mat-tab>
+          <ng-template mat-tab-label>
+            <mat-icon class="tab-icon">security</mat-icon>
+            Securitate
+          </ng-template>
+          
+          <div class="tab-content">
+            <!-- Password Change Section -->
+            <div class="form-section" *ngIf="authMethod === 'email'">
+              <h3>Schimbare parolă</h3>
+              
+              <form [formGroup]="passwordForm" (ngSubmit)="changePassword()">
+                <mat-form-field appearance="outline" class="full-width">
+                  <mat-label>Parola actuală</mat-label>
+                  <input matInput [type]="isCurrentPasswordVisible ? 'text' : 'password'" 
+                         formControlName="old_password">
+                  <button mat-icon-button matSuffix (click)="toggleCurrentPasswordVisibility()" type="button">
+                    <mat-icon>{{ isCurrentPasswordVisible ? 'visibility_off' : 'visibility' }}</mat-icon>
+                  </button>
+                  <mat-error *ngIf="passwordForm.get('old_password')?.hasError('required')">
+                    Parola actuală este obligatorie
+                  </mat-error>
+                </mat-form-field>
+                
+                <mat-form-field appearance="outline" class="full-width">
+                  <mat-label>Parolă nouă</mat-label>
+                  <input matInput [type]="isPasswordVisible ? 'text' : 'password'" 
+                         formControlName="new_password" (keyup)="validatePassword()">
+                  <button mat-icon-button matSuffix (click)="togglePasswordVisibility()" type="button">
+                    <mat-icon>{{ isPasswordVisible ? 'visibility_off' : 'visibility' }}</mat-icon>
+                  </button>
+                  <mat-error *ngIf="passwordForm.get('new_password')?.hasError('required')">
+                    Parola nouă este obligatorie
+                  </mat-error>
+                  <mat-error *ngIf="passwordForm.get('new_password')?.hasError('minlength')">
+                    Parola trebuie să aibă cel puțin 8 caractere
+                  </mat-error>
+                </mat-form-field>
+                
+                <div *ngFor="let error of passwordErrors" class="password-error">
+                  <mat-icon color="warn">error</mat-icon> {{ error }}
+                </div>
+                
+                <mat-form-field appearance="outline" class="full-width">
+                  <mat-label>Confirmă parola nouă</mat-label>
+                  <input matInput [type]="isPasswordVisible ? 'text' : 'password'" 
+                         formControlName="confirm_password">
+                  <mat-error *ngIf="passwordForm.hasError('mismatch')">
+                    Parolele nu se potrivesc
+                  </mat-error>
+                </mat-form-field>
+                
+                <button mat-raised-button color="primary" type="submit" 
+                        [disabled]="passwordForm.invalid || isSubmitting || passwordErrors.length > 0">
+                  <mat-icon>lock</mat-icon>
+                  Schimbă parola
+                </button>
+              </form>
+            </div>
+            
+            <div class="divider-section" *ngIf="authMethod === 'email'">
+              <mat-divider></mat-divider>
+            </div>
+            
+            <!-- Two Factor Authentication Section -->
+            <div class="form-section">
+              <h3>Autentificare în doi pași</h3>
+              
+              <ng-container *ngIf="settingsForm.get('two_factor_enabled') as twoFactorControl">
+                <mat-slide-toggle [checked]="twoFactorControl.value" 
+                                (change)="twoFactorControl.setValue($event.checked)"
+                                color="primary" 
+                                class="setting-toggle">
+                  Activează autentificarea în doi pași
+                </mat-slide-toggle>
+              </ng-container>
+                
+              <small class="setting-description">
+                Adaugă un nivel suplimentar de securitate prin solicitarea unui cod la fiecare autentificare
+              </small>
+              
+              <div *ngIf="settingsForm.get('two_factor_enabled')?.value" class="two-factor-setup" style="margin-top: 15px;">
+                <button mat-stroked-button color="primary">
+                  <mat-icon>qr_code</mat-icon>
+                  Configurează autentificarea în doi pași
+                </button>
+              </div>
+            </div>
+            
+            <div class="divider-section">
+              <mat-divider></mat-divider>
+            </div>
+            
+            <!-- Account Deletion Section -->
+            <div class="form-section danger-zone">
+              <h3>Zonă periculoasă</h3>
+              
+              <div class="danger-action">
+                <div class="danger-content">
+                  <h4>Dezactivare cont</h4>
+                  <p>Dezactivarea contului va face toate datele tale inaccesibile, dar acestea vor fi păstrate conform politicii noastre de confidențialitate.</p>
+                </div>
+                
+                <button mat-raised-button color="warn" (click)="deleteAccount()">
+                  <mat-icon>delete_forever</mat-icon>
+                  Dezactivează contul
+                </button>
+              </div>
+            </div>
+          </div>
+        </mat-tab>
+      </mat-tab-group>
+    </div>
+  </div>

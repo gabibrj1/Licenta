@@ -67,8 +67,12 @@ import { MediaInfluenceComponent } from './candidati-prezidentiali/media-influen
 import { TimelineComponent } from './candidati-prezidentiali/timeline/timeline.component';
 import { PresidentialCandidatesService } from './candidati-prezidentiali/candidati-prezidentiali/services/presidential-candidates.service';
 import { TransitionComponent } from './candidati-prezidentiali/transition/transition.component';
-import { CandidatiLocaliComponent } from './candidati-locali/candidati-locali.component'; 
-
+import { CandidatiLocaliComponent } from './candidati-locali/candidati-locali.component';
+import { SetariContComponent } from './setari-cont/setari-cont.component';
+import { ConfirmDialogComponent } from './shared/confirm-dialog/confirm-dialog.component'; 
+import { MatDividerModule } from '@angular/material/divider';
+import { MatTabsModule } from '@angular/material/tabs';
+import { MatTooltipModule } from '@angular/material/tooltip';
 
 @NgModule({
   declarations: [
@@ -109,6 +113,8 @@ import { CandidatiLocaliComponent } from './candidati-locali/candidati-locali.co
     TimelineComponent,
     TransitionComponent,
     CandidatiLocaliComponent,
+    SetariContComponent,
+    ConfirmDialogComponent,
 
   ],
   imports: [
@@ -135,6 +141,10 @@ import { CandidatiLocaliComponent } from './candidati-locali/candidati-locali.co
     MatDialogModule,
     MatButtonModule,
     ForumModule,
+    MatButtonModule,
+    MatDividerModule,
+    MatTabsModule,
+    MatTooltipModule,
     VoteModule,
     NgxEchartsModule.forRoot({
       echarts: () => import('echarts')

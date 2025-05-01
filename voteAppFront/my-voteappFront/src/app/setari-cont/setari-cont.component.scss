@@ -1,0 +1,1170 @@
+$primary-color: #4a9eff;
+$primary-light: #6bb7ff;
+$primary-dark: #2a6fc9;
+$secondary-color: #ff7b7b;
+$success-color: #3ddc84;
+$warning-color: #ffb347;
+$danger-color: #ff5a5a;
+$gray-light: rgba(255, 255, 255, 0.15);
+$gray-medium: rgba(255, 255, 255, 0.3);
+$gray-dark: #b0b0b0;
+$text-color: #ffffff;
+$text-light: #f5f5f5;
+$border-radius: 12px;
+$box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+$transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+$background-color: #151515;
+$tab-blue: #4a9bff; // Albastru pentru tab-uri și secțiuni
+
+// Main container
+.account-settings-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 30px;
+  color: $text-color;
+  font-family: 'Roboto', Arial, sans-serif;
+  position: relative;
+  
+  &::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(circle at top right, rgba($primary-dark, 0.2) 0%, transparent 60%),
+                radial-gradient(circle at bottom left, rgba($primary-dark, 0.15) 0%, transparent 40%);
+    pointer-events: none;
+    z-index: -1;
+  }
+  
+  .page-header {
+    text-align: center;
+    margin-bottom: 50px;
+    position: relative;
+    
+    &::after {
+      content: '';
+      position: absolute;
+      bottom: -20px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 120px;
+      height: 3px;
+      background: linear-gradient(to right, $primary-dark, $primary-color, $primary-light);
+      border-radius: 3px;
+    }
+    
+    h1 {
+      font-size: 42px;
+      background: linear-gradient(to right, $primary-color, $primary-light);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 15px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+      
+      @media (max-width: 768px) {
+        font-size: 32px;
+      }
+    }
+    
+    .subtitle {
+      font-size: 18px;
+      color: $text-light;
+      margin-bottom: 20px;
+      font-weight: 300;
+      letter-spacing: 0.5px;
+      
+      @media (max-width: 768px) {
+        font-size: 16px;
+      }
+    }
+  }
+  
+  // Loading overlay 
+  .loading-overlay {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 0;
+    gap: 20px;
+    
+    mat-spinner {
+      ::ng-deep circle {
+        stroke: $primary-color;
+      }
+    }
+    
+    p {
+      color: $text-light;
+      font-size: 16px;
+    }
+  }
+}
+
+// Settings content
+.settings-content {
+  background-color: rgba(25, 30, 40, 0.9);
+  border-radius: $border-radius;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  position: relative;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, 
+      transparent, 
+      rgba(255, 255, 255, 0.15), 
+      rgba(255, 255, 255, 0.3), 
+      rgba(255, 255, 255, 0.15), 
+      transparent
+    );
+  }
+  
+  input, textarea, select {
+    color: $text-color !important;
+    background-color: transparent !important;
+    
+    &::placeholder {
+      color: rgba(255, 255, 255, 0.5);
+    }
+    
+    &:focus {
+      outline: none;
+    }
+  }
+  
+  // Profile header section - keeping existing blue
+  .profile-header {
+    display: flex;
+    padding: 40px;
+    background: linear-gradient(135deg, #2259a5 0%, #0e366d 100%);
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+    border-bottom: 2px solid $primary-color;
+    
+    &::before {
+      content: '';
+      position: absolute;
+      top: -10px;
+      right: -10px;
+      background: radial-gradient(circle, rgba($primary-light, 0.3) 0%, rgba($primary-light, 0) 70%);
+      height: 300px;
+      width: 300px;
+      border-radius: 50%;
+      opacity: 0.6;
+      animation: pulse 8s infinite alternate ease-in-out;
+    }
+    
+    &::after {
+      content: '';
+      position: absolute;
+      bottom: -80px;
+      left: -50px;
+      background: radial-gradient(circle, rgba($primary-light, 0.2) 0%, rgba($primary-light, 0) 70%);
+      height: 200px;
+      width: 200px;
+      border-radius: 50%;
+      opacity: 0.4;
+      animation: pulse 6s infinite alternate-reverse ease-in-out;
+    }
+    
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      100% { transform: scale(1.3); }
+    }
+    
+    @media (max-width: 576px) {
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+      padding: 30px 20px;
+    }
+    
+    .profile-avatar {
+      position: relative;
+      margin-right: 40px;
+      z-index: 2;
+      
+      @media (max-width: 576px) {
+        margin-right: 0;
+      }
+      
+      .avatar-placeholder {
+        width: 130px;
+        height: 130px;
+        border-radius: 50%;
+        background-color: #ffc107;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 52px;
+        font-weight: 700;
+        color: #143166;
+        text-transform: uppercase;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+        border: 4px solid rgba(255, 255, 255, 0.15);
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+      }
+      
+      .profile-image {
+        width: 130px;
+        height: 130px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 4px solid rgba(255, 255, 255, 0.25);
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+        transition: all 0.3s ease;
+        
+        &:hover {
+          transform: scale(1.05);
+          border-color: $primary-light;
+        }
+      }
+      
+      .avatar-actions {
+        position: absolute;
+        bottom: -5px;
+        right: -5px;
+        display: flex;
+        gap: 10px;
+        
+        button {
+          width: 40px;
+          height: 40px;
+          box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+          transition: all 0.2s ease;
+          
+          &:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4);
+          }
+          
+          mat-icon {
+            font-size: 20px;
+            line-height: 20px;
+            height: 20px;
+            width: 20px;
+          }
+        }
+      }
+    }
+    
+    .profile-info {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      position: relative;
+      z-index: 2;
+      
+      @media (max-width: 576px) {
+        text-align: center;
+      }
+      
+      h2 {
+        font-size: 32px;
+        color: white;
+        margin-bottom: 12px;
+        font-weight: 600;
+        text-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+        letter-spacing: 0.5px;
+        position: relative;
+        display: inline-block;
+        
+        &::after {
+          content: '';
+          position: absolute;
+          bottom: -8px;
+          left: 0;
+          height: 3px;
+          width: 60px;
+          background: linear-gradient(to right, $primary-light, transparent);
+          border-radius: 3px;
+          
+          @media (max-width: 576px) {
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(to right, $primary-light 30%, transparent 100%);
+          }
+        }
+        
+        @media (max-width: 768px) {
+          font-size: 28px;
+        }
+      }
+      
+      .auth-info {
+        display: flex;
+        align-items: center;
+        color: rgba(255, 255, 255, 0.95);
+        margin-top: 10px;
+        font-size: 16px;
+        background-color: rgba(0, 0, 0, 0.3);
+        border-radius: 50px;
+        padding: 10px 15px;
+        display: inline-flex;
+        backdrop-filter: blur(5px);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        
+        @media (max-width: 576px) {
+          justify-content: center;
+          margin: 0 auto;
+        }
+        
+        mat-icon {
+          margin-right: 10px;
+          font-size: 20px;
+          height: 20px;
+          width: 20px;
+          color: $warning-color;
+        }
+      }
+    }
+  }
+}
+
+// Tabs styling - update to always show white text and blue on active
+.settings-tabs {
+  ::ng-deep {
+    .mat-mdc-tab-header, .mat-tab-header {
+      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+      
+      .mat-mdc-tab-label-container, .mat-tab-label-container {
+        overflow: visible;
+      }
+      
+      .mat-mdc-tab, .mat-tab-label {
+        height: 64px;
+        opacity: 1;
+        transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        padding: 0 30px;
+        position: relative;
+        overflow: visible;
+        
+        // Fix pentru text în tab - MEREU ALB
+        .mdc-tab__text-label, .mat-tab-label-content {
+          color: $text-color !important;
+        }
+        
+        // Fix pentru icon în tab - MEREU ALB
+        .tab-icon {
+          margin-right: 10px;
+          color: $text-color !important;
+          font-size: 22px;
+        }
+        
+        &::after {
+          content: '';
+          position: absolute;
+          bottom: 0;
+          left: 50%;
+          width: 0;
+          height: 4px;
+          background: linear-gradient(to right, $tab-blue, lighten($tab-blue, 15%));
+          transform: translateX(-50%);
+          transition: width 0.3s ease;
+        }
+        
+        &:hover {
+          background-color: rgba(255, 255, 255, 0.1);
+          
+          &::after {
+            width: 40px;
+          }
+        }
+        
+        &.mat-mdc-tab-active, &.mat-tab-label-active {
+          background-color: rgba($tab-blue, 0.2);
+          
+          .mdc-tab__text-label, .mat-tab-label-content, .tab-icon {
+            color: $tab-blue !important;
+          }
+          
+          &::after {
+            width: 100%;
+          }
+        }
+      }
+      
+      .mat-ink-bar {
+        display: none;
+      }
+    }
+    
+    .mat-mdc-tab-body-content, .mat-tab-body-content {
+      overflow: hidden;
+    }
+  }
+}
+
+// Tab content
+.tab-content {
+  padding: 40px;
+  
+  @media (max-width: 576px) {
+    padding: 30px 20px;
+  }
+  
+  // Form sections
+  .form-section {
+    margin-bottom: 40px;
+    position: relative;
+    
+    &::before {
+      content: '';
+      position: absolute;
+      top: -15px;
+      left: -15px;
+      width: calc(100% + 30px);
+      height: calc(100% + 30px);
+      background: radial-gradient(ellipse at top left, rgba($primary-color, 0.1) 0%, rgba($primary-color, 0) 70%);
+      z-index: -1;
+      opacity: 0.5;
+      border-radius: $border-radius;
+      pointer-events: none;
+    }
+    
+    // Titluri secțiuni - aceeași culoare albastră
+    h3 {
+      font-size: 22px;
+      color: $tab-blue;
+      margin-bottom: 25px;
+      position: relative;
+      padding-bottom: 12px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+      
+      &::before {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: 1px;
+        background: linear-gradient(to right, rgba($tab-blue, 0.3), transparent);
+      }
+      
+      &::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 80px;
+        height: 3px;
+        background: linear-gradient(to right, $tab-blue, lighten($tab-blue, 15%));
+        border-radius: 3px;
+        transform-origin: left;
+        animation: expand 0.5s ease-out forwards;
+      }
+      
+      @keyframes expand {
+        from { transform: scaleX(0); }
+        to { transform: scaleX(1); }
+      }
+    }
+    
+    // Form fields styling - asigurare text alb peste tot
+    mat-form-field {
+      width: 100%;
+      margin-bottom: 25px;
+      
+      ::ng-deep {
+        .mat-form-field-wrapper {
+          padding-bottom: 0;
+        }
+        
+        .mat-form-field-flex {
+          background-color: rgba(255, 255, 255, 0.1);
+          border-radius: 8px !important;
+          transition: $transition;
+          padding: 18px 15px 8px !important;
+          border-left: 3px solid transparent;
+          
+          &:hover {
+            background-color: rgba(255, 255, 255, 0.15);
+            border-left-color: rgba($tab-blue, 0.4);
+          }
+          
+          &:focus-within {
+            background-color: rgba(255, 255, 255, 0.2);
+            border-left-color: $tab-blue;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+          }
+        }
+        
+        .mat-form-field-outline {
+          color: rgba(255, 255, 255, 0.3);
+        }
+        
+        .mat-form-field-outline-thick {
+          color: rgba($tab-blue, 0.7);
+        }
+        
+        // Text etichetă în alb
+        .mat-form-field-label {
+          color: rgba(255, 255, 255, 0.9) !important;
+          font-weight: 500;
+          letter-spacing: 0.5px;
+          font-size: 14px;
+        }
+        
+        // Text input și select în alb
+        .mat-input-element,
+        .mat-select-value {
+          color: $text-color !important;
+          font-size: 16px;
+          caret-color: $primary-light;
+          letter-spacing: 0.3px;
+        }
+        
+        .mat-form-field-invalid {
+          .mat-form-field-outline-thick {
+            color: $danger-color;
+          }
+          
+          .mat-input-element {
+            caret-color: $danger-color;
+          }
+        }
+        
+        .mat-hint {
+          color: rgba(255, 255, 255, 0.7);
+          font-size: 12px;
+        }
+        
+        .mat-form-field-subscript-wrapper {
+          padding: 0;
+          margin-top: 6px;
+        }
+        
+        .mat-select-arrow {
+          color: $text-color;
+        }
+        
+        .mat-form-field-appearance-outline.mat-focused {
+          .mat-form-field-outline-thick {
+            color: $tab-blue;
+          }
+        }
+        
+        textarea.mat-input-element {
+          line-height: 1.5;
+          padding-top: 5px;
+        }
+      }
+    }
+    
+    .full-width {
+      width: 100%;
+    }
+    
+    .two-columns {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      
+      @media (max-width: 576px) {
+        grid-template-columns: 1fr;
+        gap: 0;
+      }
+    }
+    
+    // Toggle styling - text alb
+    .setting-toggle {
+      display: block;
+      margin-bottom: 10px;
+      padding: 12px 15px;
+      background-color: rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      transition: all 0.2s ease;
+      border-left: 3px solid transparent;
+      
+      &:hover {
+        background-color: rgba(255, 255, 255, 0.15);
+        border-left-color: rgba($tab-blue, 0.3);
+      }
+      
+      ::ng-deep {
+        .mat-slide-toggle-label,
+        .mat-mdc-slide-toggle-label,
+        .mdc-form-field label {
+          color: $text-color !important;
+          font-weight: 500;
+          font-size: 15px;
+          letter-spacing: 0.3px;
+        }
+        
+        .mat-slide-toggle-bar {
+          background-color: rgba(0, 0, 0, 0.3);
+          height: 16px;
+          border-radius: 10px;
+          border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+        
+        .mat-slide-toggle-thumb {
+          background-color: rgba(255, 255, 255, 0.95);
+          height: 22px;
+          width: 22px;
+          box-shadow: 0 2px 5px rgba(0, 0, 0, 0.4);
+          transform: scale(0.9);
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .mat-slide-toggle-ripple {
+          background-color: rgba($tab-blue, 0.2);
+        }
+        
+        &.mat-checked {
+          .mat-slide-toggle-thumb {
+            background-color: $tab-blue;
+            transform: translateX(16px) scale(1);
+          }
+          
+          .mat-slide-toggle-bar {
+            background-color: rgba($tab-blue, 0.4);
+            border-color: rgba($tab-blue, 0.5);
+          }
+        }
+      }
+    }
+    
+    .setting-description {
+      display: block;
+      color: rgba(255, 255, 255, 0.7);
+      font-size: 13px;
+      margin-bottom: 25px;
+      margin-left: 15px;
+      position: relative;
+      
+      &::before {
+        content: '';
+        position: absolute;
+        left: -10px;
+        top: 7px;
+        width: 4px;
+        height: 4px;
+        border-radius: 50%;
+        background-color: rgba($tab-blue, 0.7);
+      }
+    }
+
+    // Password validators
+    .password-error {
+      display: flex;
+      align-items: center;
+      color: $danger-color;
+      font-size: 13px;
+      margin-bottom: 12px;
+      background-color: rgba($danger-color, 0.15);
+      padding: 8px 12px;
+      border-radius: 6px;
+      border-left: 3px solid $danger-color;
+      
+      mat-icon {
+        font-size: 16px;
+        height: 16px;
+        width: 16px;
+        margin-right: 8px;
+      }
+    }
+    
+    // Two factor setup
+    .two-factor-setup {
+      button {
+        background-color: rgba($tab-blue, 0.15);
+        border: 1px solid rgba($tab-blue, 0.4);
+        transition: $transition;
+        padding: 10px 20px;
+        border-radius: 30px;
+        font-weight: 500;
+        letter-spacing: 0.3px;
+        color: $text-color; // Alb pentru text buton
+        
+        &:hover {
+          background-color: rgba($tab-blue, 0.25);
+          transform: translateY(-3px);
+          box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        mat-icon {
+          margin-right: 10px;
+          font-size: 20px;
+          vertical-align: middle;
+          color: $text-color; // Alb pentru icon buton
+        }
+      }
+    }
+  }
+  
+  // Form actions
+  .form-actions {
+    margin-top: 40px;
+    display: flex;
+    justify-content: flex-end;
+    
+    button {
+      padding: 0 30px;
+      height: 48px;
+      border-radius: 24px;
+      font-weight: 600;
+      letter-spacing: 0.8px;
+      font-size: 15px;
+      transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      text-transform: uppercase;
+      position: relative;
+      overflow: hidden;
+      color: white;
+      
+      &::before {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 0;
+        height: 0;
+        background-color: rgba(255, 255, 255, 0.15);
+        border-radius: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 0;
+        transition: width 0.6s ease, height 0.6s ease;
+      }
+      
+      &:hover::before {
+        width: 300px;
+        height: 300px;
+      }
+      
+      mat-icon {
+        margin-right: 10px;
+        font-size: 20px;
+        position: relative;
+        z-index: 1;
+      }
+      
+      span {
+        position: relative;
+        z-index: 1;
+      }
+      
+      &[color="primary"] {
+        background: linear-gradient(45deg, $primary-dark, $primary-color);
+        box-shadow: 0 4px 20px rgba($primary-dark, 0.6);
+        
+        &:hover {
+          background: linear-gradient(45deg, darken($primary-dark, 5%), darken($primary-color, 5%));
+          transform: translateY(-3px);
+          box-shadow: 0 8px 25px rgba($primary-dark, 0.7);
+        }
+        
+        &:active {
+          transform: translateY(-1px);
+          box-shadow: 0 4px 8px rgba($primary-dark, 0.5);
+        }
+        
+        &:disabled {
+          background: linear-gradient(45deg, desaturate($primary-dark, 40%), desaturate($primary-color, 40%));
+          opacity: 0.7;
+          color: rgba(255, 255, 255, 0.6);
+          box-shadow: none;
+          cursor: not-allowed;
+          
+          &::before {
+            display: none;
+          }
+        }
+      }
+    }
+  }
+  
+  // Divider section
+  .divider-section {
+    margin: 30px 0;
+    
+    mat-divider {
+      border-top-color: rgba(255, 255, 255, 0.15);
+    }
+  }
+  
+  // Danger zone
+  .danger-zone {
+    background-color: rgba($danger-color, 0.15);
+    border-radius: $border-radius;
+    padding: 25px;
+    border-left: 4px solid $danger-color;
+    position: relative;
+    overflow: hidden;
+    
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 150px;
+      height: 150px;
+      background: radial-gradient(circle, rgba($danger-color, 0.2) 0%, transparent 70%);
+      border-radius: 50%;
+      z-index: 0;
+    }
+    
+    h3 {
+      color: lighten($danger-color, 10%);
+      
+      &::after {
+        background: linear-gradient(to right, $danger-color, rgba($danger-color, 0.6));
+      }
+    }
+    
+    .danger-action {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: relative;
+      z-index: 1;
+      
+      @media (max-width: 768px) {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 20px;
+      }
+      
+      .danger-content {
+        flex: 1;
+        
+        h4 {
+          font-size: 18px;
+          color: $text-color;
+          margin-bottom: 10px;
+          font-weight: 600;
+        }
+        
+        p {
+          color: rgba(255, 255, 255, 0.85);
+          font-size: 14px;
+          max-width: 600px;
+          line-height: 1.6;
+        }
+      }
+      
+      button {
+        white-space: nowrap;
+        transition: $transition;
+        border-radius: 30px;
+        padding: 0 25px;
+        height: 46px;
+        font-weight: 500;
+        letter-spacing: 0.5px;
+        background: linear-gradient(45deg, darken($danger-color, 5%), $danger-color);
+        box-shadow: 0 4px 20px rgba($danger-color, 0.4);
+        border: none;
+        position: relative;
+        overflow: hidden;
+        color: white;
+        
+        &::before {
+          content: '';
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          width: 0;
+          height: 0;
+          background-color: rgba(0, 0, 0, 0.2);
+          border-radius: 50%;
+          transform: translate(-50%, -50%);
+          transition: width 0.5s ease, height 0.5s ease;
+        }
+        
+        &:hover {
+          transform: translateY(-3px);
+          box-shadow: 0 8px 20px rgba($danger-color, 0.5);
+          
+          &::before {
+            width: 300px;
+            height: 300px;
+          }
+        }
+        
+        &:active {
+          transform: translateY(-1px);
+          box-shadow: 0 5px 10px rgba($danger-color, 0.5);
+        }
+        
+        mat-icon {
+          margin-right: 10px;
+          font-size: 20px;
+          vertical-align: middle;
+          position: relative;
+          z-index: 1;
+        }
+        
+        span {
+          position: relative;
+          z-index: 1;
+        }
+      }
+    }
+  }
+}
+
+
+
+
+
+  // Fix pentru drop-down și form fields - asigurare text alb
+  ::ng-deep {
+    // Culoare text pentru dropdown
+    .mat-select-value, 
+    .mat-mdc-select-value,
+    .mat-select-value-text,
+    .mat-mdc-select-value-text,
+    .mat-mdc-select-min-line {
+      color: $text-color !important;
+    }
+    
+    // Culoare text selectie dropdown
+    .mat-select-panel,
+    .mat-mdc-select-panel {
+      background-color: #2c2c2c;
+      
+      .mat-option .mat-option-text,
+      .mat-mdc-option .mdc-list-item__primary-text {
+        color: $text-color !important;
+      }
+    }
+    
+    // Fix pentru butoane mat-slide-toggle - text alb
+    .mat-slide-toggle-content,
+    .mat-mdc-slide-toggle-label-text {
+      color: $text-color !important;
+    }
+    
+    // Fix pentru mat-labels in formulare
+    .mat-mdc-floating-label,
+    .mat-mdc-floating-label.mdc-floating-label,
+    .mat-form-field-label,
+    .mat-mdc-form-field-label {
+      color: rgba(255, 255, 255, 0.9) !important;
+    }
+    
+    // Săgeată dropdown
+    .mat-mdc-select-arrow,
+    .mat-select-arrow {
+      color: $text-color !important;
+    }
+    
+    // Focus highlight pentru câmpuri
+    .mat-form-field.mat-focused .mat-form-field-ripple,
+    .mat-mdc-form-field.mat-focused .mat-mdc-form-field-ripple {
+      background-color: $tab-blue;
+    }
+    
+    // Câmpuri input text
+    .mat-mdc-input-element,
+    .mat-input-element {
+      color: $text-color !important;
+    }
+    
+    // Outlining for fields - asigurare border vizibil
+    .mat-mdc-text-field-wrapper.mdc-text-field--outlined .mdc-notched-outline__leading,
+    .mat-mdc-text-field-wrapper.mdc-text-field--outlined .mdc-notched-outline__notch,
+    .mat-mdc-text-field-wrapper.mdc-text-field--outlined .mdc-notched-outline__trailing {
+      border-color: rgba(255, 255, 255, 0.3) !important;
+    }
+    
+    // Câmpuri de formular când sunt focalizate
+    .mat-mdc-text-field-wrapper.mdc-text-field--outlined.mdc-text-field--focused {
+      .mdc-notched-outline__leading,
+      .mdc-notched-outline__notch,
+      .mdc-notched-outline__trailing {
+        border-color: $tab-blue !important;
+        border-width: 2px;
+      }
+    }
+    
+    // Placeholders pentru input
+    ::placeholder {
+      color: rgba(255, 255, 255, 0.5) !important;
+      opacity: 1;
+    }
+    
+    // Focus pe dropdown options
+    .mat-mdc-option:hover:not(.mdc-list-item--disabled),
+    .mat-mdc-option.mat-mdc-option-active {
+      background-color: rgba($tab-blue, 0.1);
+    }
+    
+    // Option selectată în dropdown
+    .mat-mdc-option.mat-mdc-selected:not(.mdc-list-item--disabled) {
+      background-color: rgba($tab-blue, 0.2);
+      
+      .mdc-list-item__primary-text {
+        color: $tab-blue !important;
+      }
+    }
+  }
+  
+  // Stiluri pentru titlurile secțiunilor - albastru pentru toate secțiunile
+  .tab-content h3,
+  .form-section h3 {
+    color: $tab-blue !important;
+  }
+
+  // Fix pentru dropdown limba - asigurare că textul este alb
+  .mat-mdc-form-field.mat-mdc-form-field-type-mat-select {
+    .mat-mdc-select-value-text, 
+    .mat-select-value-text,
+    .mat-mdc-select-min-line {
+      color: $text-color !important;
+    }
+  }
+  
+  // Fix pentru text în label-uri și icon-uri  
+  .setting-toggle .mdc-form-field label,
+  .mat-mdc-slide-toggle .mdc-form-field label {
+    color: $text-color !important;
+  }
+  
+  // Fix pentru câmpuri de formular gri/albe
+  .mat-mdc-text-field-wrapper,
+  .mat-form-field-flex {
+    background-color: rgba(255, 255, 255, 0.1) !important;
+    border-radius: 8px;
+  }
+  
+  // Fix pentru titlurile tab-urilor - Profil, Setări, Securitate
+  ::ng-deep .settings-tabs {
+    // Tab selectat cu albastru
+    .mat-mdc-tab.mdc-tab--active,
+    .mat-tab-label-active {
+      .tab-icon, 
+      .mdc-tab__text-label, 
+      .mat-tab-label-content {
+        color: $tab-blue !important;
+      }
+    }
+    
+    // Tab-uri inactive cu text alb
+    .mat-mdc-tab:not(.mdc-tab--active),
+    .mat-tab-label:not(.mat-tab-label-active) {
+      .tab-icon, 
+      .mdc-tab__text-label, 
+      .mat-tab-label-content {
+        color: $text-color !important;
+      }
+    }
+  }
+  
+  // Bordere pentru inputs - efect de focus
+  .mat-mdc-form-field-flex:focus-within,
+  .mat-form-field-flex:focus-within {
+    border-color: $tab-blue !important;
+    border-left: 3px solid $tab-blue !important;
+    background-color: rgba(255, 255, 255, 0.15) !important;
+  }
+  
+  // Stilizare pentru titlurile de secțiuni
+  .tab-content {
+    h3.informații-personale,
+    h3.preferințe-notificări,
+    h3.preferințe-confidențialitate,
+    h3.accesibilitate,
+    h3.preferințe-limbă,
+    h3.schimbare-parolă,
+    h3.autentificare-în-doi-pași {
+      color: $tab-blue !important;
+      font-weight: 600;
+      border-bottom: 1px solid rgba($tab-blue, 0.3);
+    }
+  }
+  
+  // Înlocuire pentru dropdown-uri și limba
+  ::ng-deep .mat-mdc-select-panel,
+  ::ng-deep .mat-select-panel {
+    background-color: #2c2c2c !important; // Fundal închis pentru dropdown
+    
+    .mat-mdc-option .mdc-list-item__primary-text,
+    .mat-option .mat-option-text {
+      color: white !important; // Text alb pentru opțiuni
+    }
+    
+    // Opțiune hover
+    .mat-mdc-option:hover:not(.mdc-list-item--disabled),
+    .mat-option:hover:not(.mat-option-disabled) {
+      background-color: rgba(74, 155, 255, 0.1) !important;
+    }
+    
+    // Opțiune selectată
+    .mat-mdc-option.mat-mdc-selected:not(.mdc-list-item--disabled),
+    .mat-option.mat-selected:not(.mat-option-disabled) {
+      background-color: rgba(74, 155, 255, 0.2) !important;
+    }
+  }
+  
+  // Fix pentru inputul de limbă - asigură că se vede textul
+  .mat-mdc-form-field.mat-mdc-form-field-type-mat-select .mat-mdc-form-field-infix,
+  .mat-form-field.mat-form-field-type-mat-select .mat-form-field-infix {
+    .mat-mdc-select-value,
+    .mat-select-value {
+      color: white !important;
+    }
+  }
+
+// Dialog styles - păstrare pentru consistență
+.confirmation-dialog {
+  background-color: $background-color;
+  border-radius: $border-radius;
+  box-shadow: $box-shadow;
+  
+  .dialog-title {
+    color: $text-color;
+    font-size: 24px;
+    margin-bottom: 15px;
+  }
+  
+  .dialog-content {
+    color: $text-light;
+    
+    p {
+      margin-bottom: 20px;
+    }
+  }
+  
+  .dialog-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 15px;
+    
+    button {
+      &.btn-cancel {
+        background-color: rgba(255, 255, 255, 0.15);
+        color: $text-color;
+        
+        &:hover {
+          background-color: rgba(255, 255, 255, 0.2);
+        }
+      }
+      
+      &.btn-confirm {
+        background-color: $danger-color;
+        color: white;
+        
+        &:hover {
+          background-color: darken($danger-color, 5%);
+        }
+      }
+    }
+  }
+}

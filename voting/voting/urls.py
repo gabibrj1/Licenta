@@ -16,6 +16,7 @@ urlpatterns = [
     path('api/forum/', include('forum.urls')),
     path('api/presidential-candidates/', include('presidential_candidates.urls')),
     path('api/local-candidates/', include('local_candidates.urls')),
+    path('api/account/', include('account_settings.urls')),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT) \
   + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
 

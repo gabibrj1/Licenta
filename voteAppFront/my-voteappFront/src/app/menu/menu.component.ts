@@ -392,7 +392,7 @@ private loadUserProfile(): void {
         
         // Setări Avansate
         case 'setari-cont':
-          this.router.navigate(['menu/setari/cont']);
+          this.router.navigate(['menu/setari-cont']);
           break;
         case 'securitate':
           this.router.navigate(['menu/setari/securitate']);

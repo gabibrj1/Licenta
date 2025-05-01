@@ -36,6 +36,7 @@ import { ForumNotificationsComponent } from './forum/forum-notifications/forum-n
 import { CandidatiPrezidentialiComponent } from './candidati-prezidentiali/candidati-prezidentiali.component';
 import { CandidatDetailComponent } from './candidati-prezidentiali/candidat-detail/candidat-detail.component';
 import { CandidatiLocaliComponent } from './candidati-locali/candidati-locali.component';
+import { SetariContComponent } from './setari-cont/setari-cont.component';
 
 const routes: Routes = [
   { path: '', component: HomeComponent },
@@ -59,6 +60,8 @@ const routes: Routes = [
       { path: 'candidati_prezidentiali/:slug', component: CandidatDetailComponent},
 
       { path : 'candidati_locali', component: CandidatiLocaliComponent},
+
+      { path: 'setari-cont', component: SetariContComponent, canActivate: [AuthGuard] },
 
       { path: 'forum/category/:slug', component: ForumCategoryComponent },
       { path: 'forum/topic/:slug', component: ForumTopicComponent },
