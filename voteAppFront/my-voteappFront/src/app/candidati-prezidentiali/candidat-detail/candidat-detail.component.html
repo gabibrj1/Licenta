@@ -1,137 +1,138 @@
 <div class="candidate-detail-container">
-    <!-- Loading indicator -->
-    <div *ngIf="isLoading" class="loading-container">
-      <div class="spinner"></div>
-      <p>Se încarcă datele candidatului...</p>
+  <!-- Loading indicator -->
+  <div *ngIf="isLoading" class="loading-container">
+    <div class="spinner"></div>
+    <p>Se încarcă datele candidatului...</p>
+  </div>
+  
+  <!-- Error message -->
+  <div *ngIf="loadingError" class="error-message">
+    <i class="fas fa-exclamation-triangle"></i>
+    <p>{{ loadingError }}</p>
+    <button (click)="loadCandidateDetails()">Reîncercați</button>
+    <a routerLink="/menu/candidati_prezidentiali" class="back-link">Înapoi la lista de candidați</a>
+  </div>
+  
+  <!-- Candidate details -->
+  <div *ngIf="candidate && !isLoading && !loadingError" class="candidate-details">
+    <div class="back-navigation">
+      <!-- Înlocuim linkul routerLink cu butonul care apelează metoda goBack() -->
+      <a (click)="goBack()" class="back-button">
+        <i class="fas fa-arrow-left"></i> Înapoi la lista de candidați
+      </a>
     </div>
     
-    <!-- Error message -->
-    <div *ngIf="loadingError" class="error-message">
-      <i class="fas fa-exclamation-triangle"></i>
-      <p>{{ loadingError }}</p>
-      <button (click)="loadCandidateDetails()">Reîncercați</button>
-      <a routerLink="/menu/candidati_prezidentiali" class="back-link">Înapoi la lista de candidați</a>
+    <div class="candidate-header">
+      <div class="candidate-image" [style.background-image]="'url(assets/images/candidates/' + candidate.slug + '.jpg)'">
+      </div>
+      
+      <div class="candidate-header-info">
+        <h1>{{ candidate.name }}</h1>
+        <div class="candidate-party">{{ candidate.party }}</div>
+        <div *ngIf="candidate.birth_date" class="candidate-age">
+          {{ getFormattedDate(candidate.birth_date) }} 
+          ({{ getAgeFromBirthDate(candidate.birth_date) }} ani)
+        </div>
+      </div>
     </div>
     
-    <!-- Candidate details -->
-    <div *ngIf="candidate && !isLoading && !loadingError" class="candidate-details">
-      <div class="back-navigation">
-        <a routerLink="/menu/candidati_prezidentiali">
-          <i class="fas fa-arrow-left"></i> Înapoi la lista de candidați
-        </a>
+    <!-- Navigation tabs -->
+    <div class="detail-tabs">
+      <div class="tab" [ngClass]="{'active': activeTab === 'biography'}" (click)="changeTab('biography')">
+        <i class="fas fa-user"></i> Biografie
       </div>
-      
-      <div class="candidate-header">
-        <div class="candidate-image" [style.background-image]="'url(assets/images/candidates/' + candidate.slug + '.jpg)'">
+      <div class="tab" [ngClass]="{'active': activeTab === 'electoral-history'}" (click)="changeTab('electoral-history')">
+        <i class="fas fa-chart-bar"></i> Istoric Electoral
+      </div>
+      <div class="tab" [ngClass]="{'active': activeTab === 'controversies'}" (click)="changeTab('controversies')">
+        <i class="fas fa-exclamation-circle"></i> Controverse
+      </div>
+    </div>
+    
+    <!-- Biography tab -->
+    <div *ngIf="activeTab === 'biography'" class="tab-content">
+      <div class="candidate-bio-section">
+        <h2>Biografie</h2>
+        <div class="bio-text">
+          <p [innerHTML]="candidate.biography"></p>
         </div>
         
-        <div class="candidate-header-info">
-          <h1>{{ candidate.name }}</h1>
-          <div class="candidate-party">{{ candidate.party }}</div>
-          <div *ngIf="candidate.birth_date" class="candidate-age">
-            {{ getFormattedDate(candidate.birth_date) }} 
-            ({{ getAgeFromBirthDate(candidate.birth_date) }} ani)
-          </div>
+        <div *ngIf="candidate.education" class="bio-subsection">
+          <h3>Educație</h3>
+          <p [innerHTML]="candidate.education"></p>
+        </div>
+        
+        <div *ngIf="candidate.political_experience" class="bio-subsection">
+          <h3>Experiență Politică</h3>
+          <p [innerHTML]="candidate.political_experience"></p>
         </div>
       </div>
+    </div>
+    
+    <!-- Electoral history tab -->
+    <div *ngIf="activeTab === 'electoral-history'" class="tab-content">
+      <h2>Istoric Electoral</h2>
       
-      <!-- Navigation tabs -->
-      <div class="detail-tabs">
-        <div class="tab" [ngClass]="{'active': activeTab === 'biography'}" (click)="changeTab('biography')">
-          <i class="fas fa-user"></i> Biografie
-        </div>
-        <div class="tab" [ngClass]="{'active': activeTab === 'electoral-history'}" (click)="changeTab('electoral-history')">
-          <i class="fas fa-chart-bar"></i> Istoric Electoral
-        </div>
-        <div class="tab" [ngClass]="{'active': activeTab === 'controversies'}" (click)="changeTab('controversies')">
-          <i class="fas fa-exclamation-circle"></i> Controverse
-        </div>
+      <div *ngIf="getParticipationYears().length === 0" class="no-data-message">
+        <p>Nu există date despre participarea candidatului la alegerile prezidențiale anterioare.</p>
       </div>
       
-      <!-- Biography tab -->
-      <div *ngIf="activeTab === 'biography'" class="tab-content">
-        <div class="candidate-bio-section">
-          <h2>Biografie</h2>
-          <div class="bio-text">
-            <p [innerHTML]="candidate.biography"></p>
-          </div>
+      <ng-container *ngFor="let year of getParticipationYears()">
+        <div class="election-year-section">
+          <h3>Alegeri Prezidențiale {{ year }}</h3>
           
-          <div *ngIf="candidate.education" class="bio-subsection">
-            <h3>Educație</h3>
-            <p [innerHTML]="candidate.education"></p>
-          </div>
-          
-          <div *ngIf="candidate.political_experience" class="bio-subsection">
-            <h3>Experiență Politică</h3>
-            <p [innerHTML]="candidate.political_experience"></p>
-          </div>
-        </div>
-      </div>
-      
-      <!-- Electoral history tab -->
-      <div *ngIf="activeTab === 'electoral-history'" class="tab-content">
-        <h2>Istoric Electoral</h2>
-        
-        <div *ngIf="getParticipationYears().length === 0" class="no-data-message">
-          <p>Nu există date despre participarea candidatului la alegerile prezidențiale anterioare.</p>
-        </div>
-        
-        <ng-container *ngFor="let year of getParticipationYears()">
-          <div class="election-year-section">
-            <h3>Alegeri Prezidențiale {{ year }}</h3>
-            
-            <ng-container *ngFor="let participation of participationsByYear[year]">
-              <div class="participation-card">
-                <div class="participation-header">
-                  <div class="round-badge">{{ participation.round_display }}</div>
-                  <div *ngIf="participation.position" class="position-badge">
-                    Poziția {{ participation.position }}
+          <ng-container *ngFor="let participation of participationsByYear[year]">
+            <div class="participation-card">
+              <div class="participation-header">
+                <div class="round-badge">{{ participation.round_display }}</div>
+                <div *ngIf="participation.position" class="position-badge">
+                  Poziția {{ participation.position }}
+                </div>
+              </div>
+              
+              <div class="participation-details">
+                <div *ngIf="participation.votes_percentage !== null && participation.votes_percentage !== undefined" class="votes-info">
+                  <div class="percentage">{{ participation.votes_percentage }}%</div>
+                  <div *ngIf="participation.votes_count !== null && participation.votes_count !== undefined" class="count">
+                    {{ participation.votes_count.toLocaleString('ro-RO') }} voturi
                   </div>
                 </div>
                 
-                <div class="participation-details">
-                  <div *ngIf="participation.votes_percentage !== null && participation.votes_percentage !== undefined" class="votes-info">
-                    <div class="percentage">{{ participation.votes_percentage }}%</div>
-                    <div *ngIf="participation.votes_count !== null && participation.votes_count !== undefined" class="count">
-                      {{ participation.votes_count.toLocaleString('ro-RO') }} voturi
-                    </div>
-                  </div>
-                  
-                  <div *ngIf="participation.campaign_slogan" class="slogan">
-                    "{{ participation.campaign_slogan }}"
-                  </div>
-                  
-                  <div *ngIf="participation.notable_events" class="notable-events">
-                    <h4>Evenimente notabile:</h4>
-                    <p>{{ participation.notable_events }}</p>
-                  </div>
+                <div *ngIf="participation.campaign_slogan" class="slogan">
+                  "{{ participation.campaign_slogan }}"
+                </div>
+                
+                <div *ngIf="participation.notable_events" class="notable-events">
+                  <h4>Evenimente notabile:</h4>
+                  <p>{{ participation.notable_events }}</p>
                 </div>
               </div>
-            </ng-container>
-          </div>
-        </ng-container>
+            </div>
+          </ng-container>
+        </div>
+      </ng-container>
+    </div>
+    
+    <!-- Controversies tab -->
+    <div *ngIf="activeTab === 'controversies'" class="tab-content">
+      <h2>Controverse</h2>
+      
+      <div *ngIf="!candidate.controversies || candidate.controversies.length === 0" class="no-data-message">
+        <p>Nu există controverse înregistrate pentru acest candidat.</p>
       </div>
       
-      <!-- Controversies tab -->
-      <div *ngIf="activeTab === 'controversies'" class="tab-content">
-        <h2>Controverse</h2>
-        
-        <div *ngIf="!candidate.controversies || candidate.controversies.length === 0" class="no-data-message">
-          <p>Nu există controverse înregistrate pentru acest candidat.</p>
-        </div>
-        
-        <ng-container *ngIf="candidate.controversies && candidate.controversies.length > 0">
-          <div *ngFor="let controversy of candidate.controversies" class="controversy-card">
-            <div class="controversy-date">{{ getFormattedDate(controversy.date) }}</div>
-            <h3>{{ controversy.title }}</h3>
-            <p>{{ controversy.description }}</p>
-            
-            <div *ngIf="controversy.impact" class="controversy-impact">
-              <h4>Impact:</h4>
-              <p>{{ controversy.impact }}</p>
-            </div>
+      <ng-container *ngIf="candidate.controversies && candidate.controversies.length > 0">
+        <div *ngFor="let controversy of candidate.controversies" class="controversy-card">
+          <div class="controversy-date">{{ getFormattedDate(controversy.date) }}</div>
+          <h3>{{ controversy.title }}</h3>
+          <p>{{ controversy.description }}</p>
+          
+          <div *ngIf="controversy.impact" class="controversy-impact">
+            <h4>Impact:</h4>
+            <p>{{ controversy.impact }}</p>
           </div>
-        </ng-container>
-      </div>
+        </div>
+      </ng-container>
     </div>
   </div>
+</div>

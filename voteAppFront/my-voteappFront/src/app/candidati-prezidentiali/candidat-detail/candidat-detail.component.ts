@@ -1,8 +1,9 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { Subject, takeUntil } from 'rxjs';
 import { PresidentialCandidatesService } from '../candidati-prezidentiali/services/presidential-candidates.service';
 import { CandidateDetail, ElectionParticipation, Controversy } from '../models/candidate.model';
+import { Location } from '@angular/common';
 
 @Component({
   selector: 'app-candidat-detail',
@@ -23,19 +24,35 @@ export class CandidatDetailComponent implements OnInit, OnDestroy {
   // Tab-uri pentru detalii
   activeTab: 'biography' | 'electoral-history' | 'controversies' = 'biography';
   
+  // Variabile pentru navigare
+  previousUrl: string = '';
+  returnToYear: number | null = null;
+  
   // Subject pentru gestionarea dezabonărilor
   private destroy$ = new Subject<void>();
 
   constructor(
     private route: ActivatedRoute,
-    private candidatesService: PresidentialCandidatesService
+    private router: Router,
+    private candidatesService: PresidentialCandidatesService,
+    private location: Location
   ) { }
 
   ngOnInit(): void {
+    // Obținem parametrii din URL
     this.route.paramMap
       .pipe(takeUntil(this.destroy$))
       .subscribe(params => {
         this.candidateSlug = params.get('slug') || '';
+        
+        // Verificăm dacă avem un an specificat în query params
+        this.route.queryParamMap.subscribe(queryParams => {
+          const year = queryParams.get('year');
+          if (year) {
+            this.returnToYear = parseInt(year);
+          }
+        });
+        
         this.loadCandidateDetails();
       });
   }
@@ -55,6 +72,16 @@ export class CandidatDetailComponent implements OnInit, OnDestroy {
         next: (data) => {
           this.candidate = data;
           this.organizeParticipationsByYear();
+          
+          // Dacă nu a fost specificat un an în query params, dar candidatul are participări,
+          // setăm returnToYear la cel mai recent an de participare (dacă e candidat istoric)
+          if (!this.returnToYear && !this.candidate.is_current && this.candidate.participations && this.candidate.participations.length > 0) {
+            const years = this.getParticipationYears();
+            if (years.length > 0) {
+              this.returnToYear = years[0]; // Primul an (cel mai recent) din lista sortată
+            }
+          }
+          
           this.isLoading = false;
         },
         error: (error) => {
@@ -80,6 +107,29 @@ export class CandidatDetailComponent implements OnInit, OnDestroy {
 
   changeTab(tab: 'biography' | 'electoral-history' | 'controversies'): void {
     this.activeTab = tab;
+  }
+
+  // Navigare înapoi inteligentă
+  goBack(): void {
+    if (this.returnToYear) {
+      // Navigare către lista de candidați istorici cu anul selectat
+      this.router.navigate(['/menu/candidati_prezidentiali'], { 
+        queryParams: { 
+          tab: 'historical',
+          year: this.returnToYear 
+        }
+      });
+    } else if (this.candidate?.is_current) {
+      // Navigare către lista de candidați actuali
+      this.router.navigate(['/menu/candidati_prezidentiali'], { 
+        queryParams: { 
+          tab: 'current'
+        }
+      });
+    } else {
+      // Navigare simplă înapoi
+      this.location.back();
+    }
   }
 
   // Metode auxiliare pentru afișare

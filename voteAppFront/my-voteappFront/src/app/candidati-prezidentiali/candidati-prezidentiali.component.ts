@@ -1,4 +1,5 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
+import { ActivatedRoute, Router } from '@angular/router';
 import { forkJoin, map, Subject, takeUntil } from 'rxjs';
 import { PresidentialCandidatesService } from './candidati-prezidentiali/services/presidential-candidates.service';
 import { 
@@ -64,15 +65,52 @@ export class CandidatiPrezidentialiComponent implements OnInit, OnDestroy {
     'Theodor Stolojan': 'theodor-stolojan',
     'Emil Constantinescu': 'emil-constantinescu',
     'Petre Roman': 'petre-roman',
-    'Gheorghe Funar': 'gheorghe-funar'
+    'Gheorghe Funar': 'gheorghe-funar',
+    
+    // Candidații nou adăugați
+    'Sorin Oprescu': 'sorin-oprescu',
+    'Elena Udrea': 'elena-udrea',
+    'Monica Macovei': 'monica-macovei',
+    'Călin Popescu-Tăriceanu': 'calin-popescu-tariceanu',
+    'Sebastian-Constantin Popescu': 'sebastian-constantin-popescu',
+    'Alexandru Cumpănașu': 'alexandru-cumpanasu',
+    'Remus Cernea': 'remus-cernea',
+    'Cătălin Ivan': 'catalin-ivan',
+    'Varujan Vosganian': 'varujan-vosganian',
+    'Marko Bela': 'marko-bela'
   };
 
-  constructor(private candidatesService: PresidentialCandidatesService) { }
+  constructor(
+    private candidatesService: PresidentialCandidatesService,
+    private route: ActivatedRoute,
+    private router: Router
+  ) { }
 
   ngOnInit(): void {
+    // Verificăm parametrii din URL pentru a determina tab-ul activ și anul selectat
+    this.route.queryParamMap.subscribe(params => {
+      // Setare tab activ din URL
+      const tab = params.get('tab');
+      if (tab && (tab === 'current' || tab === 'historical' || tab === 'timeline' || 
+                  tab === 'controversies' || tab === 'media-influence' || tab === 'transition')) {
+        this.activeTab = tab;
+      }
+      
+      // Setare an selectat din URL
+      const year = params.get('year');
+      if (year && !isNaN(parseInt(year))) {
+        this.selectedYear = parseInt(year);
+      }
+    });
+    
     this.loadCurrentCandidates();
     this.loadElectionYears();
     this.loadHistoricalEvents();
+    
+    // Dacă tab-ul activ este historical, încărcăm și datele istorice
+    if (this.activeTab === 'historical') {
+      this.loadHistoricalCandidateData();
+    }
   }
 
   ngOnDestroy(): void {
@@ -269,7 +307,8 @@ export class CandidatiPrezidentialiComponent implements OnInit, OnDestroy {
       'traian-basescu': [2004, 2009],
       'ion-iliescu': [1990, 1992, 1996, 2000],
       'emil-constantinescu': [1992, 1996],
-      'corneliu-vadim-tudor': [2000, 2004]
+      'corneliu-vadim-tudor': [2000, 2004],
+      'crin-antonescu': [2009, 2024]  // Adăugăm pentru Crin Antonescu care a candidat în 2009 și 2024
     };
     
     // Pentru candidații care apar în mai multe alegeri, putem folosi și anul
@@ -311,24 +350,63 @@ export class CandidatiPrezidentialiComponent implements OnInit, OnDestroy {
       });
   }
 
-  // Metode pentru schimbarea filelor
-  changeTab(tab: 'current' | 'historical' | 'timeline' | 'controversies' | 'media-influence' | 'transition'): void {
-    this.activeTab = tab;
-    
-    // Încarcă datele necesare pentru tab-ul selectat
-    if (tab === 'historical' && (this.candidates.length === 0 || this.candidatesByYear.size === 0)) {
-      this.loadHistoricalCandidateData();
-    }
-  }
-
-  // Filtrare candidați după an electoral
-  filterCandidatesByElectionYear(year: number): PresidentialCandidate[] {
-    // Folosim Map-ul precomputat pentru a găsi candidații pentru anul selectat
-    return this.candidatesByYear.get(year) || [];
+// Metode pentru schimbarea filelor
+changeTab(tab: 'current' | 'historical' | 'timeline' | 'controversies' | 'media-influence' | 'transition'): void {
+  this.activeTab = tab;
+  
+  // Actualizăm URL-ul cu tab-ul activ pentru a păstra starea la navigare
+  let queryParams: any = { tab: tab };
+  
+  // Păstrăm și anul selectat pentru tab-ul de candidați istorici
+  if (tab === 'historical' && this.selectedYear) {
+    queryParams.year = this.selectedYear;
   }
   
-  // Metodă pentru setarea anului selectat
-  setSelectedYear(year: number): void {
-    this.selectedYear = year;
+  // Actualizează URL-ul fără a reîncărca pagina
+  this.router.navigate([], {
+    relativeTo: this.route,
+    queryParams: queryParams,
+    queryParamsHandling: 'merge', // Păstrează și alți parametri din URL dacă există
+  });
+  
+  // Încarcă datele necesare pentru tab-ul selectat
+  if (tab === 'historical' && (this.candidates.length === 0 || this.candidatesByYear.size === 0)) {
+    this.loadHistoricalCandidateData();
   }
+}
+
+// Filtrare candidați după an electoral
+filterCandidatesByElectionYear(year: number): PresidentialCandidate[] {
+  // Folosim Map-ul precomputat pentru a găsi candidații pentru anul selectat
+  return this.candidatesByYear.get(year) || [];
+}
+
+// Metodă pentru setarea anului selectat
+setSelectedYear(year: number): void {
+  this.selectedYear = year;
+  
+  // Actualizăm URL-ul cu anul selectat
+  this.router.navigate([], {
+    relativeTo: this.route,
+    queryParams: { tab: 'historical', year: year },
+    queryParamsHandling: 'merge',
+  });
+}
+
+// Metodă pentru navigarea către detaliile candidatului cu transmiterea contextului
+navigateToCandidate(candidate: PresidentialCandidate): void {
+  const queryParams: any = {};
+  
+  // Dacă suntem în tab-ul istoric și avem un an selectat, transmitem-l
+  if (this.activeTab === 'historical' && this.selectedYear) {
+    queryParams.year = this.selectedYear;
+  } else if (this.activeTab === 'current') {
+    // Marcăm că venim din tab-ul de candidați actuali
+    queryParams.tab = 'current';
+  }
+  
+  this.router.navigate(['/menu/candidati_prezidentiali', candidate.slug], {
+    queryParams: queryParams
+  });
+}
 }

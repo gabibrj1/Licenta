@@ -234,12 +234,21 @@ $background-color: rgba(0, 0, 0, 0.5);
       }
       
       .candidate-photo {
+        cursor: pointer;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
         height: 0;
         padding-bottom: 75%; // Aspect ratio 4:3
         position: relative;
         overflow: hidden;
+      
+      .candidate-photo:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 15px rgba(0, 0, 0, 0.2);
+        }  
+
         
         .photo-container {
+          cursor: pointer;
           position: absolute;
           top: 0;
           left: 0;
@@ -327,6 +336,7 @@ $background-color: rgba(0, 0, 0, 0.5);
         }
         
         .details-button {
+          cursor: pointer;
           display: inline-block;
           background-color: $primary-color;
           color: white;

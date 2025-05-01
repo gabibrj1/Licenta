@@ -5,33 +5,32 @@
   </div>
   
   <!-- Navigation tabs -->
-<!-- Navigation tabs -->
-<div class="nav-tabs">
-  <div class="tab" [class.active]="activeTab === 'current'" (click)="changeTab('current')">
-    <i class="fas fa-user-tie"></i> Candidați Actuali
+  <div class="nav-tabs">
+    <div class="tab" [class.active]="activeTab === 'current'" (click)="changeTab('current')">
+      <i class="fas fa-user-tie"></i> Candidați Actuali
+    </div>
+    <div class="tab" [class.active]="activeTab === 'historical'" (click)="changeTab('historical')">
+      <i class="fas fa-history"></i> Candidați Istorici
+    </div>
+    <div class="tab" [class.active]="activeTab === 'timeline'" (click)="changeTab('timeline')">
+      <i class="fas fa-stream"></i> Cronologie Electorală
+    </div>
+    <div class="tab" [class.active]="activeTab === 'controversies'" (click)="changeTab('controversies')">
+      <i class="fas fa-exclamation-circle"></i> Controverse
+    </div>
+    <div class="tab" [class.active]="activeTab === 'media-influence'" (click)="changeTab('media-influence')">
+      <i class="fas fa-broadcast-tower"></i> Influența Media
+    </div>
+    <!-- Noua filă de tranziție -->
+    <div class="tab" [class.active]="activeTab === 'transition'" (click)="changeTab('transition')">
+      <i class="fas fa-exchange-alt"></i> Tranziția de la Comunism
+    </div>
   </div>
-  <div class="tab" [class.active]="activeTab === 'historical'" (click)="changeTab('historical')">
-    <i class="fas fa-history"></i> Candidați Istorici
-  </div>
-  <div class="tab" [class.active]="activeTab === 'timeline'" (click)="changeTab('timeline')">
-    <i class="fas fa-stream"></i> Cronologie Electorală
-  </div>
-  <div class="tab" [class.active]="activeTab === 'controversies'" (click)="changeTab('controversies')">
-    <i class="fas fa-exclamation-circle"></i> Controverse
-  </div>
-  <div class="tab" [class.active]="activeTab === 'media-influence'" (click)="changeTab('media-influence')">
-    <i class="fas fa-broadcast-tower"></i> Influența Media
-  </div>
-  <!-- Noua filă de tranziție -->
-  <div class="tab" [class.active]="activeTab === 'transition'" (click)="changeTab('transition')">
-    <i class="fas fa-exchange-alt"></i> Tranziția de la Comunism
-  </div>
-</div>
 
-<!-- La finalul documentului, adaugă noul conținut pentru tab-ul de tranziție -->
-<div *ngIf="activeTab === 'transition' && !isLoading && !loadingError" class="tab-content">
-  <app-transition></app-transition>
-</div>
+  <!-- La finalul documentului, adaugă noul conținut pentru tab-ul de tranziție -->
+  <div *ngIf="activeTab === 'transition' && !isLoading && !loadingError" class="tab-content">
+    <app-transition></app-transition>
+  </div>
   
   <!-- Loading indicator -->
   <div *ngIf="isLoading" class="loading-container">
@@ -56,7 +55,7 @@
     
     <div class="candidates-grid">
       <div *ngFor="let candidate of currentCandidates" class="candidate-card">
-        <div class="candidate-photo">
+        <div class="candidate-photo" (click)="navigateToCandidate(candidate)">
           <div class="photo-container" [style.background-image]="'url(assets/images/candidates/' + candidate.slug + '.jpg)'">
             <div class="party-badge">{{ candidate.party }}</div>
             <div class="name-badge">{{ candidate.name }}</div>
@@ -65,13 +64,14 @@
         <div class="candidate-info">
           <h3>{{ candidate.name }}</h3>
           <p class="candidate-bio">{{ candidate.biography | slice:0:150 }}...</p>
-          <a [routerLink]="['/menu/candidati_prezidentiali', candidate.slug]" class="details-button">
+          <!-- Înlocuim routerLink direct cu metoda navigateToCandidate pentru a transmite contextul -->
+          <a (click)="navigateToCandidate(candidate)" class="details-button">
             Vezi detalii
           </a>
         </div>
       </div>
     </div>
-    </div>
+  </div>
   
   <!-- Historical candidates tab -->
   <div *ngIf="activeTab === 'historical' && !isLoading && !loadingError" class="tab-content">
@@ -92,7 +92,7 @@
     
     <div *ngIf="selectedYear" class="candidates-grid">
       <div *ngFor="let candidate of filterCandidatesByElectionYear(selectedYear)" class="candidate-card">
-        <div class="candidate-photo">
+        <div class="candidate-photo" (click)="navigateToCandidate(candidate)">
           <div class="photo-container" [style.background-image]="getCandidateImageUrl(candidate, selectedYear)">
             <div class="party-badge">{{ candidate.party }}</div>
             <div class="name-badge">{{ candidate.name }}</div>
@@ -101,7 +101,8 @@
         <div class="candidate-info">
           <h3>{{ candidate.name }}</h3>
           <p class="candidate-bio">{{ candidate.biography | slice:0:150 }}...</p>
-          <a [routerLink]="['/menu/candidati_prezidentiali', candidate.slug]" class="details-button">
+          <!-- Înlocuim routerLink direct cu metoda navigateToCandidate pentru a transmite contextul -->
+          <a (click)="navigateToCandidate(candidate)" class="details-button">
             Vezi detalii
           </a>
         </div>
