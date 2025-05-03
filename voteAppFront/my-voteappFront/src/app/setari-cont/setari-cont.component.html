@@ -186,12 +186,17 @@
                 
                 <mat-form-field appearance="outline">
                   <mat-label>Limbă</mat-label>
-                  <mat-select formControlName="language">
+                  <mat-select formControlName="language" [disabled]="true">
                     <mat-option value="ro">Română</mat-option>
-                    <mat-option value="en">English</mat-option>
-                    <mat-option value="hu">Magyar</mat-option>
+                    <mat-option value="en" disabled>English</mat-option>
+                    <mat-option value="hu" disabled>Magyar</mat-option>
                   </mat-select>
                 </mat-form-field>
+                
+                <div class="language-notice">
+                  <mat-icon color="primary">info</mat-icon>
+                  <span>Momentan, aplicația este dedicată exclusiv cetățenilor români pentru sisteme de vot. Doar limba română este disponibilă.</span>
+                </div>
               </div>
               
               <div class="form-actions">

@@ -1168,3 +1168,52 @@ $tab-blue: #4a9bff; // Albastru pentru tab-uri și secțiuni
     }
   }
 }
+
+.language-notice {
+  display: flex;
+  align-items: flex-start;
+  background-color: rgba($primary-color, 0.1);
+  border-radius: 8px;
+  padding: 12px 15px;
+  margin-top: 5px;
+  border-left: 3px solid $tab-blue;
+  
+  mat-icon {
+    color: $tab-blue;
+    margin-right: 10px;
+    font-size: 20px;
+    height: 20px;
+    width: 20px;
+  }
+  
+  span {
+    color: $text-color;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+}
+
+// Override the disabled state to make it clear it's intentionally restricted
+::ng-deep {
+  .mat-select[disabled] .mat-select-value,
+  .mat-mdc-select[disabled] .mat-mdc-select-value {
+    color: $text-color !important;
+    opacity: 1;
+  }
+  
+  .mat-mdc-option.mdc-list-item--disabled .mdc-list-item__primary-text,
+  .mat-option.mat-option-disabled {
+    color: rgba(255, 255, 255, 0.5) !important;
+  }
+  
+  // Style for the dropdown when disabled
+  .mat-form-field.mat-form-field-disabled,
+  .mat-mdc-form-field.mat-mdc-form-field-disabled {
+    .mat-mdc-form-field-flex,
+    .mat-form-field-flex {
+      background-color: rgba(255, 255, 255, 0.08) !important;
+      border-left-color: $tab-blue !important;
+      opacity: 0.95;
+    }
+  }
+}

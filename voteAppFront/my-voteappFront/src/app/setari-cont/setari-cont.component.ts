@@ -65,7 +65,7 @@ export class SetariContComponent implements OnInit {
       show_activity_history: [false],
       high_contrast: [false],
       large_font: [false],
-      language: ['ro'],
+      language: [{value: 'ro', disabled: true}],
       two_factor_enabled: [false]
     });
     
@@ -144,9 +144,12 @@ export class SetariContComponent implements OnInit {
       show_activity_history: settings.show_activity_history,
       high_contrast: settings.high_contrast,
       large_font: settings.large_font,
-      language: settings.language,
+      // Don't update language from settings - always keep Romanian
       two_factor_enabled: settings.two_factor_enabled
     });
+    
+    // Make sure language stays disabled even after form update
+    this.settingsForm.get('language')?.disable();
   }
   
   saveProfile(): void {
