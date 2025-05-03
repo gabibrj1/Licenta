@@ -101,27 +101,26 @@ class ProfileImageView(APIView):
             return Response({'message': 'Nu există o imagine de profil.'},
                           status=status.HTTP_404_NOT_FOUND)
 
-class AccountSettingsViewSet(viewsets.ModelViewSet):
-    """ViewSet for account settings"""
+class AccountSettingsView(APIView):
+    """API view for account settings"""
     permission_classes = [IsAuthenticated]
-    serializer_class = AccountSettingsSerializer
     
-    def get_queryset(self):
-        return AccountSettings.objects.filter(user=self.request.user)
-    
-    def get_object(self):
+    def get(self, request):
         # Get or create account settings for user
-        account_settings, created = AccountSettings.objects.get_or_create(user=self.request.user)
-        return account_settings
-    
-    def update(self, request, *args, **kwargs):
-        partial = kwargs.pop('partial', False)
-        instance = self.get_object()
-        serializer = self.get_serializer(instance, data=request.data, partial=partial)
-        serializer.is_valid(raise_exception=True)
-        self.perform_update(serializer)
-        
+        account_settings, created = AccountSettings.objects.get_or_create(user=request.user)
+        serializer = AccountSettingsSerializer(account_settings)
         return Response(serializer.data)
+    
+    def put(self, request):
+        # Get or create account settings for user
+        account_settings, created = AccountSettings.objects.get_or_create(user=request.user)
+        serializer = AccountSettingsSerializer(account_settings, data=request.data)
+        
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class ChangePasswordView(APIView):
     """API view for changing user password"""

@@ -2396,7 +2396,7 @@ class SendVoteTokensView(APIView):
             emails_sent = 0
             
             # Folosește întotdeauna IP-ul de rețea pentru link-urile din email
-            network_ip = getattr(settings, 'NETWORK_IP', '192.168.29.140')
+            network_ip = getattr(settings, 'NETWORK_IP', '192.168.29.201')
             frontend_url = f"http://{network_ip}:4200"
             
             print(f"Folosim URL de rețea pentru email: {frontend_url}")

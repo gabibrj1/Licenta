@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 
-import { SetariContService } from './setari-cont.service';
+import { SetariContService } from './services/setari-cont.service';
 
 describe('SetariContService', () => {
   let service: SetariContService;

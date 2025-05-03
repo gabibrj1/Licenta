@@ -3,6 +3,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { VoteSystemService } from '../../services/vote-system.service';
 import { environment } from '../../../src/environments/environment';
+import { EChartsOption } from 'echarts';
 
 
 @Component({
