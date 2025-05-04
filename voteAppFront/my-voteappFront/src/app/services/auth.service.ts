@@ -199,4 +199,34 @@ export class AuthService {
     console.error('Auth error:', errorMessage);
     return throwError(() => errorMessage);
   }
+  checkTwoFactorRequired(response: any): boolean {
+    return response && response.requires_2fa === true;
+  }
+  
+  // Verifică codul 2FA pentru autentificare cu email
+  verifyTwoFactorWithEmail(email: string, code: string): Observable<any> {
+    return this.http.post(`${this.apiUrl}verify-two-factor/`, {
+      email,
+      code
+    }).pipe(
+      tap(response => {
+        this.handleAuthSuccess(response, 'email');
+      }),
+      catchError(this.handleError)
+    );
+  }
+  
+  // Verifică codul 2FA pentru autentificare cu CNP
+  verifyTwoFactorWithCNP(cnp: string, code: string): Observable<any> {
+    return this.http.post(`${this.apiUrl}verify-two-factor/`, {
+      cnp, 
+      code
+    }).pipe(
+      tap(response => {
+        this.handleAuthSuccess(response, 'id_card');
+      }),
+      catchError(this.handleError)
+    );
+  }
+
 }

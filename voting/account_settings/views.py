@@ -8,6 +8,12 @@ from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 import logging
 import re
+import base64
+import pyotp
+import qrcode
+import io
+from django.conf import settings
+from .serializers import TwoFactorVerifySerializer
 
 from .models import ProfileImage, AccountSettings
 from .serializers import (
@@ -221,3 +227,117 @@ class DeleteAccountView(APIView):
             {'message': 'Contul a fost dezactivat cu succes.'},
             status=status.HTTP_200_OK
         )
+    
+class TwoFactorSetupView(APIView):
+    """API view pentru configurarea autentificării în doi pași"""
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        """Generează secretul TOTP și codul QR"""
+        user = request.user
+        account_settings, _ = AccountSettings.objects.get_or_create(user=user)
+        
+        # Generează un secret nou dacă nu există sau nu a fost verificat
+        if not account_settings.two_factor_secret or not account_settings.two_factor_verified:
+            # Generează secretul pentru TOTP
+            secret = pyotp.random_base32()
+            account_settings.two_factor_secret = secret
+            account_settings.two_factor_verified = False
+            account_settings.save()
+        else:
+            secret = account_settings.two_factor_secret
+        
+        # Creează URL-ul pentru aplicația de autentificare
+        totp = pyotp.TOTP(secret)
+        app_name = "VotingApp"
+        user_identifier = user.email or user.cnp
+        provisioning_uri = totp.provisioning_uri(name=user_identifier, issuer_name=app_name)
+        
+        # Generează codul QR
+        qr = qrcode.QRCode(
+            version=1,
+            error_correction=qrcode.constants.ERROR_CORRECT_L,
+            box_size=10,
+            border=4,
+        )
+        qr.add_data(provisioning_uri)
+        qr.make(fit=True)
+        
+        img = qr.make_image(fill_color="black", back_color="white")
+        buffer = io.BytesIO()
+        img.save(buffer, format="PNG")
+        qr_code_base64 = base64.b64encode(buffer.getvalue()).decode()
+        
+        return Response({
+            'secret': secret,
+            'qr_code': f"data:image/png;base64,{qr_code_base64}",
+            'is_verified': account_settings.two_factor_verified
+        })
+    
+    def post(self, request):
+        """Verifică codul TOTP și activează 2FA"""
+        user = request.user
+        account_settings = AccountSettings.objects.get(user=user)
+        
+        # Verifică dacă există un secret
+        if not account_settings.two_factor_secret:
+            return Response(
+                {'error': 'Nu există un secret configurat pentru autentificarea în doi pași.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Obține codul din cerere
+        code = request.data.get('code')
+        if not code:
+            return Response(
+                {'error': 'Codul de verificare este obligatoriu.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+            
+        # Curăță codul
+        code = str(code).strip()
+        
+        logger.debug(f"Verifying 2FA code: {code} with secret: {account_settings.two_factor_secret}")
+        
+        # Verifică codul TOTP cu toleranță extinsă
+        totp = pyotp.TOTP(account_settings.two_factor_secret)
+        
+        if totp.verify(code, valid_window=1):  # Adăugăm o fereastră de toleranță de 1 interval (±30 secunde)
+            # Activează autentificarea în doi pași
+            account_settings.two_factor_verified = True
+            account_settings.two_factor_enabled = True
+            account_settings.save()
+            
+            logger.info(f"2FA enabled successfully for user {user.id}")
+            
+            return Response({
+                'message': 'Autentificarea în doi pași a fost activată cu succes.',
+                'is_verified': True
+            })
+        else:
+            logger.warning(f"2FA verification failed for user {user.id}. Code entered: {code}")
+            
+            # Generăm un cod valid pentru debugging
+            current_code = totp.now()
+            logger.debug(f"Current valid code would be: {current_code}")
+            
+            return Response(
+                {'error': 'Codul de verificare este invalid. Asigurați-vă că introduceți codul curent din aplicație.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+    
+    def delete(self, request):
+        """Dezactivează autentificarea în doi pași"""
+        user = request.user
+        account_settings = AccountSettings.objects.get(user=user)
+        
+        account_settings.two_factor_enabled = False
+        account_settings.two_factor_verified = False
+        account_settings.two_factor_secret = None
+        account_settings.save()
+        
+        logger.info(f"2FA disabled for user {user.id}")
+        
+        return Response({
+            'message': 'Autentificarea în doi pași a fost dezactivată cu succes.'
+        })

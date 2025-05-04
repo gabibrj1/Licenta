@@ -14,7 +14,7 @@ from .views import FaceRecognitionView
 from .views import RegisterWithIDCardView
 from .views import LoginWithIDCardView
 from .views import VerifyRecaptchaView
-from .views import ResetPasswordView, RequestPasswordResetView, VerifyResetCodeView
+from .views import ResetPasswordView, RequestPasswordResetView, VerifyResetCodeView, VerifyTwoFactorLoginView
 
 
 urlpatterns = [
@@ -41,6 +41,6 @@ urlpatterns = [
     path('verify-recaptcha/', VerifyRecaptchaView.as_view(), name='verify-recaptcha'),
     path('request-password-reset/', RequestPasswordResetView.as_view(), name='request-password-reset'),
     path('verify-reset-code/', VerifyResetCodeView.as_view(), name='verify-reset-code'),
-    path('reset-password/', ResetPasswordView.as_view(), name='reset-password')
-
+    path('reset-password/', ResetPasswordView.as_view(), name='reset-password'),
+    path('verify-two-factor/', views.VerifyTwoFactorLoginView.as_view(), name='verify-two-factor'),
 ]

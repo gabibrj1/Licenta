@@ -51,6 +51,13 @@ export class AuthComponent implements OnInit {
   faceDetectionInterval: any = null;
   videoCaptureInterval: any = null;
   videoStream: MediaStream | null = null;
+
+  // Adaugă aceste proprietăți la clasa AuthComponent:
+  showTwoFactorForm: boolean = false;
+  twoFactorCode: string = '';
+  twoFactorEmail: string | null = null;
+  twoFactorCNP: string | null = null;
+  isTwoFactorProcessing: boolean = false;
   
   @ViewChild('video') videoElement!: ElementRef;
 
@@ -440,6 +447,16 @@ onSubmit(): void {
       next: (response: any) => {
         console.log('Răspuns autentificare cu buletin:', response);
         
+        // Verifică dacă este necesară autentificarea cu doi factori
+        if (this.authService.checkTwoFactorRequired(response)) {
+          this.isLoading = false;
+          this.showTwoFactorForm = true;
+          this.twoFactorCNP = response.cnp;
+          this.twoFactorEmail = null;
+          this.showInfoMessage('Este necesară verificarea cu doi factori. Introduceți codul din aplicația de autentificare.');
+          return;
+        }
+        
         console.log('response.access:', response.access ? 'Prezent' : 'Absent');
         console.log('response.refresh:', response.refresh ? 'Prezent' : 'Absent');
         console.log('response.cnp:', response.cnp);
@@ -513,6 +530,16 @@ onSubmit(): void {
       next: (response: any) => {
         console.log('Răspuns autentificare cu email:', response);
         
+        // Verifică dacă este necesară autentificarea cu doi factori
+        if (this.authService.checkTwoFactorRequired(response)) {
+          this.isLoading = false;
+          this.showTwoFactorForm = true;
+          this.twoFactorEmail = response.email;
+          this.twoFactorCNP = null;
+          this.showInfoMessage('Este necesară verificarea cu doi factori. Introduceți codul din aplicația de autentificare.');
+          return;
+        }
+        
         console.log('response.access:', response.access ? 'Prezent' : 'Absent');
         console.log('response.refresh:', response.refresh ? 'Prezent' : 'Absent');
         
@@ -553,6 +580,90 @@ onSubmit(): void {
       }
     });
   }
+}
+verifyTwoFactorCode(): void {
+  if (!this.twoFactorCode) {
+    this.showErrorMessage('Te rugăm să introduci codul de verificare.');
+    return;
+  }
+  
+  this.isTwoFactorProcessing = true;
+  
+  if (this.twoFactorEmail) {
+    // Verificare cu email
+    this.authService.verifyTwoFactorWithEmail(this.twoFactorEmail, this.twoFactorCode).subscribe({
+      next: (response) => {
+        this.handleTwoFactorSuccess(response);
+      },
+      error: (error) => {
+        this.handleTwoFactorError(error);
+      }
+    });
+  } else if (this.twoFactorCNP) {
+    // Verificare cu CNP
+    this.authService.verifyTwoFactorWithCNP(this.twoFactorCNP, this.twoFactorCode).subscribe({
+      next: (response) => {
+        this.handleTwoFactorSuccess(response);
+      },
+      error: (error) => {
+        this.handleTwoFactorError(error);
+      }
+    });
+  } else {
+    this.isTwoFactorProcessing = false;
+    this.showErrorMessage('Eroare: Informații lipsă pentru verificarea codului.');
+  }
+}
+
+private handleTwoFactorSuccess(response: any): void {
+  console.log('Verificare 2FA reușită:', response);
+  this.isTwoFactorProcessing = false;
+  
+  if (response.access && response.refresh) {
+    localStorage.setItem('access_token', response.access);
+    localStorage.setItem('refresh_token', response.refresh);
+    
+    // Salvăm datele utilizatorului
+    const userData: any = {};
+    
+    if (response.email) userData.email = response.email;
+    if (response.cnp) userData.cnp = response.cnp;
+    if (response.first_name) userData.first_name = response.first_name;
+    if (response.last_name) userData.last_name = response.last_name;
+    if (response.is_verified_by_id !== undefined) userData.is_verified_by_id = response.is_verified_by_id;
+    if (response.is_active !== undefined) userData.is_active = response.is_active;
+    
+    localStorage.setItem('user_data', JSON.stringify(userData));
+    
+    this.showSuccessMessage('Autentificare cu doi factori reușită!');
+    
+    // Redirecționare către meniu
+    setTimeout(() => {
+      window.location.href = '/menu';
+    }, 1000);
+  } else {
+    this.showErrorMessage('Eroare: Răspuns invalid de la server.');
+  }
+}
+
+private handleTwoFactorError(error: any): void {
+  console.error('Eroare verificare 2FA:', error);
+  this.isTwoFactorProcessing = false;
+  
+  if (error.error?.error) {
+    this.showErrorMessage(error.error.error);
+  } else if (typeof error === 'string') {
+    this.showErrorMessage(error);
+  } else {
+    this.showErrorMessage('Verificarea codului a eșuat. Vă rugăm încercați din nou.');
+  }
+}
+
+cancelTwoFactor(): void {
+  this.showTwoFactorForm = false;
+  this.twoFactorCode = '';
+  this.twoFactorEmail = null;
+  this.twoFactorCNP = null;
 }
   
   // Metodă pentru afișarea mesajelor de eroare
@@ -927,6 +1038,38 @@ async sendFrameForRecognition(liveImageBlob: Blob): Promise<void> {
         this.recognitionComplete = true;
         this.isProcessingFrame = false;
 
+        // Verifică dacă este necesară autentificarea cu doi factori
+        if (this.authService.checkTwoFactorRequired(response)) {
+          this.faceMatchMessage = "✅ Identificare reușită! Este necesară verificarea cu doi factori.";
+          this.faceBoxClass = 'face-match-success';
+          this.resultIcon = '✅';
+          
+          // Arătăm efectul de succes, apoi oprim camera și afișăm formularul 2FA
+          setTimeout(() => {
+            this.isBlurring = true;
+            this.showResultIcon = true;
+            this.hideFaceBox = true;
+            this.cdr.detectChanges();
+          }, 1000);
+
+          setTimeout(() => {
+            this.stopCamera();
+            this.isFaceRecognitionActive = false;
+            this.isBlurring = false;
+            this.showResultIcon = false;
+            this.hideFaceBox = false;
+            this.cdr.detectChanges();
+            
+            // Afișăm formularul pentru 2FA
+            this.showTwoFactorForm = true;
+            this.twoFactorCNP = response.cnp;
+            this.twoFactorEmail = null;
+            this.showInfoMessage('Este necesară verificarea cu doi factori. Introduceți codul din aplicația de autentificare.');
+          }, 2000);
+          
+          return;
+        }
+
         this.faceMatched = true;
         this.faceMatchMessage = "✅ Identificare reușită!";
         this.faceBoxClass = 'face-match-success';
@@ -1062,6 +1205,7 @@ forgotPassword() {
   stopCamera(): void {
     console.log("Oprim camera...");
     
+    // Oprim intervalele și eliberăm resursele camerei
     if (this.faceDetectionInterval !== null) {
       clearInterval(this.faceDetectionInterval);
       this.faceDetectionInterval = null;
@@ -1076,16 +1220,17 @@ forgotPassword() {
       this.videoElement.nativeElement.srcObject = null;
     }
   
+    // Resetăm starea afișării
+    this.isFaceRecognitionActive = false;
+    this.faceDetected = false;
+    
     // Păstrăm mesajul final dacă recunoașterea s-a finalizat
     if (!this.recognitionComplete) {
       this.faceMatchMessage = '';
     }
     
-    this.isFaceRecognitionActive = false;
-    this.faceDetected = false;
     console.log("Camera oprită!");
   }
-
   ngOnDestroy(): void {
     this.stopCamera();
   }

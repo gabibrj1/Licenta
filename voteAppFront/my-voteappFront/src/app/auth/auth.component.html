@@ -9,7 +9,7 @@
       </button>
     </div>
 
-    <form (ngSubmit)="onSubmit()" [ngClass]="{'captcha-verified': isCaptchaVerified}">
+    <form *ngIf="!showTwoFactorForm" (ngSubmit)="onSubmit()" [ngClass]="{'captcha-verified': isCaptchaVerified}">
    
       <mat-form-field appearance="fill" *ngIf="!useIdCardAuth">
         <mat-label>Email</mat-label>
@@ -25,7 +25,6 @@
         </button>
       </mat-form-field>
 
-
       <div class="register-link">
         <p>Nu ai deja un cont? 
           <a (click)="navigateToRegister()" 
@@ -35,8 +34,6 @@
           </a>
         </p>
       </div>
-      
-
      
       <mat-checkbox [(ngModel)]="useIdCardAuth" name="useIdCardAuth" (change)="onIdCardAuthChange()" class="auth-checkbox">
         <span [ngClass]="{'dark-mode-text': darkMode}" class="custom-checkbox-text">Autentificare prin buletin</span>
@@ -135,8 +132,35 @@
       </div>
     </form>
     
+    <!-- Formular pentru verificarea autentificării cu doi factori -->
+    <div *ngIf="showTwoFactorForm" class="two-factor-form">
+      <div class="two-factor-header">
+        <h3>🔐 Verificare în doi pași</h3>
+        <p>Pentru a finaliza autentificarea, introduceți codul de 6 cifre din aplicația de autentificare.</p>
+      </div>
+      
+      <mat-form-field appearance="fill">
+        <mat-label>Cod de verificare</mat-label>
+        <input matInput [(ngModel)]="twoFactorCode" name="twoFactorCode" 
+               type="text" maxlength="6" pattern="[0-9]*" 
+               placeholder="123456" autocomplete="off">
+        <mat-hint>Introduceți codul din 6 cifre din aplicația autenticatorului</mat-hint>
+      </mat-form-field>
+      
+      <div class="two-factor-actions">
+        <button mat-button (click)="cancelTwoFactor()" [disabled]="isTwoFactorProcessing">
+          <mat-icon>arrow_back</mat-icon> Înapoi
+        </button>
+        <button mat-raised-button color="primary" (click)="verifyTwoFactorCode()" 
+                [disabled]="!twoFactorCode || twoFactorCode.length !== 6 || isTwoFactorProcessing">
+          <span *ngIf="!isTwoFactorProcessing">Verifică</span>
+          <mat-spinner *ngIf="isTwoFactorProcessing" diameter="20" color="accent"></mat-spinner>
+        </button>
+      </div>
+    </div>
+    
     <!-- Autentificare socială -->
-    <div class="social-login">
+    <div class="social-login" *ngIf="!showTwoFactorForm">
       <button mat-raised-button class="google-btn" color="primary" (click)="loginWithGoogle()" [disabled]="!isCaptchaVerified">
         <i class="fab fa-google"></i> Google
       </button>

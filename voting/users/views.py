@@ -47,6 +47,7 @@ from .serializers import IDCardRegistrationSerializer
 from django.utils.decorators import method_decorator
 from django.core.files.storage import default_storage
 from .utils import verify_recaptcha
+import pyotp
 
 logger = logging.getLogger(__name__)
 
@@ -882,6 +883,15 @@ class LoginWithIDCardView(APIView):
         except User.DoesNotExist:
             return Response({"detail": "Utilizator inexistent."}, status=401)
         
+        has_2fa = False
+        requires_2fa = False
+        try:
+            account_settings = user.account_settings
+            has_2fa = account_settings.two_factor_enabled and account_settings.two_factor_verified
+            requires_2fa = has_2fa
+        except Exception as e:
+            logger.error(f"Eroare la verificarea setărilor 2FA: {str(e)}")
+
         if is_facial_recognition:
             if not live_image:
                 return Response(
@@ -928,6 +938,18 @@ class LoginWithIDCardView(APIView):
                 status=400
             )
         
+        if requires_2fa:
+            logger.info(f"Autentificare de bază reușită pentru utilizatorul cu CNP {user.cnp}, dar necesită 2FA")
+            return Response({
+                'requires_2fa': True,
+                'cnp': user.cnp,
+                'first_name': user.first_name,
+                'last_name': user.last_name,
+                'is_verified_by_id': user.is_verified_by_id,
+                'is_active': user.is_active,
+                'message': "Autentificare de bază reușită. Este necesară verificarea cu doi factori."
+            }, status=200)
+        
         refresh = RefreshToken.for_user(user)
         access_token = str(refresh.access_token)
         
@@ -966,13 +988,13 @@ class VerifyRecaptchaView(APIView):
 
 # view pt autentif clasica cu mail si parola   
 class LoginView(APIView):
-    permission_classes = [AllowAny]  # Permite accesul public pentru autentificare
+    permission_classes = [AllowAny]
 
     def post(self, request):
         email = request.data.get('email')
         password = request.data.get('password')
 
-        # cauta utilizatorul după email
+        # Caută utilizatorul după email
         try:
             user = User.objects.get(email=email)
         except User.DoesNotExist:
@@ -981,23 +1003,44 @@ class LoginView(APIView):
                 status=status.HTTP_401_UNAUTHORIZED
             )
 
-        # verif daca utilizatorul are un cont social asociat
+        # Verifică dacă utilizatorul are un cont social asociat
         if SocialAccount.objects.filter(user=user).exists():
             return Response(
                 {"detail": "Folosește autentificarea socială pentru acest cont (Facebook/Google)."},
                 status=status.HTTP_403_FORBIDDEN
             )
 
-        # Autentificare clasica
+        # Autentificare clasică
         user = authenticate(request, username=email, password=password)
         if user is not None:
-            refresh = RefreshToken.for_user(user)
-            return Response({
-                'refresh': str(refresh),
-                'access': str(refresh.access_token),
-            }, status=status.HTTP_200_OK)
+            # Verifică dacă utilizatorul are 2FA activat
+            has_2fa = False
+            requires_2fa = False
+            
+            try:
+                account_settings = user.account_settings
+                has_2fa = account_settings.two_factor_enabled and account_settings.two_factor_verified
+                requires_2fa = has_2fa
+            except Exception as e:
+                pass  # Dacă nu există setări, ignorăm
+            
+            if requires_2fa:
+                # Returnăm un răspuns care indică necesitatea 2FA
+                return Response({
+                    'requires_2fa': True,
+                    'email': user.email,
+                    'user_id': user.id,
+                    'message': 'Este necesară verificarea cu doi factori.'
+                }, status=status.HTTP_200_OK)
+            else:
+                # Generează token-uri JWT
+                refresh = RefreshToken.for_user(user)
+                return Response({
+                    'refresh': str(refresh),
+                    'access': str(refresh.access_token),
+                }, status=status.HTTP_200_OK)
 
-        # Parola este gresita
+        # Parola este greșită
         return Response(
             {"detail": "Autentificare eșuată. Verifică email-ul și parola."},
             status=status.HTTP_401_UNAUTHORIZED
@@ -1280,3 +1323,87 @@ def send_feedback(request):
     email.send()
 
     return Response({'message': 'Feedback-ul a fost trimis cu succes!'}, status=status.HTTP_200_OK)
+
+class VerifyTwoFactorLoginView(APIView):
+    """API view pentru verificarea codului 2FA în timpul autentificării"""
+    permission_classes = [AllowAny]
+    
+    def post(self, request):
+        email = request.data.get('email')
+        cnp = request.data.get('cnp')
+        code = request.data.get('code')
+        
+        if not code:
+            return Response(
+                {'error': 'Codul de verificare este obligatoriu.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+            
+        # Identifică utilizatorul după email sau CNP
+        if email:
+            user = User.objects.filter(email=email).first()
+        elif cnp:
+            user = User.objects.filter(cnp=cnp).first()
+        else:
+            return Response(
+                {'error': 'Email sau CNP este necesar pentru verificare.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+            
+        if not user:
+            return Response(
+                {'error': 'Utilizator negăsit.'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Verifică dacă utilizatorul are 2FA activat
+        try:
+            account_settings = user.account_settings
+            
+            if not account_settings.two_factor_enabled:
+                return Response(
+                    {'error': 'Autentificarea cu doi factori nu este activată pentru acest cont.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+                
+            if not account_settings.two_factor_secret:
+                return Response(
+                    {'error': 'Secret 2FA lipsă. Vă rugăm reconfigurați autentificarea cu doi factori.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+                
+            # Verifică codul TOTP
+            totp = pyotp.TOTP(account_settings.two_factor_secret)
+            
+            if totp.verify(code, valid_window=1):  # Toleranță ±30 secunde
+                # Generează token JWT și returnează răspunsul
+                refresh = RefreshToken.for_user(user)
+                
+                response_data = {
+                    'access': str(refresh.access_token),
+                    'refresh': str(refresh),
+                }
+                
+                # Adaugă datele utilizatorului în răspuns
+                if user.email:
+                    response_data['email'] = user.email
+                if user.cnp:
+                    response_data['cnp'] = user.cnp
+                    
+                response_data['first_name'] = user.first_name
+                response_data['last_name'] = user.last_name
+                response_data['is_verified_by_id'] = user.is_verified_by_id
+                response_data['is_active'] = user.is_active
+                
+                return Response(response_data, status=status.HTTP_200_OK)
+            else:
+                return Response(
+                    {'error': 'Cod de verificare invalid. Încercați din nou.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+                
+        except Exception as e:
+            return Response(
+                {'error': f'Eroare la verificarea codului: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )

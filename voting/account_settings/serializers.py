@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from .models import ProfileImage, AccountSettings
+import pyotp
 
 User = get_user_model()
 
@@ -72,3 +73,23 @@ class ChangePasswordSerializer(serializers.Serializer):
         if data['new_password'] != data['confirm_password']:
             raise serializers.ValidationError({"confirm_password": "Parolele nu se potrivesc"})
         return data
+    
+class TwoFactorSetupSerializer(serializers.Serializer):
+    """Serializer pentru configurarea autentificării în doi pași"""
+    verification_code = serializers.CharField(required=False)
+    
+    def validate_verification_code(self, value):
+        """Validează codul de verificare introdus de utilizator"""
+        if not value or len(value.strip()) != 6 or not value.isdigit():
+            raise serializers.ValidationError("Codul de verificare trebuie să conțină 6 cifre.")
+        return value
+
+class TwoFactorVerifySerializer(serializers.Serializer):
+    """Serializer pentru verificarea codului TOTP"""
+    code = serializers.CharField(required=True)
+    
+    def validate_code(self, value):
+        """Validează codul TOTP"""
+        if not value or len(value.strip()) != 6 or not value.isdigit():
+            raise serializers.ValidationError("Codul trebuie să conțină 6 cifre.")
+        return value

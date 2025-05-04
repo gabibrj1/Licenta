@@ -647,3 +647,134 @@ button[disabled] {
     animation: slide-in 0.3s ease-out;
   }
 }
+/* Stiluri pentru formularul de verificare în doi pași */
+.two-factor-form {
+  background-color: rgba(255, 255, 255, 0.9);
+  border-radius: 12px; // Mărit pentru a se potrivi cu containerul principal
+  padding: 25px;
+  margin: 0 auto; // Centrat în container
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+  animation: fadeIn 0.3s ease-in-out;
+  width: 100%;
+  max-width: 300px; // Ajustat pentru a se potrivi în container
+  position: relative;
+  overflow: hidden; // Previne ieșirea conținutului
+}
+
+.dark-mode .two-factor-form {
+  background-color: #333;
+  color: #f0f0f0;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+}
+
+.two-factor-header {
+  text-align: center;
+  margin-bottom: 25px;
+}
+
+.two-factor-header h3 {
+  font-size: 1.5rem;
+  margin-bottom: 10px;
+  color: #4f6dff; // Colorat similar cu butonul principal de autentificare
+  font-weight: 500;
+}
+
+.dark-mode .two-factor-header h3 {
+  color: #90caf9;
+}
+
+.two-factor-header p {
+  color: #666;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  margin: 0 auto;
+  max-width: 320px; // Limitarea lățimii textului pentru lizibilitate
+}
+
+.dark-mode .two-factor-header p {
+  color: #bbb;
+}
+
+.two-factor-form mat-form-field {
+  width: 100%;
+  margin-bottom: 20px;
+}
+
+// Stilizare specifică pentru input-ul de cod
+.two-factor-form input {
+  text-align: center;
+  letter-spacing: 4px;
+  font-size: 1.2rem;
+  font-weight: 500;
+}
+
+.two-factor-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 15px;
+  gap: 15px;
+}
+
+.two-factor-actions button {
+  min-width: 120px;
+  border-radius: 30px; // Butoane rotunjite pentru aspect consistent
+}
+
+.two-factor-actions button:first-child {
+  background-color: transparent;
+  color: #4f6dff;
+  border: 1px solid #4f6dff;
+}
+
+.dark-mode .two-factor-actions button:first-child {
+  color: #90caf9;
+  border-color: #90caf9;
+}
+
+.two-factor-actions button:last-child {
+  background-color: #4f6dff;
+  color: white;
+  flex: 1;
+}
+
+.dark-mode .two-factor-actions button:last-child {
+  background-color: #1e88e5;
+}
+
+// Animație de intrare mai fluidă
+@keyframes fadeIn {
+  from { 
+    opacity: 0; 
+    transform: translateY(-20px); 
+  }
+  to { 
+    opacity: 1; 
+    transform: translateY(0); 
+  }
+}
+
+// Ajustări responsive pentru a se asigura că formularul se încadrează corect
+@media (max-width: 480px) {
+  .two-factor-form {
+    padding: 20px 15px;
+    max-width: 320px;
+  }
+  
+  .two-factor-header h3 {
+    font-size: 1.3rem;
+  }
+  
+  .two-factor-header p {
+    font-size: 0.85rem;
+  }
+  
+  .two-factor-actions {
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .two-factor-actions button {
+    width: 100%;
+  }
+}

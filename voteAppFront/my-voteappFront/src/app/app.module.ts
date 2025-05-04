@@ -73,6 +73,8 @@ import { ConfirmDialogComponent } from './shared/confirm-dialog/confirm-dialog.c
 import { MatDividerModule } from '@angular/material/divider';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { TwoFactorDialogComponent } from './shared/two-factor-dialog/two-factor-dialog.component';
+import { ClipboardModule } from '@angular/cdk/clipboard';
 
 @NgModule({
   declarations: [
@@ -115,6 +117,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
     CandidatiLocaliComponent,
     SetariContComponent,
     ConfirmDialogComponent,
+    TwoFactorDialogComponent,
 
   ],
   imports: [
@@ -145,6 +148,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
     MatDividerModule,
     MatTabsModule,
     MatTooltipModule,
+    ClipboardModule,
     VoteModule,
     NgxEchartsModule.forRoot({
       echarts: () => import('echarts')

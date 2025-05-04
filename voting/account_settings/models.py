@@ -44,6 +44,8 @@ class AccountSettings(models.Model):
     
     # Two-factor authentication
     two_factor_enabled = models.BooleanField(default=False)
+    two_factor_secret = models.CharField(max_length=255, blank=True, null=True)  # Pentru stocarea secretului TOTP
+    two_factor_verified = models.BooleanField(default=False)
     
     # Last profile update
     last_updated = models.DateTimeField(auto_now=True)

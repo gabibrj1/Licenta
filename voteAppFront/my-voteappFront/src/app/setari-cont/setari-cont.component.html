@@ -281,9 +281,9 @@
               
               <ng-container *ngIf="settingsForm.get('two_factor_enabled') as twoFactorControl">
                 <mat-slide-toggle [checked]="twoFactorControl.value" 
-                                (change)="twoFactorControl.setValue($event.checked)"
-                                color="primary" 
-                                class="setting-toggle">
+                                  (change)="toggleTwoFactor($event)"
+                                  color="primary" 
+                                  class="setting-toggle">
                   Activează autentificarea în doi pași
                 </mat-slide-toggle>
               </ng-container>
@@ -293,7 +293,7 @@
               </small>
               
               <div *ngIf="settingsForm.get('two_factor_enabled')?.value" class="two-factor-setup" style="margin-top: 15px;">
-                <button mat-stroked-button color="primary">
+                <button mat-stroked-button color="primary" (click)="configureTwoFactor()">
                   <mat-icon>qr_code</mat-icon>
                   Configurează autentificarea în doi pași
                 </button>

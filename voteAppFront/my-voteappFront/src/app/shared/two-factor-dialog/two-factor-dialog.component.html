@@ -1,0 +1,58 @@
+<h2 mat-dialog-title>Configurare autentificare în doi pași</h2>
+
+<div mat-dialog-content>
+  <div class="loading-overlay" *ngIf="isLoading">
+    <mat-spinner diameter="40"></mat-spinner>
+    <p>Se procesează...</p>
+  </div>
+
+  <div *ngIf="!isLoading">
+    <div *ngIf="isVerified" class="verified-message">
+      <mat-icon color="primary">verified_user</mat-icon>
+      <p>Autentificarea în doi pași este configurată și activă!</p>
+    </div>
+
+    <div *ngIf="!isVerified">
+      <div class="qr-container">
+        <p>Scanați codul QR cu o aplicație de autentificare precum Google Authenticator sau Authy:</p>
+        <img [src]="qrCodeData" alt="QR Code" class="qr-code">
+      </div>
+
+      <div class="secret-container">
+        <p>Sau introduceți manual acest cod secret în aplicația dvs.:</p>
+        <div class="secret-box">
+          <code>{{ secret }}</code>
+          <button mat-icon-button [cdkCopyToClipboard]="secret" matTooltip="Copiază codul">
+            <mat-icon>content_copy</mat-icon>
+          </button>
+        </div>
+      </div>
+
+      <form [formGroup]="verificationForm" (ngSubmit)="verifyCode()" class="verification-form">
+        <p>După configurarea aplicației, introduceți codul generat pentru a verifica și activa autentificarea în doi pași:</p>
+        
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Cod de verificare</mat-label>
+          <input matInput formControlName="code" placeholder="123456" maxlength="6">
+          <mat-hint align="start">Introduceți codul din 6 cifre din aplicația de autentificare</mat-hint>
+          <mat-error *ngIf="verificationForm.get('code')?.hasError('required')">
+            Codul este obligatoriu
+          </mat-error>
+          <mat-error *ngIf="verificationForm.get('code')?.hasError('pattern')">
+            Codul trebuie să conțină doar cifre
+          </mat-error>
+          <mat-error *ngIf="verificationForm.get('code')?.hasError('minlength') || verificationForm.get('code')?.hasError('maxlength')">
+            Codul trebuie să aibă exact 6 cifre
+          </mat-error>
+        </mat-form-field>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div mat-dialog-actions align="end">
+  <button mat-button (click)="cancel()">Anulează</button>
+  <button mat-raised-button color="primary" [disabled]="verificationForm.invalid || isVerified" (click)="verifyCode()">
+    Verifică și activează
+  </button>
+</div>

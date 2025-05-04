@@ -6,6 +6,8 @@ import { SetariContService } from '../services/setari-cont.service';
 import { AuthService } from '../services/auth.service';
 import { ConfirmDialogComponent } from '../shared/confirm-dialog/confirm-dialog.component';
 import { Router } from '@angular/router';
+import { TwoFactorDialogComponent } from '../shared/two-factor-dialog/two-factor-dialog.component';
+
 
 @Component({
   selector: 'app-setari-cont',
@@ -74,6 +76,67 @@ export class SetariContComponent implements OnInit {
       new_password: ['', [Validators.required, Validators.minLength(8)]],
       confirm_password: ['', [Validators.required]]
     }, { validator: this.passwordMatchValidator });
+  }
+  configureTwoFactor(): void {
+    // Deschide dialogul pentru configurarea autentificării în doi pași
+    const dialogRef = this.dialog.open(TwoFactorDialogComponent, {
+      width: '500px',
+      disableClose: true
+    });
+  
+    dialogRef.afterClosed().subscribe(result => {
+      // Dacă configurarea a fost completată cu succes, reîncărcăm profilul
+      if (result) {
+        this.loadUserProfile();
+      } else if (result === false) {
+        // Dacă utilizatorul a anulat și toggleul era activat, îl dezactivăm
+        if (this.settingsForm.get('two_factor_enabled')?.value) {
+          this.settingsForm.get('two_factor_enabled')?.setValue(false);
+        }
+      }
+    });
+  }
+  
+  // Modificați metoda pentru gestionarea dezactivării autentificării în doi pași
+  toggleTwoFactor(event: any): void {
+    const newValue = event.checked;
+    
+    if (newValue) {
+      // Activăm autentificarea în doi pași prin dialog
+      this.configureTwoFactor();
+    } else {
+      // Dezactivăm autentificarea în doi pași
+      const dialogRef = this.dialog.open(ConfirmDialogComponent, {
+        width: '350px',
+        data: {
+          title: 'Dezactivare autentificare în doi pași',
+          message: 'Sunteți sigur că doriți să dezactivați autentificarea în doi pași? Acest lucru va reduce securitatea contului dvs.',
+          confirmText: 'Dezactivează',
+          cancelText: 'Anulează'
+        }
+      });
+      
+      dialogRef.afterClosed().subscribe(result => {
+        if (result) {
+          this.isSubmitting = true;
+          this.settingsService.disableTwoFactor().subscribe(
+            response => {
+              this.showSuccess('Autentificarea în doi pași a fost dezactivată cu succes.');
+              this.isSubmitting = false;
+            },
+            error => {
+              this.showError('Eroare la dezactivarea autentificării în doi pași.');
+              this.isSubmitting = false;
+              // Resetăm toggleul la valoarea anterioară
+              this.settingsForm.get('two_factor_enabled')?.setValue(true);
+            }
+          );
+        } else {
+          // Resetăm toggleul la valoarea anterioară
+          this.settingsForm.get('two_factor_enabled')?.setValue(true);
+        }
+      });
+    }
   }
   
   ngOnInit(): void {
