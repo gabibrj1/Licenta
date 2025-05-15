@@ -48,6 +48,7 @@ from django.utils.decorators import method_decorator
 from django.core.files.storage import default_storage
 from .utils import verify_recaptcha
 import pyotp
+from account_settings.models import AccountSettings
 
 logger = logging.getLogger(__name__)
 
@@ -993,6 +994,8 @@ class LoginView(APIView):
     def post(self, request):
         email = request.data.get('email')
         password = request.data.get('password')
+        
+        logger.info(f"Cerere de autentificare pentru email: {email}")
 
         # Caută utilizatorul după email
         try:
@@ -1013,31 +1016,49 @@ class LoginView(APIView):
         # Autentificare clasică
         user = authenticate(request, username=email, password=password)
         if user is not None:
-            # Verifică dacă utilizatorul are 2FA activat
-            has_2fa = False
-            requires_2fa = False
-            
+            # Verifică direct din baza de date setarea pentru 2FA
             try:
-                account_settings = user.account_settings
-                has_2fa = account_settings.two_factor_enabled and account_settings.two_factor_verified
-                requires_2fa = has_2fa
+                # Accesăm direct din baza de date pentru a evita probleme de relație
+                settings = AccountSettings.objects.get(user=user)
+                has_2fa = settings.two_factor_enabled and settings.two_factor_verified
+                
+                logger.info(f"Setări 2FA pentru {user.email}: enabled={settings.two_factor_enabled}, verified={settings.two_factor_verified}")
+                
+            except AccountSettings.DoesNotExist:
+                logger.warning(f"Nu există setări de cont pentru utilizatorul {user.email}")
+                has_2fa = False
+                
+                # Creați setări pentru acest utilizator pentru viitoare autentificări
+                AccountSettings.objects.create(user=user)
+                
             except Exception as e:
-                pass  # Dacă nu există setări, ignorăm
+                logger.error(f"Eroare la verificarea setărilor 2FA: {str(e)}")
+                has_2fa = False
             
-            if requires_2fa:
+            if has_2fa:
                 # Returnăm un răspuns care indică necesitatea 2FA
+                logger.info(f"Se solicită 2FA pentru utilizatorul {user.email}")
                 return Response({
                     'requires_2fa': True,
                     'email': user.email,
-                    'user_id': user.id,
+                    'first_name': user.first_name,
+                    'last_name': user.last_name,
+                    'is_verified_by_id': getattr(user, 'is_verified_by_id', False),
+                    'is_active': user.is_active,
                     'message': 'Este necesară verificarea cu doi factori.'
                 }, status=status.HTTP_200_OK)
             else:
                 # Generează token-uri JWT
                 refresh = RefreshToken.for_user(user)
+                
                 return Response({
                     'refresh': str(refresh),
                     'access': str(refresh.access_token),
+                    'email': user.email,
+                    'first_name': user.first_name,
+                    'last_name': user.last_name,
+                    'is_active': user.is_active,
+                    'is_verified_by_id': getattr(user, 'is_verified_by_id', False)
                 }, status=status.HTTP_200_OK)
 
         # Parola este greșită
@@ -1333,6 +1354,8 @@ class VerifyTwoFactorLoginView(APIView):
         cnp = request.data.get('cnp')
         code = request.data.get('code')
         
+        logger.info(f"Verificare 2FA: Email: {email}, CNP: {cnp}, Cod: {code}")
+        
         if not code:
             return Response(
                 {'error': 'Codul de verificare este obligatoriu.'},
@@ -1342,40 +1365,51 @@ class VerifyTwoFactorLoginView(APIView):
         # Identifică utilizatorul după email sau CNP
         if email:
             user = User.objects.filter(email=email).first()
+            logger.info(f"Căutare utilizator după email: {email}, găsit: {user is not None}")
         elif cnp:
             user = User.objects.filter(cnp=cnp).first()
+            logger.info(f"Căutare utilizator după CNP: {cnp}, găsit: {user is not None}")
         else:
+            logger.warning("Lipsă email și CNP în cererea de verificare 2FA")
             return Response(
                 {'error': 'Email sau CNP este necesar pentru verificare.'},
                 status=status.HTTP_400_BAD_REQUEST
             )
             
         if not user:
+            logger.warning("Utilizator negăsit pentru verificare 2FA")
             return Response(
-                {'error': 'Utilizator negăsit.'},
+                {'error': 'Utilizator negăsit în baza de date.'},
                 status=status.HTTP_404_NOT_FOUND
             )
         
-        # Verifică dacă utilizatorul are 2FA activat
+        # Verifică dacă utilizatorul are 2FA activat - accesăm direct din baza de date
         try:
-            account_settings = user.account_settings
+            # Obține direct din baza de date pentru a evita probleme de relație
+            account_settings = AccountSettings.objects.get(user=user)
+            
+            logger.info(f"Verificare setări 2FA pentru {user.email or user.cnp}: activat={account_settings.two_factor_enabled}, verificat={account_settings.two_factor_verified}")
             
             if not account_settings.two_factor_enabled:
+                logger.warning(f"2FA nu este activat pentru {user.email or user.cnp}")
                 return Response(
                     {'error': 'Autentificarea cu doi factori nu este activată pentru acest cont.'},
                     status=status.HTTP_400_BAD_REQUEST
                 )
                 
             if not account_settings.two_factor_secret:
+                logger.warning(f"Lipsă secret 2FA pentru {user.email or user.cnp}")
                 return Response(
-                    {'error': 'Secret 2FA lipsă. Vă rugăm reconfigurați autentificarea cu doi factori.'},
+                    {'error': 'Secret-ul pentru autentificarea cu doi factori lipsește. Vă rugăm reconfigurați autentificarea cu doi factori.'},
                     status=status.HTTP_400_BAD_REQUEST
                 )
                 
             # Verifică codul TOTP
             totp = pyotp.TOTP(account_settings.two_factor_secret)
+            is_valid = totp.verify(code, valid_window=1)  # Toleranță ±30 secunde
+            logger.info(f"Verificare cod 2FA pentru {user.email or user.cnp}: {is_valid}")
             
-            if totp.verify(code, valid_window=1):  # Toleranță ±30 secunde
+            if is_valid:
                 # Generează token JWT și returnează răspunsul
                 refresh = RefreshToken.for_user(user)
                 
@@ -1385,25 +1419,54 @@ class VerifyTwoFactorLoginView(APIView):
                 }
                 
                 # Adaugă datele utilizatorului în răspuns
-                if user.email:
+                if hasattr(user, 'email') and user.email:
                     response_data['email'] = user.email
-                if user.cnp:
+                if hasattr(user, 'cnp') and user.cnp:
                     response_data['cnp'] = user.cnp
                     
                 response_data['first_name'] = user.first_name
                 response_data['last_name'] = user.last_name
-                response_data['is_verified_by_id'] = user.is_verified_by_id
+                response_data['is_verified_by_id'] = getattr(user, 'is_verified_by_id', False)
                 response_data['is_active'] = user.is_active
                 
+                logger.info(f"Verificare 2FA reușită pentru {user.email or user.cnp}")
                 return Response(response_data, status=status.HTTP_200_OK)
             else:
+                # Pentru debugging, generăm un cod valid și vedem care ar fi fost codul corect
+                current_code = totp.now()
+                logger.warning(f"Cod 2FA invalid pentru {user.email or user.cnp}. Cod furnizat: {code}, cod curent valid: {current_code}")
+                
                 return Response(
-                    {'error': 'Cod de verificare invalid. Încercați din nou.'},
+                    {'error': 'Cod de verificare invalid. Vă rugăm să introduceți codul corect din aplicația de autentificare.'},
                     status=status.HTTP_400_BAD_REQUEST
                 )
                 
-        except Exception as e:
+        except AccountSettings.DoesNotExist:
+            logger.error(f"Nu există setări pentru utilizatorul {user.email or user.cnp}")
+            
+            # Creăm automat setările lipsă pentru a evita această eroare în viitor
+            try:
+                AccountSettings.objects.create(user=user)
+                logger.info(f"S-au creat setări de cont noi pentru utilizatorul {user.email or user.cnp}")
+            except Exception as create_error:
+                logger.error(f"Eroare la crearea setărilor pentru {user.email or user.cnp}: {str(create_error)}")
+            
             return Response(
-                {'error': f'Eroare la verificarea codului: {str(e)}'},
+                {'error': 'Contul nu are setări de autentificare în doi factori configurate. Vă rugăm configurați autentificarea din Setări Cont.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        except Exception as e:
+            logger.error(f"Eroare la verificarea 2FA pentru {user.email or user.cnp if user else 'utilizator necunoscut'}: {str(e)}")
+            logger.error(f"Detalii excepție: {str(e.__class__.__name__)}")
+            
+            try:
+                # Încercăm să capturăm stack trace-ul pentru debugging
+                import traceback
+                logger.error(f"Stack trace: {traceback.format_exc()}")
+            except:
+                pass
+                
+            return Response(
+                {'error': 'A apărut o eroare la verificarea codului. Vă rugăm încercați din nou sau contactați administratorul.'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )

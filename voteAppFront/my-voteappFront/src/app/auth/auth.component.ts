@@ -415,7 +415,6 @@ export class AuthComponent implements OnInit {
     }
   }
 
-// Replace the onSubmit method in your auth.component.ts file
 
 onSubmit(): void {
   console.log('onSubmit apelat, tip autentificare:', this.useIdCardAuth ? 'Buletin' : 'Email');
@@ -448,7 +447,8 @@ onSubmit(): void {
         console.log('Răspuns autentificare cu buletin:', response);
         
         // Verifică dacă este necesară autentificarea cu doi factori
-        if (this.authService.checkTwoFactorRequired(response)) {
+        if (response.requires_2fa === true) {
+          console.log('Autentificare 2FA necesară pentru buletin');
           this.isLoading = false;
           this.showTwoFactorForm = true;
           this.twoFactorCNP = response.cnp;
@@ -528,10 +528,16 @@ onSubmit(): void {
     
     this.authService.login(this.email, this.password).subscribe({
       next: (response: any) => {
-        console.log('Răspuns autentificare cu email:', response);
+        console.log('Răspuns complet autentificare cu email:', JSON.stringify(response));
         
-        // Verifică dacă este necesară autentificarea cu doi factori
-        if (this.authService.checkTwoFactorRequired(response)) {
+        // Verifică explicit proprietatea requires_2fa
+        console.log('requires_2fa există:', 'requires_2fa' in response);
+        console.log('response.requires_2fa:', response.requires_2fa);
+        console.log('typeof response.requires_2fa:', typeof response.requires_2fa);
+        
+        // Verifică explicit existența proprietății requires_2fa și if aceasta este true
+        if (response.requires_2fa === true) {
+          console.log('Autentificare 2FA necesară pentru email - activez formularul');
           this.isLoading = false;
           this.showTwoFactorForm = true;
           this.twoFactorEmail = response.email;
@@ -542,17 +548,26 @@ onSubmit(): void {
         
         console.log('response.access:', response.access ? 'Prezent' : 'Absent');
         console.log('response.refresh:', response.refresh ? 'Prezent' : 'Absent');
+        console.log('response.email:', response.email);
         
         if (response.access && response.refresh) {
           localStorage.setItem('access_token', response.access);
           localStorage.setItem('refresh_token', response.refresh);
+          localStorage.setItem('auth_method', 'email');
           
           console.log('Tokenuri salvate în localStorage');
           
-          if (response.user) {
-            localStorage.setItem('user_data', JSON.stringify(response.user));
-            console.log('Date utilizator salvate:', response.user);
-          }
+          // Construim obiectul cu datele utilizatorului
+          const userData = {
+            email: response.email,
+            first_name: response.first_name || '',
+            last_name: response.last_name || '',
+            is_verified_by_id: response.is_verified_by_id || false,
+            is_active: response.is_active || true
+          };
+          
+          localStorage.setItem('user_data', JSON.stringify(userData));
+          console.log('Date utilizator salvate:', userData);
           
           setTimeout(() => {
             this.isLoading = false;
@@ -574,20 +589,30 @@ onSubmit(): void {
           console.error('Detalii eroare:', error.error);
         }
         
-        this.showErrorMessage('Autentificarea a eșuat. Verifică email-ul și parola.');
+        if (error.error?.detail) {
+          this.showErrorMessage(error.error.detail);
+        } else {
+          this.showErrorMessage('Autentificarea a eșuat. Verifică email-ul și parola.');
+        }
+        
         this.isLoading = false;
         this.resetCaptcha();
       }
     });
   }
 }
+
+// Metoda pentru verificarea codului 2FA
 verifyTwoFactorCode(): void {
-  if (!this.twoFactorCode) {
-    this.showErrorMessage('Te rugăm să introduci codul de verificare.');
+  if (!this.twoFactorCode || this.twoFactorCode.length !== 6) {
+    this.showErrorMessage('Te rugăm să introduci un cod valid de 6 cifre.');
     return;
   }
   
   this.isTwoFactorProcessing = true;
+  console.log('Verificare cod 2FA:', this.twoFactorCode);
+  console.log('Email pentru verificare:', this.twoFactorEmail);
+  console.log('CNP pentru verificare:', this.twoFactorCNP);
   
   if (this.twoFactorEmail) {
     // Verificare cu email
@@ -615,6 +640,8 @@ verifyTwoFactorCode(): void {
   }
 }
 
+
+// Metoda pentru gestionarea succes verificare 2FA
 private handleTwoFactorSuccess(response: any): void {
   console.log('Verificare 2FA reușită:', response);
   this.isTwoFactorProcessing = false;
@@ -626,8 +653,16 @@ private handleTwoFactorSuccess(response: any): void {
     // Salvăm datele utilizatorului
     const userData: any = {};
     
-    if (response.email) userData.email = response.email;
-    if (response.cnp) userData.cnp = response.cnp;
+    if (response.email) {
+      userData.email = response.email;
+      localStorage.setItem('auth_method', 'email');
+    }
+    
+    if (response.cnp) {
+      userData.cnp = response.cnp;
+      localStorage.setItem('auth_method', 'id_card');
+    }
+    
     if (response.first_name) userData.first_name = response.first_name;
     if (response.last_name) userData.last_name = response.last_name;
     if (response.is_verified_by_id !== undefined) userData.is_verified_by_id = response.is_verified_by_id;
@@ -646,19 +681,37 @@ private handleTwoFactorSuccess(response: any): void {
   }
 }
 
+// Metoda pentru gestionarea erorilor verificare 2FA
 private handleTwoFactorError(error: any): void {
   console.error('Eroare verificare 2FA:', error);
   this.isTwoFactorProcessing = false;
   
-  if (error.error?.error) {
-    this.showErrorMessage(error.error.error);
-  } else if (typeof error === 'string') {
-    this.showErrorMessage(error);
-  } else {
-    this.showErrorMessage('Verificarea codului a eșuat. Vă rugăm încercați din nou.');
+  // Verifică dacă există un mesaj de eroare specific în răspuns
+  if (error.error && typeof error.error === 'object') {
+    // Pentru răspunsuri JSON
+    if (error.error.error) {
+      this.showErrorMessage(error.error.error);
+      return;
+    } else if (error.error.detail) {
+      this.showErrorMessage(error.error.detail);
+      return;
+    } else if (error.error.message) {
+      this.showErrorMessage(error.error.message);
+      return;
+    }
+  } else if (error.error && typeof error.error === 'string') {
+    // Pentru răspunsuri text
+    this.showErrorMessage(error.error);
+    return;
+  } else if (error.status === 400) {
+    // Dacă nu am găsit un mesaj specific, dar status-ul este 400
+    this.showErrorMessage("Cod de verificare invalid. Verificați codul și încercați din nou.");
+    return;
   }
+  
+  // Mesaj generic de eroare dacă nu am găsit nimic specific
+  this.showErrorMessage('Verificarea codului a eșuat. Vă rugăm încercați din nou.');
 }
-
 cancelTwoFactor(): void {
   this.showTwoFactorForm = false;
   this.twoFactorCode = '';
@@ -667,14 +720,18 @@ cancelTwoFactor(): void {
 }
   
   // Metodă pentru afișarea mesajelor de eroare
-  private showErrorMessage(
-    message: string, 
-    duration: number = 5000,
-    horizontalPosition: MatSnackBarHorizontalPosition = 'center',
-    verticalPosition: MatSnackBarVerticalPosition = 'top'
-  ) {
-    this.showMessage(message, 'error', duration, horizontalPosition, verticalPosition);
-  }
+private showErrorMessage(message: string): void {
+  console.error('Afișez eroare:', message);
+  
+  const snackConfig = {
+    duration: 5000,
+    panelClass: ['error-snackbar'],
+    horizontalPosition: 'center' as MatSnackBarHorizontalPosition,
+    verticalPosition: 'top' as MatSnackBarVerticalPosition,
+  };
+  
+  this.snackBar.open(`❌ ${message}`, 'Închide', snackConfig);
+}
   
   // Metodă pentru afișarea mesajelor de succes
   private showSuccessMessage(

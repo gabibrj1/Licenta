@@ -12,3 +12,12 @@ def create_account_settings(sender, instance, created, **kwargs):
     """
     if created:
         AccountSettings.objects.create(user=instance)
+        print(f"Setări de cont create pentru utilizatorul {instance.id}")
+    else:
+        # Asigură-te că există setări pentru toți utilizatorii existenți
+        if not hasattr(instance, 'account_settings'):
+            try:
+                AccountSettings.objects.get(user=instance)
+            except AccountSettings.DoesNotExist:
+                AccountSettings.objects.create(user=instance)
+                print(f"Setări de cont create retroactiv pentru utilizatorul {instance.id}")

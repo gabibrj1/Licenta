@@ -18,13 +18,19 @@ export class AuthService {
 
   // auth clasica (email si parola)
   login(email: string, password: string): Observable<any> {
-    return this.http.post(`${this.apiUrl}auth/login/`, { email, password }).pipe(
+    console.log(`Trimit cerere de autentificare pentru email: ${email} la ${this.apiUrl}login/`);
+    
+    // Important: Verificați dacă această rută corespunde cu cea din urls.py
+    return this.http.post(`${this.apiUrl}login/`, { email, password }).pipe(
       tap(response => {
-        this.handleAuthSuccess(response, 'email');
+        console.log('Răspuns autentificare:', response);
+        
+        // Nu mai procesăm automat răspunsul, lăsăm componenta să verifice requires_2fa
       }),
       catchError(this.handleError)
     );
   }
+
 
   // Metoda centralizată pentru procesarea răspunsurilor de autentificare
   public handleAuthSuccess(response: any, authMethod: 'email' | 'id_card' = 'email'): void {
@@ -200,33 +206,50 @@ export class AuthService {
     return throwError(() => errorMessage);
   }
   checkTwoFactorRequired(response: any): boolean {
-    return response && response.requires_2fa === true;
+    console.log('Verificare 2FA necesar pentru răspuns:', response);
+    
+    if (response && response.requires_2fa === true) {
+      console.log('2FA este necesar!');
+      return true;
+    }
+    
+    console.log('2FA nu este necesar');
+    return false;
   }
-  
   // Verifică codul 2FA pentru autentificare cu email
-  verifyTwoFactorWithEmail(email: string, code: string): Observable<any> {
-    return this.http.post(`${this.apiUrl}verify-two-factor/`, {
-      email,
-      code
-    }).pipe(
-      tap(response => {
-        this.handleAuthSuccess(response, 'email');
-      }),
-      catchError(this.handleError)
-    );
-  }
+verifyTwoFactorWithEmail(email: string, code: string): Observable<any> {
+  console.log(`Trimit verificare 2FA pentru email: ${email} cu codul: ${code}`);
+  
+  return this.http.post(`${this.apiUrl}verify-two-factor/`, {
+    email,
+    code
+  }).pipe(
+    tap(response => {
+      console.log('Răspuns verificare 2FA pentru email:', response);
+    }),
+    catchError(error => {
+      console.error('Eroare la verificarea 2FA pentru email:', error);
+      return throwError(() => error);
+    })
+  );
+}
   
   // Verifică codul 2FA pentru autentificare cu CNP
-  verifyTwoFactorWithCNP(cnp: string, code: string): Observable<any> {
-    return this.http.post(`${this.apiUrl}verify-two-factor/`, {
-      cnp, 
-      code
-    }).pipe(
-      tap(response => {
-        this.handleAuthSuccess(response, 'id_card');
-      }),
-      catchError(this.handleError)
-    );
-  }
+verifyTwoFactorWithCNP(cnp: string, code: string): Observable<any> {
+  console.log(`Trimit verificare 2FA pentru CNP: ${cnp} cu codul: ${code}`);
+  
+  return this.http.post(`${this.apiUrl}verify-two-factor/`, {
+    cnp, 
+    code
+  }).pipe(
+    tap(response => {
+      console.log('Răspuns verificare 2FA pentru CNP:', response);
+    }),
+    catchError(error => {
+      console.error('Eroare la verificarea 2FA pentru CNP:', error);
+      return throwError(() => error);
+    })
+  );
+}
 
 }

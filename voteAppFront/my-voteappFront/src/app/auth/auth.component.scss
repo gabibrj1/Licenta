@@ -778,3 +778,17 @@ button[disabled] {
     width: 100%;
   }
 }
+
+.error-message {
+  color: #f44336;
+  background-color: #ffebee;
+  padding: 10px;
+  border-radius: 4px;
+  margin: 10px 0;
+  display: flex;
+  align-items: center;
+}
+
+.error-message mat-icon {
+  margin-right: 8px;
+}
