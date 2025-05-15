@@ -521,6 +521,51 @@ class ProcessorCNP:
                 
         return None
 
+    def calculeaza_varsta(self, cnp: str) -> int:
+        # Calcularea varstei pe baza CNP-ului
+        if not cnp or len(cnp) != 13:
+            return 0
+        
+        sex_secol = int(cnp[0])
+        an = int(cnp[1:3])
+        luna = int(cnp[3:5])
+        zi = int(cnp[5:7])
+
+        # Determinarea anului complet bazat pe prima cifră a CNP-ului
+        if sex_secol in [1, 2]: # născut între 1900-1999
+            an += 1900
+        elif sex_secol in [3, 4]:# născut între 1800-1899
+            an += 1800
+        elif sex_secol in [5, 6]: # născut între 2000-2099
+            an += 200
+        elif sex_secol in [7, 8]:  # născut între anii 2000-2099, rezident
+            an += 2000
+
+        else:
+            return 0
+        
+        # Calcularea varstei
+        import datetime
+        data_nasterii = datetime.date(an, luna, zi)
+        astazi = datetime.date.today()
+        varsta = astazi.year - data_nasterii.year
+
+        # Ajustăm vârsta dacă ziua de naștere din acest an nu a trecut încă
+        if (astazi.month, astazi.day) < (data_nasterii.month, data_nasterii.day):
+            varsta -= 1
+        return varsta
+    
+    def este_major(self, cnp: str) -> bool:
+        # Verifica daca persoana cu cnp ul dat este majora
+        return self.calculeaza_varsta(cnp) >= 18
+        
+        
+
+
+                   
+
+    
+
     def _verifica_structura(self, cnp: str) -> bool:
         """
         Verifica daca structura CNP-ului este valida

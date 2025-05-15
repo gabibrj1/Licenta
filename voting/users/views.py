@@ -49,6 +49,7 @@ from django.core.files.storage import default_storage
 from .utils import verify_recaptcha
 import pyotp
 from account_settings.models import AccountSettings
+from .utils import ProcessorCNP
 
 logger = logging.getLogger(__name__)
 
@@ -60,7 +61,17 @@ class RegisterWithIDCardView(APIView):
         serializer = IDCardRegistrationSerializer(data=request.data)
 
         if serializer.is_valid():
-            # Verificam daca utilizatorul exista deja
+            # Verifică dacă utilizatorul este major
+            cnp = serializer.validated_data.get("cnp")
+            if cnp:
+                processor_cnp = ProcessorCNP()
+                if not processor_cnp.este_major(cnp):
+                    return Response(
+                        {'error': 'Înregistrarea este permisă doar persoanelor majore (peste 18 ani).'},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+
+            # Verificăm dacă utilizatorul există deja
             cnp = serializer.validated_data.get("cnp")
             email = serializer.validated_data.get("email")
 
@@ -84,7 +95,6 @@ class RegisterWithIDCardView(APIView):
             return Response({'message': 'Înregistrare cu buletinul completată cu succes!'}, status=status.HTTP_201_CREATED)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
 
 # Calea catre modelul de anti - spoofing
 MODEL_PATH = r"C:\Users\brj\Desktop\voting\media\models\l_version_1_300.pt"

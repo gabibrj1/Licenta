@@ -202,7 +202,46 @@ export class VoteappFrontComponent implements OnInit, AfterViewInit {
     this.validateConfirmPassword();
   }
 
-   
+  // Validare varsta
+  validateAge(cnp: string): boolean {
+  if (!cnp || cnp.length !== 13) {
+    return false;
+  }
+  
+  // Extrage data nașterii din CNP
+  const sexSecol = parseInt(cnp.charAt(0));
+  let an = parseInt(cnp.substring(1, 3));
+  const luna = parseInt(cnp.substring(3, 5));
+  const zi = parseInt(cnp.substring(5, 7));
+  
+  // Determină anul complet bazat pe prima cifră a CNP-ului
+  if (sexSecol === 1 || sexSecol === 2) {  // născut între 1900-1999
+    an += 1900;
+  } else if (sexSecol === 3 || sexSecol === 4) {  // născut între 1800-1899
+    an += 1800;
+  } else if (sexSecol === 5 || sexSecol === 6 || sexSecol === 7 || sexSecol === 8) {  // născut după 2000
+    an += 2000;
+  } else {
+    return false;  // CNP invalid
+  }
+  
+  // Calculează vârsta
+  const dataNasterii = new Date(an, luna - 1, zi);  // Luna în JavaScript este indexată de la 0
+  const astazi = new Date();
+  
+  let varsta = astazi.getFullYear() - dataNasterii.getFullYear();
+  
+  // Ajustează vârsta dacă ziua de naștere din acest an nu a trecut încă
+  if (
+    astazi.getMonth() < dataNasterii.getMonth() || 
+    (astazi.getMonth() === dataNasterii.getMonth() && astazi.getDate() < dataNasterii.getDate())
+  ) {
+    varsta--;
+  }
+  
+  return varsta >= 18;
+}
+
   
   validatePassword() {
     const password = this.registrationForm.get('password')?.value;
@@ -601,6 +640,14 @@ export class VoteappFrontComponent implements OnInit, AfterViewInit {
           const cnpValue = cnpDetails.value || '';
           const cnpErrors = cnpDetails.errors || [];
           const cnpStatus = cnpDetails.status || '';
+
+          // Verifica varsta utlizatorului
+        if (cnpValue && !this.validateAge(cnpValue)) {
+          this.autoFillMessage = 'Înregistrarea este permisă doar persoanelor majore (peste 18 ani).';
+          this.isLoading = false;
+          return;
+        }
+
   
           if (cnpErrors.length > 0) {
             this.autoFillMessage = `CNP extras: ${cnpValue}. Erori: ${cnpErrors.join(', ')}`;
@@ -1426,6 +1473,15 @@ autoFillDataFromScan(): void {
       this.showErrorMessage("Toate câmpurile sunt obligatorii!");
       return;
     }
+
+      // Verifică vârsta utilizatorului
+    const cnp = this.idCardForm.value.cnp;
+    if (!this.validateAge(cnp)) {
+      this.showErrorMessage("Înregistrarea este permisă doar persoanelor majore (peste 18 ani).");
+      return;
+    }
+
+
   
     this.isLoading = true;
     const formData = new FormData();

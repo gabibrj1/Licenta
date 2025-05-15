@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from rest_framework_simplejwt.tokens import RefreshToken
 from .models import User
+from .utils import ProcessorCNP
 
 #serializer pentru modeulul User
 class UserSerializer(serializers.ModelSerializer):
@@ -123,6 +124,14 @@ class IDCardRegistrationSerializer(serializers.ModelSerializer):
             if field not in data or not data[field]:
                 raise serializers.ValidationError(f"Câmpul {field} este obligatoriu.")
 
+        # Verificare varsta
+        cnp = data.get('cnp')
+        if cnp:
+            processor_cnp = ProcessorCNP()
+            if not processor_cnp.este_major(cnp):
+                raise serializers.ValidationError("Înregistrarea este permisă doar persoanelor majore (peste 18 ani).")
+
+       
         return data
 
     def create(self, validated_data):
