@@ -1,8 +1,11 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, of, forkJoin } from 'rxjs';
+import { Observable, of, forkJoin, BehaviorSubject } from 'rxjs';
 import { catchError, tap, map } from 'rxjs/operators';
 import { environment } from '../../src/environments/environment';
+
+
+
 
 export interface MapInfo {
   center: {
@@ -18,6 +21,11 @@ export interface MapInfo {
   }[];
 }
 
+export interface ElectionRoundState {
+  roundId: string;
+  hasData: boolean;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -25,9 +33,90 @@ export class MapService {
   // URL-ul API
   private apiUrl = environment.apiUrl;
   
+  
   // Path for GeoJSON and CSV
   private geoJsonPath = 'assets/maps/romania.geojson';
   private csvPath = 'assets/data/presence_2024-12-06.csv';
+  private currentRoundState = new BehaviorSubject<ElectionRoundState>({
+  roundId: 'tur1_2024', // Implicit Tur 1 2024
+  hasData: true // Implicit are date
+});
+
+
+// Observable pentru ascultarea schimbărilor de tur
+public currentRound$ = this.currentRoundState.asObservable();
+setCurrentRound(roundId: string, hasData: boolean): void {
+  console.log(`MapService: Setare tur curent - ${roundId}, are date: ${hasData}`);
+  this.currentRoundState.next({ roundId, hasData });
+}
+
+/**
+ * Obține starea curentă a turului
+ */
+getCurrentRound(): ElectionRoundState {
+  return this.currentRoundState.getValue();
+}
+/**
+ * Returnează date goale pentru hartă (fără votanți)
+ */
+private getEmptyMapData(): Observable<MapInfo> {
+  // Creăm date goale pentru județe
+  const emptyData: MapInfo = {
+    center: { lat: 45.9443, lng: 25.0094 },
+    zoom: 7,
+    regions: [
+      { name: 'București', code: 'B', voters: 0, percentage: 0 },
+      { name: 'Cluj', code: 'CJ', voters: 0, percentage: 0 },
+      // Adaugă toate județele cu valori 0
+      // ...restul județelor
+      { name: 'Vrancea', code: 'VN', voters: 0, percentage: 0 }
+    ]
+  };
+
+  return of(emptyData);
+}
+/**
+ * Returnează date goale pentru harta mondială (fără votanți)
+ */
+private getEmptyWorldVotingData(): any {
+  // Creează o copie a datelor reale dar cu valori zero
+  const realData = this.getRealWorldData();
+  const emptyData: any = {};
+
+  Object.keys(realData).forEach(countryCode => {
+    const country = { ...realData[countryCode] };
+    // Setăm toate datele numerice la 0, păstrând celelalte proprietăți
+    country.voters = 0;
+    country.percentage = 0;
+    country.permanentListVoters = 0;
+    country.correspondenceVoters = 0;
+    country.totalVoters = 0;
+    // Păstrăm numărul de secții de votare pentru a afișa corect harta
+    emptyData[countryCode] = country;
+  });
+
+  return emptyData;
+}
+
+/**
+ * Returnează datele reale mondiale (metoda auxiliară)
+ */
+private getRealWorldData(): any {
+  return {
+    'USA': { 
+      name: 'United States', 
+      code: 'USA', 
+      voters: 15000, 
+      percentage: 0.45, 
+      pollingStationCount: 71,
+      permanentListVoters: 12500,
+      correspondenceVoters: 2500,
+      totalVoters: 15000
+    },
+    // ...și restul țărilor
+  };
+}
+
 
   // Cache pentru datele GeoJSON UAT
   private uatGeoJsonCache: { [countyCode: string]: any } = {};
@@ -39,6 +128,13 @@ export class MapService {
    */
   getMapInfo(): Observable<MapInfo> {
     console.log('Serviciu: Încercare de a obține date hartă');
+    // Obține starea curentă a turului
+    const currentRound = this.getCurrentRound();
+
+    if (!currentRound.hasData) {
+      console.log('Tur fără date preîncărcate - se returnează hartă goală');
+      return this.getEmptyMapData();
+    }
     
     // URL-ul către endpoint-ul pentru hartă
     const url = `${this.apiUrl}menu/map/`;
@@ -109,6 +205,13 @@ export class MapService {
    */
     getCountyUATGeoJson(countyCode: string): Observable<any> {
       // Folosește codul județului cu MAJUSCULE pentru a se potrivi cu denumirile fișierelor
+      // Obține starea curentă a turului
+      const currentRound = this.getCurrentRound();
+      if (!currentRound.hasData) {
+        console.log('Tur fără date UAT preîncărcate - se returnează date goale');
+        return of(null);
+     }
+      
       const upperCaseCode = countyCode.toUpperCase();
       
       // Verifică dacă datele sunt deja în cache
@@ -157,6 +260,13 @@ export class MapService {
  */
 getVotingStatistics(): Observable<any> {
   console.log('Încercare încărcare CSV de la:', this.csvPath);
+
+    // Obține starea curentă a turului
+  const currentRound = this.getCurrentRound();
+    if (!currentRound.hasData) {
+    console.log('Tur fără date CSV preîncărcate - se returnează date goale');
+    return of({});
+  }
   
   // Încercăm să încărcăm fișierul CSV
   return this.http.get(this.csvPath, { responseType: 'text' }).pipe(
@@ -837,6 +947,13 @@ getWorldVotingStatistics(): Observable<any> {
   // Use real data for international polling stations based on the PDF mentioned
   // This is based on the document: https://www.roaep.ro/management-electoral/wp-content/uploads/2024/11/Lista-sediilor-sectiilor-de-votare-din-strainatate-prezidentiale_parlamentare-2024.pdf
   // Using 3-letter ISO codes (ISO 3166-1 alpha-3) to match the GeoJSON file
+  const currentRound = this.getCurrentRound();
+    if (!currentRound.hasData) {
+    console.log('Tur fără date mondiale preîncărcate - se returnează date goale');
+    return of(this.getEmptyWorldVotingData());
+  }
+
+  
   const realWorldData = {
     'USA': { 
       name: 'United States', 

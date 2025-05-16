@@ -1,8 +1,10 @@
-import { Component, OnInit, AfterViewInit, ViewChild, ElementRef, Renderer2, NgZone, HostListener } from '@angular/core';
-import { MapService, MapInfo } from '../services/map.service';
+import { Component, OnInit, AfterViewInit, ViewChild, ElementRef, Renderer2, NgZone, HostListener, OnDestroy  } from '@angular/core';
+import { MapService, MapInfo, ElectionRoundState } from '../services/map.service';
 import * as d3 from 'd3';
 import { Router } from '@angular/router';
 import { ActivatedRoute } from '@angular/router';
+import { Subscription } from 'rxjs';
+
 
 interface CountyData {
   name: string;
@@ -54,6 +56,14 @@ export class MapComponent implements OnInit, AfterViewInit {
 
   // Valorile pentru filtrare
   filterPercentage: number = 0;
+
+  // Starea turului curent
+currentRoundState: ElectionRoundState = {
+  roundId: 'tur1_2024',
+  hasData: true
+};
+
+private roundSubscription: Subscription;
   
   // Data
   geoJsonData: any = null;
@@ -99,6 +109,8 @@ export class MapComponent implements OnInit, AfterViewInit {
   // Zoom step size
   private zoomStep: number = 0.1;
 
+  
+
 
   constructor(
     private mapService: MapService,
@@ -106,7 +118,20 @@ export class MapComponent implements OnInit, AfterViewInit {
     private ngZone: NgZone,
     private router: Router,
     private route: ActivatedRoute
-  ) {}
+  ) {
+      this.roundSubscription = this.mapService.currentRound$.subscribe(roundState => {
+    console.log('MapComponent: S-a detectat schimbarea turului:', roundState);
+    
+    // Actualizăm starea turului
+    this.currentRoundState = roundState;
+    
+    // Reîncărcăm datele hartă dacă este deja inițializată
+    if (this.svg) {
+      console.log('Reîncărcare hartă după schimbarea turului');
+      this.reloadMapData();
+    }
+  });
+  }
   navigateToHome(): void {
     this.router.navigate(['']);
   }
@@ -118,25 +143,45 @@ export class MapComponent implements OnInit, AfterViewInit {
     this.resizeMap();
   }
 
-  ngOnInit(): void {
-    console.log('MapComponent: ngOnInit a fost apelat');
+ngOnInit(): void {
+  console.log('MapComponent: ngOnInit a fost apelat');
+  
+  // Verificăm query parameters pentru locație și tur
+  this.route.queryParams.subscribe(params => {
+    // Actualizăm locația
+    if (params['location']) {
+      this.mapLocation = params['location'];
+    }
     
-    // Verificăm query parameters pentru locație
-    this.route.queryParams.subscribe(params => {
-      if (params['location']) {
-        this.mapLocation = params['location'];
-        
-        // Încarcă harta corespunzătoare
-        if (this.mapLocation === 'romania') {
-          this.loadMapData();
-        } else {
-          this.loadWorldMapData();
-        }
-      } else {
-        this.loadMapData(); // Default: România
-      }
-    });
+    // Actualizăm turul dacă este specificat
+    if (params['round']) {
+      const roundId = params['round'];
+      const hasData = roundId !== 'tur_activ'; // Presupunem că tur_activ nu are date
+      
+      // Actualizăm serviciul cu noul tur
+      this.mapService.setCurrentRound(roundId, hasData);
+    }
+    
+    // Încărcăm harta corespunzătoare
+    if (this.mapLocation === 'romania') {
+      this.loadMapData();
+    } else {
+      this.loadWorldMapData();
+    }
+  });
+}
+reloadMapData(): void {
+  console.log('Reîncărcăm datele hartă pentru noul tur:', this.currentRoundState);
+  
+  this.isLoading = true;
+  
+  // Încărcăm harta corespunzătoare
+  if (this.mapLocation === 'romania') {
+    this.loadMapData();
+  } else {
+    this.loadWorldMapData();
   }
+}
 
   ngAfterViewInit(): void {
     // Initialize map when the view is ready
@@ -144,6 +189,13 @@ export class MapComponent implements OnInit, AfterViewInit {
       this.initializeMap();
     }
   }
+
+  ngOnDestroy(): void {
+  // Anulăm subscripția pentru a evita memory leak
+  if (this.roundSubscription) {
+    this.roundSubscription.unsubscribe();
+  }
+}
 
   // Metoda pentru comutare intre harti
   setMapLocation(location: string): void {

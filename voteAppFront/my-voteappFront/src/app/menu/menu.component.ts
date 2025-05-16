@@ -1,20 +1,27 @@
-// menu.component.ts actualizat cu noile rute
 import { Component, OnInit, AfterViewInit, ElementRef, ViewChild, OnDestroy  } from '@angular/core';
 import { Router } from '@angular/router';
 import { interval, Subscription } from 'rxjs';
-import { map, switchMap  } from 'rxjs/operators';
+import { map, switchMap } from 'rxjs/operators';
 import { AuthService } from '../services/auth.service';
 import { AuthUserService } from '../services/auth-user.service';
 import { ActivatedRoute } from '@angular/router';
 import { MapService } from '../services/map.service';
 import { VoteSettingsService } from '../services/vote-settings.service';
 
+export interface ElectionRound {
+  id: string;
+  name: string;
+  date: Date;
+  active: boolean;
+  hasData: boolean; // Indică dacă runda are date preîncărcate
+}
+
 @Component({
   selector: 'app-menu',
   templateUrl: './menu.component.html',
   styleUrls: ['./menu.component.scss']
 })
-export class MenuComponent implements OnInit {
+export class MenuComponent implements OnInit, OnDestroy {
   // User data
   userEmail: string | null = null;
   message: string | null = null;
@@ -26,10 +33,38 @@ export class MenuComponent implements OnInit {
   
   // UI state
   currentView: string = 'prezenta';
-  currentRound: number = 2;
   electionDate: Date = new Date('2024-12-08');
   currentTime: Date = new Date();
   locationFilter: string = 'romania'; // romania sau strainatate
+  isDropdownOpen: boolean = false; // Stare pentru dropdown
+
+  // Tururile de alegeri disponibile
+  availableRounds: ElectionRound[] = [
+    {
+      id: 'tur1_2024',
+      name: 'Tur 1 Alegeri Prezidențiale 2024',
+      date: new Date('2024-12-08'),
+      active: false,
+      hasData: true // Are date preîncărcate
+    },
+    {
+      id: 'tur2_2024',
+      name: 'Tur 2 Alegeri Prezidențiale 2024',
+      date: new Date('2024-12-22'),
+      active: false,
+      hasData: true // Are date preîncărcate
+    },
+    {
+      id: 'tur_activ',
+      name: 'Tur Activ',
+      date: new Date(),
+      active: true,
+      hasData: false // Nu are date preîncărcate (acestea vor fi colectate în timp real)
+    }
+  ];
+  
+  // Turul curent selectat
+  currentRound: ElectionRound;
 
   // Vote settings
   isVoteActive: boolean = false;
@@ -46,10 +81,28 @@ export class MenuComponent implements OnInit {
     private route: ActivatedRoute,
     private mapService: MapService,
     private voteSettingsService: VoteSettingsService
-  ) {}
+  ) {
+    // Inițializăm runda curentă cu Tur 1 2024 implicit
+    this.currentRound = this.availableRounds[0];
+  }
 
   ngOnInit(): void {
     console.log('Inițializare componentă menu...');
+    
+    // Verificăm query parameters pentru turul curent
+    this.route.queryParams.subscribe(params => {
+      if (params['round']) {
+        const roundId = params['round'];
+        const round = this.availableRounds.find(r => r.id === roundId);
+        if (round) {
+          this.currentRound = round;
+          this.electionDate = round.date;
+          
+          // Notificăm serviciul de hartă despre turul curent
+          this.mapService.setCurrentRound(round.id, round.hasData);
+        }
+      }
+    });
     
     // Adăugăm o mică întârziere pentru a ne asigura că tokenurile sunt setate corect
     setTimeout(() => {
@@ -65,10 +118,13 @@ export class MenuComponent implements OnInit {
       // Încearcă să încarce datele utilizatorului din localStorage
       this.loadUserDataFromStorage();
       
-      // Transmite locația inițială către harta dacă ne aflăm pe pagina de hartă
+      // Transmite locația inițială și turul către harta dacă ne aflăm pe pagina de hartă
       if (this.router.url.includes('/harta')) {
         this.router.navigate(['menu/harta'], { 
-          queryParams: { location: this.locationFilter },
+          queryParams: { 
+            location: this.locationFilter,
+            round: this.currentRound.id
+          },
           replaceUrl: true
         });
       }
@@ -96,12 +152,19 @@ export class MenuComponent implements OnInit {
       );
     }, 500); // Întârziere de 500ms pentru încărcarea tokenurilor
   }
+  
   ngOnDestroy(): void {
     // Anulează subscription pentru a evita memory leak
     if (this.voteSettingsInterval) {
       this.voteSettingsInterval.unsubscribe();
     }
   }
+  
+  // Toggle dropdown
+  toggleDropdown(): void {
+    this.isDropdownOpen = !this.isDropdownOpen;
+  }
+  
   private updateVoteSettings(settings: any): void {
     this.isVoteActive = settings.is_vote_active;
     
@@ -122,8 +185,6 @@ export class MenuComponent implements OnInit {
       this.timeUntilStart = 0;
     }
   }
-
-  
 
   // Verifică dacă utilizatorul este autentificat
   isAuthenticated(): boolean {
@@ -185,128 +246,154 @@ export class MenuComponent implements OnInit {
       }
     }
   }
-  
 
-// Updated loadUserProfile method for MenuComponent
-
-private loadUserProfile(): void {
-  console.log('Loading user profile...');
-  
-  // First check if we have data in localStorage
-  this.loadUserDataFromStorage();
-  
-  // Also try to get profile data from API
-  this.authUserService.getUserProfile().subscribe(
-    (data) => {
-      console.log('User profile loaded from API:', data);
-      
-      // Filtrăm datele în funcție de metoda de autentificare
-      if (this.authMethod === 'email') {
-        // Pentru autentificare cu email, păstrăm doar email-ul
-        if (data.email) {
-          this.userEmail = data.email;
-          
-          // Resetăm datele de buletin
-          this.userCNP = null;
-          this.firstName = null;
-          this.lastName = null;
-          
-          // Construim obiectul de date utilizator doar cu email
-          const userData = {
-            email: data.email,
-            is_active: data.is_active || true
-          };
-          
-          this.userData = userData;
-          localStorage.setItem('user_data', JSON.stringify(userData));
-        }
-      } else {
-        // Pentru autentificare cu buletin, păstrăm doar datele de buletin
-        if (data.cnp) {
-          this.userCNP = data.cnp;
-          this.userEmail = null; // Resetăm email-ul
-          
-          if (data.first_name) {
-            this.firstName = data.first_name;
-          }
-          
-          if (data.last_name) {
-            this.lastName = data.last_name;
-          }
-          
-          // Construim obiectul de date utilizator fără email
-          const userData = {
-            cnp: data.cnp,
-            first_name: data.first_name || '',
-            last_name: data.last_name || '',
-            is_verified_by_id: data.is_verified_by_id || true,
-            is_active: data.is_active || true
-          };
-          
-          this.userData = userData;
-          localStorage.setItem('user_data', JSON.stringify(userData));
-          localStorage.setItem('user_cnp', data.cnp);
-        }
-      }
-    },
-    (error) => {
-      console.error('Error loading profile:', error);
-      // Dacă există eroare, ne bazăm doar pe datele din localStorage
-    }
-  );
-}
-
-    // Metodă nouă pentru navigarea către tipul corect de vot
-    navigateToVote(): void {
-      if (!this.isVoteActive) {
-        // Dacă votul nu este activ, sugerăm alternative
-        if (this.upcomingVoteType) {
-          // Există un vot programat în viitor
-          alert(`Votul de tip ${this.getVoteTypeText(this.upcomingVoteType)} va începe în curând. Poți încerca simularea procesului de vot între timp.`);
-        } else {
-          // Nu există vot programat - sugerăm simularea sau crearea propriului sistem
-          alert('Nu există o sesiune de vot activă în acest moment. Poți încerca simularea procesului de vot sau să creezi propriul sistem de vot.');
-        }
-        return;
-      }
+  private loadUserProfile(): void {
+    console.log('Loading user profile...');
     
-      // Redirecționăm către pagina corespunzătoare tipului de vot
-      // Acum rutele sunt relative la MenuComponent
-      switch (this.activeVoteType) {
-        case 'parlamentare':
-          this.router.navigate(['vot/parlamentare'], { relativeTo: this.route });
-          break;
-        case 'prezidentiale':
-          this.router.navigate(['vot/prezidentiale'], { relativeTo: this.route });
-          break;
-        case 'locale':
-          this.router.navigate(['vot/locale'], { relativeTo: this.route });
-          break;
-        case 'simulare':
-          this.router.navigate(['simulare-vot'], { relativeTo: this.route });
-          break;
-        default:
-          console.error('Tip de vot necunoscut:', this.activeVoteType);
-          // Pentru testare, defaultăm la simulare în caz că tipul nu este recunoscut
-          this.router.navigate(['simulare-vot'], { relativeTo: this.route });
-          break;
-      }
-    }
-      // Helper pentru afișarea tipului de vot într-un format prietenos
-      getVoteTypeText(voteType: string | null): string {
-        if (!voteType) return 'Necunoscut';
+    // First check if we have data in localStorage
+    this.loadUserDataFromStorage();
+    
+    // Also try to get profile data from API
+    this.authUserService.getUserProfile().subscribe(
+      (data) => {
+        console.log('User profile loaded from API:', data);
         
-        switch (voteType) {
-          case 'parlamentare': return 'Alegeri Parlamentare';
-          case 'prezidentiale': return 'Alegeri Prezidențiale';
-          case 'locale': return 'Alegeri Locale';
-          case 'simulare': return 'Simulare';
-          default: return voteType;
+        // Filtrăm datele în funcție de metoda de autentificare
+        if (this.authMethod === 'email') {
+          // Pentru autentificare cu email, păstrăm doar email-ul
+          if (data.email) {
+            this.userEmail = data.email;
+            
+            // Resetăm datele de buletin
+            this.userCNP = null;
+            this.firstName = null;
+            this.lastName = null;
+            
+            // Construim obiectul de date utilizator doar cu email
+            const userData = {
+              email: data.email,
+              is_active: data.is_active || true
+            };
+            
+            this.userData = userData;
+            localStorage.setItem('user_data', JSON.stringify(userData));
+          }
+        } else {
+          // Pentru autentificare cu buletin, păstrăm doar datele de buletin
+          if (data.cnp) {
+            this.userCNP = data.cnp;
+            this.userEmail = null; // Resetăm email-ul
+            
+            if (data.first_name) {
+              this.firstName = data.first_name;
+            }
+            
+            if (data.last_name) {
+              this.lastName = data.last_name;
+            }
+            
+            // Construim obiectul de date utilizator fără email
+            const userData = {
+              cnp: data.cnp,
+              first_name: data.first_name || '',
+              last_name: data.last_name || '',
+              is_verified_by_id: data.is_verified_by_id || true,
+              is_active: data.is_active || true
+            };
+            
+            this.userData = userData;
+            localStorage.setItem('user_data', JSON.stringify(userData));
+            localStorage.setItem('user_cnp', data.cnp);
+          }
         }
+      },
+      (error) => {
+        console.error('Error loading profile:', error);
+        // Dacă există eroare, ne bazăm doar pe datele din localStorage
       }
+    );
+  }
 
-   // Helper pentru formatarea timpului rămas
-   formatRemainingTime(seconds: number): string {
+  // Switch between election rounds
+  switchRound(round: ElectionRound): void {
+    console.log(`Schimbare către turul: ${round.name}`);
+    
+    // Actualizăm turul curent
+    this.currentRound = round;
+    
+    // Actualizăm data alegerilor afișată
+    this.electionDate = round.date;
+    
+    // Închide dropdown-ul
+    this.isDropdownOpen = false;
+    
+    // Notificăm serviciul de hartă despre schimbarea turului
+    this.mapService.setCurrentRound(round.id, round.hasData);
+    
+    // Actualizăm harta dacă suntem pe pagina de hartă
+    if (this.currentView === 'harta') {
+      this.router.navigate(['menu/harta'], { 
+        queryParams: { 
+          location: this.locationFilter,
+          round: round.id
+        },
+        replaceUrl: true
+      });
+    }
+  }
+  
+  // Metodă nouă pentru navigarea către tipul corect de vot
+  navigateToVote(): void {
+    if (!this.isVoteActive) {
+      // Dacă votul nu este activ, sugerăm alternative
+      if (this.upcomingVoteType) {
+        // Există un vot programat în viitor
+        alert(`Votul de tip ${this.getVoteTypeText(this.upcomingVoteType)} va începe în curând. Poți încerca simularea procesului de vot între timp.`);
+      } else {
+        // Nu există vot programat - sugerăm simularea sau crearea propriului sistem
+        alert('Nu există o sesiune de vot activă în acest moment. Poți încerca simularea procesului de vot sau să creezi propriul sistem de vot.');
+      }
+      return;
+    }
+    
+    // Redirecționăm către pagina corespunzătoare tipului de vot
+    // Acum rutele sunt relative la MenuComponent
+    switch (this.activeVoteType) {
+      case 'parlamentare':
+        this.router.navigate(['vot/parlamentare'], { relativeTo: this.route });
+        break;
+      case 'prezidentiale':
+        this.router.navigate(['vot/prezidentiale'], { relativeTo: this.route });
+        break;
+      case 'locale':
+        this.router.navigate(['vot/locale'], { relativeTo: this.route });
+        break;
+      case 'simulare':
+        this.router.navigate(['simulare-vot'], { relativeTo: this.route });
+        break;
+      default:
+        console.error('Tip de vot necunoscut:', this.activeVoteType);
+        // Pentru testare, defaultăm la simulare în caz că tipul nu este recunoscut
+        this.router.navigate(['simulare-vot'], { relativeTo: this.route });
+        break;
+    }
+  }
+  
+  // Helper pentru afișarea tipului de vot într-un format prietenos
+  getVoteTypeText(voteType: string | null): string {
+    if (!voteType) return 'Necunoscut';
+    
+    switch (voteType) {
+      case 'parlamentare': return 'Alegeri Parlamentare';
+      case 'prezidentiale': return 'Alegeri Prezidențiale';
+      case 'locale': return 'Alegeri Locale';
+      case 'simulare': return 'Simulare';
+      default: return voteType;
+    }
+  }
+
+  // Helper pentru formatarea timpului rămas
+  formatRemainingTime(seconds: number): string {
     if (seconds <= 0) return '00:00:00';
     
     const hours = Math.floor(seconds / 3600);
@@ -315,9 +402,6 @@ private loadUserProfile(): void {
     
     return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   }
-
-
-
 
   // Navigation
   navigateTo(view: string): void {
@@ -341,8 +425,15 @@ private loadUserProfile(): void {
         this.router.navigate(['menu/statistici']);
         break;
       case 'harta':
+        // Notificăm serviciul de hartă despre turul curent înainte de navigare
+        this.mapService.setCurrentRound(this.currentRound.id, this.currentRound.hasData);
+        
+        // Apoi navigăm cu parametrii corecți
         this.router.navigate(['menu/harta'], {
-          queryParams: { location: this.locationFilter }
+          queryParams: { 
+            location: this.locationFilter,
+            round: this.currentRound.id
+          }
         });
         break;
       
@@ -373,61 +464,58 @@ private loadUserProfile(): void {
         this.router.navigate(['menu/forumuri']);
         break;
       
-        case 'concept':
-          console.log('Navigare către concept');
-          this.router.navigate(['menu/despre/concept']);
-          break;
-        case 'creeaza-sistem':
-          console.log('Navigare către creeaza-sistem');
-          this.router.navigate(['menu/despre/creeaza-sistem']);
-          break;
-        case 'misiune':
-          console.log('Navigare către misiune');
-          this.router.navigate(['menu/despre/misiune']);
-          break;
-        case 'contact':
-          console.log('Navigare către contact');
-          this.router.navigate(['menu/despre/contact']);
-          break;
-        
-        // Setări Avansate
-        case 'setari-cont':
-          this.router.navigate(['menu/setari-cont']);
-          break;
-        case 'securitate':
-          this.router.navigate(['menu/setari/securitate']);
-          break;
-        case 'notificari':
-          this.router.navigate(['menu/setari/notificari']);
-          break;
-        case 'accesibilitate':
-          this.router.navigate(['menu/setari/accesibilitate']);
-          break;
-        
-        default:
-          this.router.navigate([`/${view}`]);
-          break;
-      }
+      case 'concept':
+        console.log('Navigare către concept');
+        this.router.navigate(['menu/despre/concept']);
+        break;
+      case 'creeaza-sistem':
+        console.log('Navigare către creeaza-sistem');
+        this.router.navigate(['menu/despre/creeaza-sistem']);
+        break;
+      case 'misiune':
+        console.log('Navigare către misiune');
+        this.router.navigate(['menu/despre/misiune']);
+        break;
+      case 'contact':
+        console.log('Navigare către contact');
+        this.router.navigate(['menu/despre/contact']);
+        break;
+      
+      // Setări Avansate
+      case 'setari-cont':
+        this.router.navigate(['menu/setari-cont']);
+        break;
+      case 'securitate':
+        this.router.navigate(['menu/setari/securitate']);
+        break;
+      case 'notificari':
+        this.router.navigate(['menu/setari/notificari']);
+        break;
+      case 'accesibilitate':
+        this.router.navigate(['menu/setari/accesibilitate']);
+        break;
+      
+      default:
+        this.router.navigate([`/${view}`]);
+        break;
     }
-
-  // Switch between election rounds
-  switchRound(round: number): void {
-    this.currentRound = round;
-    // Implementează logica pentru a schimba datele în funcție de tur
   }
 
-// În menu.component.ts
-switchLocation(location: string): void {
-  this.locationFilter = location;
-  
-  // Dacă utilizatorul este deja pe pagina hartă, actualizează URL-ul
-  if (this.currentView === 'harta') {
-    this.router.navigate(['menu/harta'], { 
-      queryParams: { location: location },
-      replaceUrl: true
-    });
+  // În menu.component.ts
+  switchLocation(location: string): void {
+    this.locationFilter = location;
+    
+    // Dacă utilizatorul este deja pe pagina hartă, actualizează URL-ul
+    if (this.currentView === 'harta') {
+      this.router.navigate(['menu/harta'], { 
+        queryParams: { 
+          location: location,
+          round: this.currentRound.id
+        },
+        replaceUrl: true
+      });
+    }
   }
-}
 
   // Mask CNP for privacy
   maskCNP(cnp: string): string {

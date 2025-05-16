@@ -1,4 +1,4 @@
-// menu.component.scss - optimizat pentru afișarea completă a textelor
+
 :host {
   display: flex;
   flex-direction: column;
@@ -47,6 +47,7 @@
     font-weight: 500;
   }
 }
+
 .logo {
   svg {
     transform: rotate(270deg); // Rotește cu 45 grade
@@ -80,24 +81,98 @@
   display: flex;
   gap: 0.5rem;
   
-  .btn-round {
-    background-color: transparent;
-    border: 1px solid #444;
-    border-radius: 20px;
-    padding: 0.3rem 0.8rem;
-    color: #fff;
-    font-size: 0.9rem;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
+  // Stiluri pentru dropdown-ul de tururi
+  .dropdown-container {
+    position: relative;
     
-    &.active {
-      background-color: #2c2c2c;
+    .btn-round {
+      background-color: #2a5885;
+      border: 1px solid #3a6ca0;
+      border-radius: 20px;
+      padding: 0.3rem 0.8rem;
+      color: #fff;
+      font-size: 0.9rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      
+      &:hover {
+        background-color: #3a6ca0;
+      }
+      
+      i {
+        font-size: 0.8rem;
+      }
     }
     
-    &:hover {
-      background-color: #2c2c2c;
+    .dropdown-content {
+      position: absolute;
+      top: 100%;
+      right: 0;
+      background-color: #1e2c47;
+      min-width: 280px;
+      max-width: 320px;
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+      border-radius: 4px;
+      margin-top: 5px;
+      z-index: 1000;
+      display: none;
+      padding: 5px 0;
+      
+      a {
+        display: block;
+        color: white;
+        text-decoration: none;
+        padding: 0.75rem 1rem;
+        transition: background-color 0.2s;
+        font-size: 0.9rem;
+        cursor: pointer;
+        
+        &:hover {
+          background-color: #2a3d5f;
+        }
+        
+        &.active {
+          background-color: #2a5885;
+          position: relative;
+          
+          &:after {
+            content: "✓";
+            position: absolute;
+            right: 1rem;
+          }
+        }
+        
+        &:last-child {
+          border-radius: 0 0 4px 4px;
+        }
+        
+        &:first-child {
+          border-radius: 4px 4px 0 0;
+        }
+      }
+    }
+    
+    // Afișează dropdown-ul la hover și îl menține afișat cu un delay
+    &:hover .dropdown-content {
+      display: block;
+      animation: fadeIn 0.2s;
+    }
+    
+    // Adăugăm un delay la dispariția dropdown-ului
+    .dropdown-content:hover {
+      display: block;
+    }
+    
+    // Adăugăm un pseudo-element pentru a extinde aria de hover
+    &:hover::after {
+      content: '';
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      height: 10px; // Spațiu suplimentar pentru a preveni dispariția
     }
   }
   
@@ -118,6 +193,12 @@
       background-color: #2c2c2c;
     }
   }
+}
+
+// Animație pentru afișarea lină a dropdown-ului
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-5px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 // Main Layout
@@ -262,7 +343,7 @@
   }
 }
 
-// Sectiunea VOTEAZA AICI
+// Sectiunea VOTEAZA AICI - păstrăm stilul original
 .vote-section {
   padding: 0.8rem;
   border-bottom: 1px solid #333;
@@ -296,17 +377,20 @@
       background-color: rgba(255, 60, 60, 1);
       transform: scale(1.02);
     }
-  }
-  &.disabled {
-    background-color: #6c757d;
-    cursor: not-allowed;
-    opacity: 0.7;
     
-    &:hover {
+    &.disabled {
       background-color: #6c757d;
+      cursor: not-allowed;
+      opacity: 0.7;
+      
+      &:hover {
+        background-color: #6c757d;
+        transform: none;
+      }
     }
   }
 }
+
 .vote-info {
   display: flex;
   flex-direction: column;
@@ -454,60 +538,6 @@
   }
 }
 
-// Varianta alternativă: navigare cu scroll personalizat
-.custom-scrollable {
-  position: relative;
-  scroll-behavior: smooth;
-  
-  .scroll-button {
-    position: absolute;
-    right: 0.5rem;
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    background-color: rgba(42, 88, 133, 0.7);
-    color: white;
-    border: none;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    z-index: 5;
-    opacity: 0;
-    transition: opacity 0.3s ease;
-    
-    &:hover {
-      background-color: #2a5885;
-    }
-    
-    &.scroll-up {
-      top: 0.5rem;
-    }
-    
-    &.scroll-down {
-      bottom: 0.5rem;
-    }
-  }
-  
-  &:hover .scroll-button {
-    opacity: 1;
-  }
-}
-
-// O clasă pentru a adăuga efecte moderne la navigarea cu scroll
-.scroll-indicator {
-  position: absolute;
-  right: 0;
-  width: 4px;
-  height: 10%;
-  background-color: #2a5885;
-  opacity: 0.6;
-  border-radius: 2px;
-  transition: top 0.3s ease;
-  z-index: 10;
-  pointer-events: none;
-}
-
 // Responsive styles
 @media (max-width: 768px) {
   .side-nav {
@@ -566,5 +596,36 @@
         }
       }
     }
+  }
+  
+  .dropdown-content {
+    min-width: 240px;
+  }
+  
+  .election-title {
+    display: none;
+  }
+}
+
+// Adaugă stiluri pentru ecrane mici
+@media (max-width: 576px) {
+  .header-bar {
+    padding: 0.5rem;
+  }
+  
+  .action-buttons {
+    .dropdown-container .dropdown-content {
+      min-width: 240px;
+      right: -60px; // Ajustează poziția dropdown-ului
+    }
+    
+    .btn-icon:not(:first-child) {
+      display: none;
+    }
+  }
+  
+  .main-content {
+    margin-left: 60px;
+    width: calc(100% - 60px);
   }
 }

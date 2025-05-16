@@ -10,17 +10,26 @@
         </svg>
         <span class="logo-text">Prezență vot</span>
       </div>
-      </div>
+    </div>
     
     <div class="election-info">
-      <span class="election-title">Alegeri prezidențiale - Tur {{ currentRound }}, {{ electionDate | date:'dd MMMM yyyy' }}</span>
+      <span class="election-title">{{ currentRound.name }}, {{ electionDate | date:'dd MMMM yyyy' }}</span>
       <span class="user-icon" *ngIf="isAuthenticated()"><i class="fas fa-user-circle"></i></span>
     </div>
     
     <div class="action-buttons">
-      <button class="btn-round" [class.active]="currentRound === 1" (click)="switchRound(1)">
-        Tur {{ currentRound }} <i class="fas fa-caret-down"></i>
-      </button>
+      <div class="dropdown-container" (click)="toggleDropdown()">
+        <button class="btn-round">
+          {{ currentRound.name }} <i class="fas fa-caret-down"></i>
+        </button>
+        <div class="dropdown-content" [class.show]="isDropdownOpen">
+          <a *ngFor="let round of availableRounds" 
+             (click)="switchRound(round); $event.stopPropagation();" 
+             [class.active]="round.id === currentRound.id">
+            {{ round.name }}
+          </a>
+        </div>
+      </div>
       <button class="btn-icon">
         <i class="fas fa-history"></i> ISTORIC
       </button>
@@ -156,33 +165,33 @@
       </li>
     </ul>
 
-        <!-- Sectiunea Despre Noi -->
-        <div class="nav-section">
-          <span class="section-title">Despre Noi</span>
-        </div>
-        
-        <ul class="nav-menu">
-          <li class="nav-item" [class.active]="currentView === 'concept'">
-            <a (click)="navigateTo('concept')">
-              <i class="fas fa-lightbulb"></i> Concept
-            </a>
-          </li>
-          <li class="nav-item" [class.active]="currentView === 'creeaza-sistem'">
-            <a (click)="navigateTo('creeaza-sistem')">
-              <i class="fas fa-cogs"></i> Creează propriul sistem de vot
-            </a>
-          </li>
-          <li class="nav-item" [class.active]="currentView === 'misiune'">
-            <a (click)="navigateTo('misiune')">
-              <i class="fas fa-bullseye"></i> Misiune și viziune
-            </a>
-          </li>
-          <li class="nav-item" [class.active]="currentView === 'contact'">
-            <a (click)="navigateTo('contact')">
-              <i class="fas fa-envelope"></i> Contact
-            </a>
-          </li>
-        </ul>
+    <!-- Sectiunea Despre Noi -->
+    <div class="nav-section">
+      <span class="section-title">Despre Noi</span>
+    </div>
+    
+    <ul class="nav-menu">
+      <li class="nav-item" [class.active]="currentView === 'concept'">
+        <a (click)="navigateTo('concept')">
+          <i class="fas fa-lightbulb"></i> Concept
+        </a>
+      </li>
+      <li class="nav-item" [class.active]="currentView === 'creeaza-sistem'">
+        <a (click)="navigateTo('creeaza-sistem')">
+          <i class="fas fa-cogs"></i> Creează propriul sistem de vot
+        </a>
+      </li>
+      <li class="nav-item" [class.active]="currentView === 'misiune'">
+        <a (click)="navigateTo('misiune')">
+          <i class="fas fa-bullseye"></i> Misiune și viziune
+        </a>
+      </li>
+      <li class="nav-item" [class.active]="currentView === 'contact'">
+        <a (click)="navigateTo('contact')">
+          <i class="fas fa-envelope"></i> Contact
+        </a>
+      </li>
+    </ul>
 
     <!-- Sectiunea Setari Avansate -->
     <div class="nav-section">
@@ -212,8 +221,6 @@
       </li>
     </ul>
 
-
-    
     <!-- User Profile Section (Only shows when authenticated) -->
     <div *ngIf="isAuthenticated()" class="user-profile">
       <!-- Dacă authMethod este 'email', afișăm doar informațiile de email -->
@@ -234,7 +241,6 @@
           <p class="user-type">Autentificare prin buletin</p>
         </div>
       </div>
-      
       
       <!-- Autentificare socială -->
       <div *ngIf="message" class="user-info">
