@@ -49,10 +49,10 @@ export class MenuComponent implements OnInit, OnDestroy {
     },
     {
       id: 'tur2_2024',
-      name: 'Tur 2 Alegeri Prezidențiale 2024',
+      name: 'Tur 2 Alegeri Prezidențiale 2024 (ANULAT)', // Adăugă ANULAT în numele turului
       date: new Date('2024-12-22'),
       active: false,
-      hasData: true // Are date preîncărcate
+      hasData: false // Schimbă în false pentru a nu avea date
     },
     {
       id: 'tur_activ',
@@ -314,34 +314,42 @@ export class MenuComponent implements OnInit, OnDestroy {
     );
   }
 
-  // Switch between election rounds
-  switchRound(round: ElectionRound): void {
-    console.log(`Schimbare către turul: ${round.name}`);
-    
-    // Actualizăm turul curent
-    this.currentRound = round;
-    
-    // Actualizăm data alegerilor afișată
-    this.electionDate = round.date;
-    
-    // Închide dropdown-ul
-    this.isDropdownOpen = false;
-    
-    // Notificăm serviciul de hartă despre schimbarea turului
-    this.mapService.setCurrentRound(round.id, round.hasData);
-    
-    // Actualizăm harta dacă suntem pe pagina de hartă
-    if (this.currentView === 'harta') {
-      this.router.navigate(['menu/harta'], { 
-        queryParams: { 
-          location: this.locationFilter,
-          round: round.id
-        },
-        replaceUrl: true
-      });
-    }
-  }
+switchRound(round: ElectionRound): void {
+  console.log(`Schimbare către turul: ${round.name}`);
   
+  // Actualizăm turul curent
+  this.currentRound = round;
+  
+  // Actualizăm data alegerilor afișată
+  this.electionDate = round.date;
+  
+  // Închide dropdown-ul
+  this.isDropdownOpen = false;
+  
+  // Notificăm serviciul de hartă despre schimbarea turului
+  this.mapService.setCurrentRound(round.id, round.hasData);
+  
+  // Actualizăm harta dacă suntem pe pagina de hartă
+  if (this.currentView === 'harta') {
+    // Obține parametrii actuali din URL pentru a păstra starea UAT
+    const currentParams: {[key: string]: any} = { ...this.route.snapshot.queryParams };
+    
+    // Adăugăm noul tur la parametri, păstrând restul parametrilor
+    currentParams['round'] = round.id;
+    
+    // Păstrăm parametrul location, sau folosim valoarea implicită
+    if (!currentParams['location']) {
+      currentParams['location'] = this.locationFilter;
+    }
+    
+    // Navigăm cu toți parametrii, fără a folosi replaceUrl=true pentru a permite Back/Forward
+    setTimeout(() => {
+      this.router.navigate(['menu/harta'], { 
+        queryParams: currentParams
+      });
+    }, 100); // Adăugăm un mic delay pentru a permite actualizarea serviciului
+  }
+}
   // Metodă nouă pentru navigarea către tipul corect de vot
   navigateToVote(): void {
     if (!this.isVoteActive) {

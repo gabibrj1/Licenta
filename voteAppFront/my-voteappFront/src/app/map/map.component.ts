@@ -88,6 +88,7 @@ private roundSubscription: Subscription;
   private zoom: any;
   private g: any;
   private currentTransform: any = { k: 1, x: 0, y: 0 };
+  private skipCountyMapLoad: boolean = false;
 
   // Variabile pentru harta cu UAT-uri
   selectedCounty: string | null = null;
@@ -148,6 +149,12 @@ ngOnInit(): void {
   
   // Verificăm query parameters pentru locație și tur
   this.route.queryParams.subscribe(params => {
+    // Verifică dacă avem parametri pentru UAT
+    const hasUATParams = params['uatView'] === 'true' && params['county'];
+    
+    // Setăm flag-ul pentru a sări peste încărcarea hărții de județe dacă avem parametri UAT
+    this.skipCountyMapLoad = hasUATParams;
+    
     // Actualizăm locația
     if (params['location']) {
       this.mapLocation = params['location'];
@@ -156,22 +163,76 @@ ngOnInit(): void {
     // Actualizăm turul dacă este specificat
     if (params['round']) {
       const roundId = params['round'];
-      const hasData = roundId !== 'tur_activ'; // Presupunem că tur_activ nu are date
+      const hasData = roundId === 'tur1_2024'; // Doar turul 1 are date, turul 2 și activ nu au
+      
+      console.log(`MapComponent: Setare tur din parametri - ${roundId}, hasData: ${hasData}`);
       
       // Actualizăm serviciul cu noul tur
       this.mapService.setCurrentRound(roundId, hasData);
+      
+      // Actualizăm starea turului în componentă
+      this.currentRoundState = {
+        roundId: roundId,
+        hasData: hasData
+      };
     }
+    
+    // Forțăm reîncărcarea hărții de fiecare dată
+    this.isLoading = true;
     
     // Încărcăm harta corespunzătoare
     if (this.mapLocation === 'romania') {
-      this.loadMapData();
+      if (hasUATParams) {
+        // Încărcăm direct harta UAT fără a mai încărca harta județelor
+        console.log('Încărcăm direct vizualizarea UAT din parametrii URL:', params['county']);
+        this.mapLevel = 'uaturi';
+        this.loadCountyUATMap(params['county']);
+      } else {
+        // Încărcăm harta județelor normală
+        this.loadMapData();
+      }
     } else {
       this.loadWorldMapData();
     }
   });
 }
+forceMapReload(): void {
+  console.log('Forțăm reîncărcarea hărții cu noile date');
+  
+  // Golim datele hartă
+  this.geoJsonData = null;
+  this.worldGeoJsonData = null;
+  
+  // Setăm flag-ul de încărcare
+  this.isLoading = true;
+  
+  // Înlăturăm SVG-ul existent
+  if (this.svg) {
+    this.svg.remove();
+    this.svg = null;
+  }
+  
+  // Reîncărcăm datele corespunzătoare
+  if (this.mapLocation === 'romania') {
+    this.loadMapData();
+  } else {
+    this.loadWorldMapData();
+  }
+}
+
+
 reloadMapData(): void {
   console.log('Reîncărcăm datele hartă pentru noul tur:', this.currentRoundState);
+  
+  // Verifică dacă suntem deja în vizualizare UAT
+  if (this.isUATView && this.selectedCounty) {
+    console.log('Suntem deja în vizualizare UAT, vom încărca direct UAT pentru:', this.selectedCounty);
+    
+    // Nu încărcăm harta județelor, ci direct UAT
+    this.skipCountyMapLoad = true;
+    this.loadCountyUATMap(this.selectedCounty);
+    return;
+  }
   
   this.isLoading = true;
   
@@ -280,45 +341,94 @@ updateCountryLabels(): void {
   }
 }
   // Metoda pentru incarcarea datelor hartii mondiale
-  loadWorldMapData(): void {
-    this.mapLocation = 'strainatate';
-    console.log('MapComponent: Începe încărcarea datelor hartă mondială');
-    this.isLoading = true;
+loadWorldMapData(): void {
+  this.mapLocation = 'strainatate';
+  console.log('MapComponent: Începe încărcarea datelor hartă mondială pentru turul:', this.currentRoundState.roundId);
+  this.isLoading = true;
+  
+  // Verifică dacă turul curent are date
+  if (!this.currentRoundState.hasData) {
+    console.log('Turul curent nu are date - se afișează hartă mondială goală');
     
+    // Încarcă doar structura geografică, nu și datele statistice
     this.loadWorldGeoJsonData().then(geoData => {
-      console.log('MapComponent: Date GeoJSON hartă mondială primite cu succes');
       this.worldGeoJsonData = geoData;
       
-      this.mapService.getWorldVotingStatistics().subscribe({
-        next: (countryStats: any) => {
-          console.log('MapComponent: Date statistice țări primite cu succes');
-          this.countryData = countryStats;
-          
-          // Prelucrare suplimentară a datelor pentru o mai bună vizualizare
-          this.preprocessWorldData();
-          
-          this.isLoading = false;
-          
-          setTimeout(() => {
-            this.initializeWorldMap();
-          }, 100);
-        },
-        error: (error: any) => {
-          console.error('MapComponent: Eroare la încărcarea datelor statistice pentru țări:', error);
-          this.isLoading = false;
-          
-          // Încărcăm harta chiar și în caz de eroare, dar cu date goale
-          this.countryData = {};
-          setTimeout(() => {
-            this.initializeWorldMap();
-          }, 100);
+      // Creează date goale pentru țări
+      const emptyCountryData: { [key: string]: CountyData } = {};
+      
+      // Inițializează date goale pentru țările din structura geografică
+      geoData.features.forEach((feature: GeoFeature) => {
+        const countryCode = this.getCountryCode(feature);
+        
+        // Evită adăugarea țărilor invalide sau non-țări
+        const invalidCodes = ['ATA', 'AQ', 'Unknown', 'Antarctica', 'Bermuda', 'Ber'];
+        if (!invalidCodes.includes(countryCode) && !invalidCodes.includes(feature.properties.name)) {
+          emptyCountryData[countryCode] = {
+            name: feature.properties.name,
+            code: countryCode,
+            voters: 0,
+            percentage: 0,
+            pollingStationCount: 0,
+            permanentListVoters: 0,
+            correspondenceVoters: 0,
+            totalVoters: 0
+          };
         }
       });
-    }).catch((error: any) => {
-      console.error('MapComponent: Eroare la încărcarea GeoJSON pentru harta lumii:', error);
+      
+      this.countryData = emptyCountryData;
+      this.isLoading = false;
+      
+      // Actualizăm valorile de statistici globale
+      this.totalVoters = '0';
+      this.totalPercentage = '0.00';
+      
+      setTimeout(() => {
+        this.initializeWorldMap();
+      }, 100);
+    }).catch(error => {
+      console.error('Eroare la încărcarea GeoJSON pentru harta lumii:', error);
       this.isLoading = false;
     });
+    
+    return;
   }
+  
+  this.loadWorldGeoJsonData().then(geoData => {
+    console.log('MapComponent: Date GeoJSON hartă mondială primite cu succes');
+    this.worldGeoJsonData = geoData;
+    
+    this.mapService.getWorldVotingStatistics().subscribe({
+      next: (countryStats: any) => {
+        console.log('MapComponent: Date statistice țări primite cu succes');
+        this.countryData = countryStats;
+        
+        // Prelucrare suplimentară a datelor pentru o mai bună vizualizare
+        this.preprocessWorldData();
+        
+        this.isLoading = false;
+        
+        setTimeout(() => {
+          this.initializeWorldMap();
+        }, 100);
+      },
+      error: (error: any) => {
+        console.error('MapComponent: Eroare la încărcarea datelor statistice pentru țări:', error);
+        this.isLoading = false;
+        
+        // Încărcăm harta chiar și în caz de eroare, dar cu date goale
+        this.countryData = {};
+        setTimeout(() => {
+          this.initializeWorldMap();
+        }, 100);
+      }
+    });
+  }).catch((error: any) => {
+    console.error('MapComponent: Eroare la încărcarea GeoJSON pentru harta lumii:', error);
+    this.isLoading = false;
+  });
+}
   private preprocessWorldData(): void {
     // Aici putem adăuga orice logică de preprocesare necesară pentru datele mondiale
     // De exemplu, calcularea procentajelor, normalizarea datelor etc.
@@ -786,97 +896,152 @@ handleCountryMouseOut(event: any, feature: GeoFeature): void {
 
 
 
-  loadMapData(): void {
-    this.mapLocation = 'romania';
-    console.log('MapComponent: Începe încărcarea datelor hartă');
-    this.isLoading = true;
-    
-    // Incarca statisticile de vot din CSV
-    this.mapService.getVotingStatistics().subscribe({
-      next: (votingStats) => {
-        console.log('MapComponent: Date CSV primite cu succes');
-        
-        // Incarca datele GeoJSON
-        this.loadGeoJsonData().then(geoData => {
-          console.log('MapComponent: Date GeoJSON primite cu succes');
-          this.geoJsonData = geoData;
-          
-          // Incarca statistici pentru judete
-          this.mapService.getMapInfo().subscribe({
-            next: (countyStats: MapInfo) => {
-              console.log('MapComponent: Date statistice primite cu succes');
-              
-              // Proceseaza si combina datele
-              if (countyStats && countyStats.regions) {
-                this.countyOptions = countyStats.regions.map(region => ({
-                  code: region.code,
-                  name: region.name
-                })).sort((a, b) => a.name.localeCompare(b.name));
-
-                countyStats.regions.forEach((region: CountyData) => {
-                  const csvData = votingStats[region.code] || {};
-                  
-                  this.countyData[region.code] = {
-                    ...region,
-                    registeredVoters: csvData.registeredVoters || 0,
-                    pollingStationCount: csvData.pollingStationCount || 0,
-                    permanentListVoters: csvData.permanentListVoters || 0,
-                    supplementaryListVoters: csvData.supplementaryListVoters || 0,
-                    specialCircumstancesVoters: csvData.specialCircumstancesVoters || 0,
-                    mobileUrnsVoters: csvData.mobileUrnsVoters || 0,
-                    totalVoters: csvData.totalVoters || 0,
-                    turnoutPercentage: csvData.turnoutPercentage || '0.00'
-                  };
-                });
-              }
-              console.log('Voting Stats from CSV:', votingStats);
-              console.log('Combined County Data:', this.countyData);
-              
-              this.isLoading = false;
-              
-              // Initializeaza harta
-              setTimeout(() => {
-                this.initializeMap();
-              }, 100);
-            },
-            error: (error: any) => {
-              console.error('MapComponent: Eroare la încărcarea datelor statistice:', error);
-              this.isLoading = false;
-            }
-          });
-        }).catch((error: any) => {
-          console.error('MapComponent: Eroare la încărcarea GeoJSON:', error);
-          this.isLoading = false;
-        });
-      },
-      error: (error: any) => {
-        console.error('MapComponent: Eroare la încărcarea datelor CSV:', error);
-        
-        // Continua incarcarea altor date chiar daca CSV esueaza
-        this.loadGeoJsonData().then(geoData => {
-          this.geoJsonData = geoData;
-          this.mapService.getMapInfo().subscribe({
-            next: (countyStats: MapInfo) => {
-              if (countyStats && countyStats.regions) {
-                countyStats.regions.forEach((region: CountyData) => {
-                  this.countyData[region.code] = region;
-                });
-              }
-              this.isLoading = false;
-              setTimeout(() => this.initializeMap(), 100);
-            },
-            error: (err) => {
-              console.error('Eroare la încărcarea datelor statistice:', err);
-              this.isLoading = false;
-            }
-          });
-        }).catch(err => {
-          console.error('Eroare la încărcarea GeoJSON:', err);
-          this.isLoading = false;
-        });
-      }
-    });
+loadMapData(): void {
+  this.mapLocation = 'romania';
+  console.log('MapComponent: Începe încărcarea datelor hartă pentru turul:', this.currentRoundState.roundId);
+    // Verifică dacă trebuie să sărim peste încărcarea hărții de județe
+  if (this.skipCountyMapLoad) {
+    console.log('Se sare peste încărcarea hărții de județe pentru a afișa direct UAT');
+    this.isLoading = false;
+    this.skipCountyMapLoad = false; // Resetăm flag-ul
+    return;
   }
+  this.isLoading = true;
+  
+  // Verifică dacă turul curent are date
+  if (!this.currentRoundState.hasData) {
+    console.log('Turul curent nu are date - se afișează hartă goală');
+    
+    // Încarcă doar structura geografică, nu și datele statistice
+    this.loadGeoJsonData().then(geoData => {
+      this.geoJsonData = geoData;
+      
+      // Creează date goale pentru județe
+      const emptyCountyData: { [key: string]: CountyData } = {};
+      
+      // Inițializează date goale pentru toate județele
+      geoData.features.forEach((feature: GeoFeature) => {
+        const countyCode = this.getCountyCode(feature);
+        emptyCountyData[countyCode] = {
+          name: feature.properties.name,
+          code: countyCode,
+          voters: 0,
+          percentage: 0,
+          registeredVoters: 0,
+          pollingStationCount: 0,
+          permanentListVoters: 0,
+          supplementaryListVoters: 0,
+          specialCircumstancesVoters: 0,
+          mobileUrnsVoters: 0,
+          totalVoters: 0,
+          turnoutPercentage: 0
+        };
+      });
+      
+      this.countyData = emptyCountyData;
+      this.isLoading = false;
+      
+      // Actualizăm valorile de statistici globale
+      this.totalVoters = '0';
+      this.totalPercentage = '0.00';
+      
+      setTimeout(() => {
+        this.initializeMap();
+      }, 100);
+    }).catch(error => {
+      console.error('Eroare la încărcarea GeoJSON:', error);
+      this.isLoading = false;
+    });
+    
+    return;
+  }
+  
+  // Incarca statisticile de vot din CSV
+  this.mapService.getVotingStatistics().subscribe({
+    next: (votingStats) => {
+      console.log('MapComponent: Date CSV primite cu succes');
+      
+      // Incarca datele GeoJSON
+      this.loadGeoJsonData().then(geoData => {
+        console.log('MapComponent: Date GeoJSON primite cu succes');
+        this.geoJsonData = geoData;
+        
+        // Incarca statistici pentru judete
+        this.mapService.getMapInfo().subscribe({
+          next: (countyStats: MapInfo) => {
+            console.log('MapComponent: Date statistice primite cu succes');
+            
+            // Proceseaza si combina datele
+            if (countyStats && countyStats.regions) {
+              this.countyOptions = countyStats.regions.map(region => ({
+                code: region.code,
+                name: region.name
+              })).sort((a, b) => a.name.localeCompare(b.name));
+
+              countyStats.regions.forEach((region: CountyData) => {
+                const csvData = votingStats[region.code] || {};
+                
+                this.countyData[region.code] = {
+                  ...region,
+                  registeredVoters: csvData.registeredVoters || 0,
+                  pollingStationCount: csvData.pollingStationCount || 0,
+                  permanentListVoters: csvData.permanentListVoters || 0,
+                  supplementaryListVoters: csvData.supplementaryListVoters || 0,
+                  specialCircumstancesVoters: csvData.specialCircumstancesVoters || 0,
+                  mobileUrnsVoters: csvData.mobileUrnsVoters || 0,
+                  totalVoters: csvData.totalVoters || 0,
+                  turnoutPercentage: csvData.turnoutPercentage || '0.00'
+                };
+              });
+            }
+            console.log('Voting Stats from CSV:', votingStats);
+            console.log('Combined County Data:', this.countyData);
+            
+            this.isLoading = false;
+            
+            // Initializeaza harta
+            setTimeout(() => {
+              this.initializeMap();
+            }, 100);
+          },
+          error: (error: any) => {
+            console.error('MapComponent: Eroare la încărcarea datelor statistice:', error);
+            this.isLoading = false;
+          }
+        });
+      }).catch((error: any) => {
+        console.error('MapComponent: Eroare la încărcarea GeoJSON:', error);
+        this.isLoading = false;
+      });
+    },
+    error: (error: any) => {
+      console.error('MapComponent: Eroare la încărcarea datelor CSV:', error);
+      
+      // Continua incarcarea altor date chiar daca CSV esueaza
+      this.loadGeoJsonData().then(geoData => {
+        this.geoJsonData = geoData;
+        this.mapService.getMapInfo().subscribe({
+          next: (countyStats: MapInfo) => {
+            if (countyStats && countyStats.regions) {
+              countyStats.regions.forEach((region: CountyData) => {
+                this.countyData[region.code] = region;
+              });
+            }
+            this.isLoading = false;
+            setTimeout(() => this.initializeMap(), 100);
+          },
+          error: (err) => {
+            console.error('Eroare la încărcarea datelor statistice:', err);
+            this.isLoading = false;
+          }
+        });
+      }).catch(err => {
+        console.error('Eroare la încărcarea GeoJSON:', err);
+        this.isLoading = false;
+      });
+    }
+  });
+}
   initializeMapSettings(): void {
     // Asigură-te că efectul vizual corect este aplicat în funcție de valoarea relativeTo
     if (this.highlightField === 'prezenta') {
@@ -1273,9 +1438,19 @@ handleCountyClick(feature: GeoFeature): void {
   const countyCode = this.getCountyCode(feature);
   console.log(`Județ selectat: ${feature.properties.name} (${countyCode})`);
   
+  // Verifică dacă turul curent are date
+  if (!this.currentRoundState.hasData) {
+    // Pentru tururi fără date, afișăm un mesaj informativ
+    alert(`Nu există date disponibile pentru UAT-urile din județul ${feature.properties.name} în ${this.currentRoundState.roundId}.`);
+    return;
+  }
+  
   // Opțional: întreabă utilizatorul dacă dorește să vadă UAT-urile pentru acest județ
   if (confirm(`Doriți să vizualizați UAT-urile pentru județul ${feature.properties.name}?`)) {
-    this.mapLevel = 'uaturi';
+    // Setăm flag-ul pentru a sări peste încărcarea hărții de județe
+    this.skipCountyMapLoad = true;
+    
+    // Încărcăm direct harta UAT
     this.loadCountyUATMap(countyCode);
   } else {
     // Altfel, doar zoom pe județ (codul existent)
@@ -1598,135 +1773,156 @@ updateGlobalStats(): void {
       this.initializeMap();
     }
   }
-  loadCountyUATMap(countyCode: string): void {
-    if (!countyCode) return;
-    
-    console.log('Încărcare hartă UAT pentru județul:', countyCode);
-    
-    // Setează loading și starea vizualizării
-    this.isLoading = true;
-    this.selectedCounty = countyCode;
-    this.isUATView = true;
-    
-    // Obține datele GeoJSON pentru UAT
-    this.mapService.getCountyUATGeoJson(countyCode).subscribe({
-      next: (geoData) => {
-        if (!geoData) {
-          console.error(`Nu există date GeoJSON disponibile pentru județul ${countyCode}`);
-          this.isLoading = false;
-          return;
+// În map.component.ts
+loadCountyUATMap(countyCode: string): void {
+  if (!countyCode) return;
+  
+  console.log('Încărcare hartă UAT pentru județul:', countyCode);
+  
+  // Actualizează URL-ul pentru a reflecta starea UAT
+  const currentParams: {[key: string]: any} = { ...this.route.snapshot.queryParams };
+  
+  // Adăugăm sau actualizăm parametrii UAT
+  currentParams['uatView'] = 'true';
+  currentParams['county'] = countyCode;
+  
+  // Actualizăm URL-ul fără a reîncărca componenta
+  this.router.navigate([], {
+    relativeTo: this.route,
+    queryParams: currentParams,
+    replaceUrl: true // înlocuiește URL-ul actual în istoric
+  });
+  
+  // Setează starea componentei
+  this.isLoading = true;
+  this.selectedCounty = countyCode;
+  this.isUATView = true;
+  this.mapLevel = 'uaturi';
+  
+  // Obține datele GeoJSON pentru UAT
+  this.mapService.getCountyUATGeoJson(countyCode).subscribe({
+    next: (geoData) => {
+      if (!geoData) {
+        console.error(`Nu există date GeoJSON disponibile pentru județul ${countyCode}`);
+        this.isLoading = false;
+        return;
+      }
+      
+      this.uatGeoJsonData = geoData;
+      console.log('Date GeoJSON pentru UAT:', this.uatGeoJsonData);
+      
+      // Oprește loading înainte de inițializarea hărții
+      this.isLoading = false;
+      
+      // Inițializăm imediat harta UAT
+      if (this.mapContainer) {
+        this.initializeUATMap();
+      } else {
+        console.error('Container hartă (mapContainer) nu este disponibil');
+      }
+      
+      // Actualizează selectorul de județe (dacă există) după ce harta este inițializată
+      setTimeout(() => {
+        const countySelector = document.getElementById('county-select') as HTMLSelectElement;
+        if (countySelector) {
+          countySelector.value = countyCode;
         }
-        
-        this.uatGeoJsonData = geoData;
-        console.log('Date GeoJSON pentru UAT:', this.uatGeoJsonData);
-        
-        // Oprește loading înainte de inițializarea hărții
-        this.isLoading = false;
-        
-        // Actualizează selectorul de județe (dacă există)
-        setTimeout(() => {
-          const countySelector = document.getElementById('county-select') as HTMLSelectElement;
-          if (countySelector) {
-            countySelector.value = countyCode;
-          }
-          
-          // Verifică dacă mapContainer este disponibil după actualizarea DOM
-          if (this.mapContainer) {
-            this.initializeUATMap();
-          } else {
-            console.error('Container hartă (mapContainer) nu este disponibil după actualizarea DOM');
-          }
-        }, 100);
-      },
-      error: (error) => {
-        console.error(`Eroare la încărcarea UAT map pentru județul ${countyCode}:`, error);
-        this.isLoading = false;
-      }
-    });
+      }, 100);
+    },
+    error: (error) => {
+      console.error(`Eroare la încărcarea UAT map pentru județul ${countyCode}:`, error);
+      this.isLoading = false;
+    }
+  });
+}
+
+initializeUATMap(): void {
+  console.log('mapContainer:', this.mapContainer);
+  console.log('uatGeoJsonData:', this.uatGeoJsonData);
+  
+  if (!this.uatGeoJsonData) {
+    console.error('Date GeoJSON lipsă');
+    return;
   }
-  initializeUATMap(): void {
-    console.log('mapContainer:', this.mapContainer);
-    console.log('uatGeoJsonData:', this.uatGeoJsonData);
+  
+  if (!this.mapContainer) {
+    console.error('Container hartă lipsă');
+    return;
+  }
+  
+  console.log('Începe inițializarea hărții UAT');
+  
+  this.ngZone.runOutsideAngular(() => {
+    // Curăță containerul
+    const container = this.mapContainer.nativeElement;
+    console.log('Container dimensiuni:', container.clientWidth, 'x', container.clientHeight);
     
-    if (!this.uatGeoJsonData) {
-      console.error('Date GeoJSON lipsă');
-      return;
+    while (container.firstChild) {
+      container.removeChild(container.firstChild);
     }
     
-    if (!this.mapContainer) {
-      console.error('Container hartă lipsă');
-      return;
-    }
+    // Dimensiuni adaptate la container
+    const width = container.clientWidth || 800;
+    const height = container.clientHeight || 600;
     
-    console.log('Începe inițializarea hărții UAT');
+    // Creează SVG
+    const svg = d3.select(container)
+      .append('svg')
+      .attr('width', '100%')
+      .attr('height', '100%')
+      .style('background-color', '#1a1a1a')
+      .style('border', 'none')
+      .style('display', 'block')
+      .style('max-width', '100%')
+      .style('max-height', '100%')
+      .style('margin', '0');
     
-    this.ngZone.runOutsideAngular(() => {
-      // Curăță containerul
-      const container = this.mapContainer.nativeElement;
-      console.log('Container dimensiuni:', container.clientWidth, 'x', container.clientHeight);
+    // Creează grupul pentru hartă
+    const g = svg.append('g');
+    
+    // Salvează referințele
+    this.svg = svg;
+    this.g = g;
+    
+    try {
+      // Creează proiecția
+      this.projection = d3.geoMercator()
+        .fitExtent([[20, 20], [width - 20, height - 20]], this.uatGeoJsonData);
       
-      while (container.firstChild) {
-        container.removeChild(container.firstChild);
-      }
+      this.path = d3.geoPath().projection(this.projection);
       
-      // Dimensiuni adaptate la container
-      const width = container.clientWidth || 800;
-      const height = container.clientHeight || 600;
+      // Configurează zoom-ul
+      this.zoom = d3.zoom()
+        .scaleExtent([0.3, 9])
+        .on('zoom', (event) => {
+          g.attr('transform', `translate(${event.transform.x},${event.transform.y}) scale(${event.transform.k})`);
+          
+          const strokeWidth = 0.5 / event.transform.k;
+          g.selectAll('.uat-path')
+            .attr('stroke-width', strokeWidth);
+        });
       
-      // Creează SVG
-      const svg = d3.select(container)
-        .append('svg')
-        .attr('width', '100%')
-        .attr('height', '100%')
-        .style('background-color', '#1a1a1a')
-        .style('border', 'none')
-        .style('display', 'block')
-        .style('max-width', '100%')
-        .style('max-height', '100%')
-        .style('margin', '0');
+      // Aplică zoom
+      svg.call(this.zoom);
       
-      // Creează grupul pentru hartă
-      const g = svg.append('g');
+      // Desenează UAT-urile
+      const paths = g.selectAll('.uat-path')
+        .data(this.uatGeoJsonData.features)
+        .enter()
+        .append('path')
+        .attr('class', 'uat-path')
+        .attr('d', this.path)
+        .attr('fill', () => {
+          // Setează o culoare mai deschisă pentru tururile fără date
+          return this.currentRoundState.hasData ? '#80a0e0' : '#555555';
+        })
+        .attr('stroke', '#fff')
+        .attr('stroke-width', 0.5);
       
-      // Salvează referințele
-      this.svg = svg;
-      this.g = g;
+      console.log('Număr de path-uri create:', paths.size());
       
-      try {
-        // Creează proiecția
-        this.projection = d3.geoMercator()
-          .fitExtent([[20, 20], [width - 20, height - 20]], this.uatGeoJsonData);
-        
-        this.path = d3.geoPath().projection(this.projection);
-        
-        // Configurează zoom-ul
-        this.zoom = d3.zoom()
-          .scaleExtent([0.3, 9])
-          .on('zoom', (event) => {
-            g.attr('transform', `translate(${event.transform.x},${event.transform.y}) scale(${event.transform.k})`);
-            
-            const strokeWidth = 0.5 / event.transform.k;
-            g.selectAll('.uat-path')
-              .attr('stroke-width', strokeWidth);
-          });
-        
-        // Aplică zoom
-        svg.call(this.zoom);
-        
-        // Desenează UAT-urile
-        const paths = g.selectAll('.uat-path')
-          .data(this.uatGeoJsonData.features)
-          .enter()
-          .append('path')
-          .attr('class', 'uat-path')
-          .attr('d', this.path)
-          .attr('fill', '#80a0e0')
-          .attr('stroke', '#fff')
-          .attr('stroke-width', 0.5);
-        
-        console.log('Număr de path-uri create:', paths.size());
-        
-        // Adaugă evenimente de hover
+      // Adaugă evenimente de hover doar dacă turul actual are date
+      if (this.currentRoundState.hasData) {
         paths.on('mouseover', (event, d: any) => {
           this.ngZone.run(() => {
             
@@ -1765,37 +1961,74 @@ updateGlobalStats(): void {
             this.hoveredCounty = null;
           });
         });
-        
-        // Am eliminat butonul Înapoi din SVG, îl vom folosi pe cel din HTML
-        
-      } catch (error: any) {
-        console.error('Eroare în procesarea sau desenarea GeoJSON:', error);
-        
-        // Afișează eroarea
+      } else {
+        // Adaugă o notificare vizuală pentru tururile fără date
         svg.append('text')
           .attr('x', width / 2)
           .attr('y', height / 2)
           .attr('text-anchor', 'middle')
-          .attr('fill', 'red')
+          .attr('fill', 'white')
           .attr('font-size', '16px')
-          .text(`Eroare: ${error.message}`);
+          .text(`Nu există date disponibile pentru ${this.currentRoundState.roundId}`);
       }
-    });
-    
-    console.log('Finalizare inițializare hartă UAT');
-  }
+
+      // Adaugă întotdeauna un titlu/antet pentru a identifica județul, indiferent de existența datelor
+      svg.append('text')
+        .attr('x', width / 2)
+        .attr('y', 25)
+        .attr('text-anchor', 'middle')
+        .attr('fill', 'white')
+        .attr('font-size', '18px')
+        .attr('font-weight', 'bold')
+        .text(`UAT-uri ${this.getCountyName(this.selectedCounty || '')}`);
+      
+    } catch (error: any) {
+      console.error('Eroare în procesarea sau desenarea GeoJSON:', error);
+      
+      // Afișează eroarea
+      svg.append('text')
+        .attr('x', width / 2)
+        .attr('y', height / 2)
+        .attr('text-anchor', 'middle')
+        .attr('fill', 'red')
+        .attr('font-size', '16px')
+        .text(`Eroare: ${error.message}`);
+    }
+  });
+  
+  console.log('Finalizare inițializare hartă UAT');
+}
   
   // Metodă pentru revenirea la vizualizarea județelor
-  backToCountyView(): void {
-    this.mapLevel = 'judete';
-    this.isUATView = false;
-    this.selectedCounty = null;
-    
-    // Inițializează harta județelor
-    setTimeout(() => {
-      this.initializeMap();
-    }, 100);
+backToCountyView(): void {
+  this.mapLevel = 'judete';
+  this.isUATView = false;
+  this.selectedCounty = null;
+  
+  // Actualizează URL-ul pentru a elimina parametrii UAT
+  const currentParams: {[key: string]: any} = { ...this.route.snapshot.queryParams };
+  
+  // Elimină parametrii UAT folosind accesarea corectă prin index
+  if (currentParams['uatView']) {
+    delete currentParams['uatView'];
   }
+  
+  if (currentParams['county']) {
+    delete currentParams['county'];
+  }
+  
+  // Actualizăm URL-ul fără a reîncărca componenta
+  this.router.navigate([], {
+    relativeTo: this.route,
+    queryParams: currentParams,
+    replaceUrl: true // înlocuiește URL-ul actual în istoric
+  });
+  
+  // Inițializează harta județelor
+  setTimeout(() => {
+    this.initializeMap();
+  }, 100);
+}
 // Metoda pentru a obține numele unui județ după codul său
 getCountyName(countyCode: string): string {
   const county = Object.values(this.countyData).find(c => c.code === countyCode);

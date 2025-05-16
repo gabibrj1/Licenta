@@ -203,40 +203,33 @@ private getRealWorldData(): any {
     /**
    * Get UAT GeoJSON for a specific county
    */
-    getCountyUATGeoJson(countyCode: string): Observable<any> {
-      // Folosește codul județului cu MAJUSCULE pentru a se potrivi cu denumirile fișierelor
-      // Obține starea curentă a turului
-      const currentRound = this.getCurrentRound();
-      if (!currentRound.hasData) {
-        console.log('Tur fără date UAT preîncărcate - se returnează date goale');
-        return of(null);
-     }
-      
-      const upperCaseCode = countyCode.toUpperCase();
-      
-      // Verifică dacă datele sunt deja în cache
-      if (this.uatGeoJsonCache[upperCaseCode]) {
-        console.log(`Folosește date din cache pentru județul ${countyCode}`);
-        return of(this.uatGeoJsonCache[upperCaseCode]);
-      }
-      
-      const uatGeoJsonUrl = `assets/maps/uat/${upperCaseCode}.geojson`;
-      
-      console.log(`Încercare încărcare GeoJSON UAT pentru județul ${countyCode} de la: ${uatGeoJsonUrl}`);
-      
-      return this.http.get(uatGeoJsonUrl).pipe(
-        tap(data => {
-          console.log(`GeoJSON UAT pentru județul ${countyCode} încărcat cu succes`);
-          // Adaugă datele în cache
-          this.uatGeoJsonCache[upperCaseCode] = data;
-        }),
-        catchError(error => {
-          console.error(`Eroare la încărcarea GeoJSON UAT pentru județul ${countyCode}:`, error);
-          return of(null);
-        })
-      );
-    }
   
+getCountyUATGeoJson(countyCode: string): Observable<any> {
+  // Folosește codul județului cu MAJUSCULE pentru a se potrivi cu denumirile fișierelor
+  const upperCaseCode = countyCode.toUpperCase();
+  
+  // Verifică dacă datele sunt deja în cache
+  if (this.uatGeoJsonCache[upperCaseCode]) {
+    console.log(`Folosește date din cache pentru județul ${countyCode}`);
+    return of(this.uatGeoJsonCache[upperCaseCode]);
+  }
+  
+  const uatGeoJsonUrl = `assets/maps/uat/${upperCaseCode}.geojson`;
+  
+  console.log(`Încercare încărcare GeoJSON UAT pentru județul ${countyCode} de la: ${uatGeoJsonUrl}`);
+  
+  return this.http.get(uatGeoJsonUrl).pipe(
+    tap(data => {
+      console.log(`GeoJSON UAT pentru județul ${countyCode} încărcat cu succes`);
+      // Adaugă datele în cache
+      this.uatGeoJsonCache[upperCaseCode] = data;
+    }),
+    catchError(error => {
+      console.error(`Eroare la încărcarea GeoJSON UAT pentru județul ${countyCode}:`, error);
+      return of(null);
+    })
+  );
+}
     preloadAllUATGeoJson(): Observable<any> {
       const countyCodes = [
         'AB', 'AR', 'AG', 'BC', 'BH', 'BN', 'BT', 'BV', 'BR', 'B', 'BZ', 'CS', 
