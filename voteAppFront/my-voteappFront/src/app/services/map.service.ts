@@ -503,6 +503,21 @@ getVotingStatistics(): Observable<any> {
     console.log('Processed counties:', Object.keys(countyData));
     return countyData;
   }
+
+  getActiveRoundVotingStatistics(): Observable<any> {
+  console.log('Obțin statistici de vot în timp real pentru turul activ');
+  const url = `${this.apiUrl}vote/active-round-statistics/`;
+  
+  return this.http.get(url).pipe(
+    tap(data => console.log('Date primite pentru turul activ:', data)),
+    catchError(error => {
+      console.error('Eroare la obținerea datelor pentru turul activ:', error);
+      return of({});
+    })
+  );
+}
+
+
   
   
   /**

@@ -54,6 +54,10 @@ export class MapComponent implements OnInit, AfterViewInit {
   highlightField: string = 'prezenta';
   relativeTo: string = 'maxim';
 
+  private pollingInterval: any = null;
+  private shouldPoll: boolean = false;
+
+
   // Valorile pentru filtrare
   filterPercentage: number = 0;
 
@@ -146,6 +150,31 @@ private roundSubscription: Subscription;
 
 ngOnInit(): void {
   console.log('MapComponent: ngOnInit a fost apelat');
+    this.roundSubscription = this.mapService.currentRound$.subscribe(roundState => {
+    console.log('MapComponent: S-a detectat schimbarea turului:', roundState);
+    
+    // Actualizăm starea turului
+    this.currentRoundState = roundState;
+    
+    // Oprim polling-ul dacă exista
+    this.stopPolling();
+    
+    // Dacă e tur activ, pornește polling-ul
+    if (roundState.roundId === 'tur_activ') {
+      this.shouldPoll = true;
+      this.startPolling();
+    } else {
+      this.shouldPoll = false;
+    }
+    
+    // Reîncărcăm datele hartă dacă este deja inițializată
+    if (this.svg) {
+      console.log('Reîncărcare hartă după schimbarea turului');
+      this.reloadMapData();
+    }
+  });
+  
+
   
   // Verificăm query parameters pentru locație și tur
   this.route.queryParams.subscribe(params => {
@@ -196,6 +225,27 @@ ngOnInit(): void {
     }
   });
 }
+startPolling(): void {
+  console.log('Pornire polling date tur activ');
+  // Oprim orice interval existent
+  this.stopPolling();
+  
+  // Pornim un nou interval - actualizare la fiecare 10 secunde
+  this.pollingInterval = setInterval(() => {
+    if (this.shouldPoll && this.currentRoundState.roundId === 'tur_activ') {
+      console.log('Actualizare date tur activ prin polling');
+      this.loadActiveRoundData();
+    }
+  }, 10000); // 10 secunde
+}
+
+stopPolling(): void {
+  if (this.pollingInterval) {
+    clearInterval(this.pollingInterval);
+    this.pollingInterval = null;
+  }
+}
+
 forceMapReload(): void {
   console.log('Forțăm reîncărcarea hărții cu noile date');
   
@@ -251,11 +301,14 @@ reloadMapData(): void {
     }
   }
 
-  ngOnDestroy(): void {
+ngOnDestroy(): void {
   // Anulăm subscripția pentru a evita memory leak
   if (this.roundSubscription) {
     this.roundSubscription.unsubscribe();
   }
+  
+  // Oprim polling-ul
+  this.stopPolling();
 }
 
   // Metoda pentru comutare intre harti
@@ -907,6 +960,12 @@ loadMapData(): void {
     return;
   }
   this.isLoading = true;
+
+    if (this.currentRoundState.roundId === 'tur_activ') {
+    // Încarcă datele în timp real pentru turul activ
+    this.loadActiveRoundData();
+    return;
+  }
   
   // Verifică dacă turul curent are date
   if (!this.currentRoundState.hasData) {
@@ -955,6 +1014,9 @@ loadMapData(): void {
     
     return;
   }
+
+
+
   
   // Incarca statisticile de vot din CSV
   this.mapService.getVotingStatistics().subscribe({
@@ -1213,6 +1275,106 @@ loadMapData(): void {
       });
     });
   }
+
+loadActiveRoundData(): void {
+  console.log('Încărcare date în timp real pentru turul activ');
+  
+  // Încarcă doar structura geografică
+  this.loadGeoJsonData().then(geoData => {
+    this.geoJsonData = geoData;
+    
+    // Obține statisticile de vot în timp real
+    this.mapService.getActiveRoundVotingStatistics().subscribe({
+      next: (votingStats: any) => {
+        console.log('Date statistice în timp real primite cu succes:', votingStats);
+        
+        // Creează un obiect countyData cu datele primite
+        const countyData: { [key: string]: CountyData } = {};
+        
+        // Convertim datele primite în formatul așteptat de componentă
+        Object.keys(votingStats).forEach(countyCode => {
+          const stats = votingStats[countyCode];
+          
+          countyData[countyCode] = {
+            name: this.getCountyNameByCode(countyCode),
+            code: countyCode,
+            voters: stats.total_voters || 0,
+            percentage: stats.turnoutPercentage ? parseFloat(stats.turnoutPercentage) / 100 : 0,
+            registeredVoters: stats.registeredVoters || 0,
+            pollingStationCount: stats.pollingStationCount || 0,
+            permanentListVoters: stats.permanentListVoters || 0,
+            supplementaryListVoters: stats.supplementaryListVoters || 0,
+            specialCircumstancesVoters: stats.specialCircumstancesVoters || 0,
+            mobileUrnsVoters: stats.mobileUrnsVoters || 0,
+            totalVoters: stats.total_voters || 0,
+            turnoutPercentage: stats.turnoutPercentage || '0.00'
+          };
+        });
+        
+        this.countyData = countyData;
+        this.isLoading = false;
+        
+        // Calculăm totaluri pentru statistici globale
+        this.updateGlobalStatsFromActiveData(countyData);
+        
+        // Inițializăm harta
+        setTimeout(() => {
+          this.initializeMap();
+        }, 100);
+      },
+      error: (error: any) => {
+        console.error('Eroare la încărcarea datelor în timp real:', error);
+        this.isLoading = false;
+        
+        // Inițializăm harta cu date goale
+        this.countyData = {};
+        setTimeout(() => {
+          this.initializeMap();
+        }, 100);
+      }
+    });
+  }).catch((error: any) => {
+    console.error('Eroare la încărcarea GeoJSON:', error);
+    this.isLoading = false;
+  });
+}
+getCountyNameByCode(countyCode: string): string {
+  const countyNames: {[key: string]: string} = {
+    'AB': 'Alba', 'AR': 'Arad', 'AG': 'Argeș', 'BC': 'Bacău', 'BH': 'Bihor',
+    'BN': 'Bistrița-Năsăud', 'BT': 'Botoșani', 'BV': 'Brașov', 'BR': 'Brăila',
+    'B': 'București', 'BZ': 'Buzău', 'CS': 'Caraș-Severin', 'CL': 'Călărași',
+    'CJ': 'Cluj', 'CT': 'Constanța', 'CV': 'Covasna', 'DB': 'Dâmbovița',
+    'DJ': 'Dolj', 'GL': 'Galați', 'GR': 'Giurgiu', 'GJ': 'Gorj', 'HR': 'Harghita',
+    'HD': 'Hunedoara', 'IL': 'Ialomița', 'IS': 'Iași', 'IF': 'Ilfov', 'MM': 'Maramureș',
+    'MH': 'Mehedinți', 'MS': 'Mureș', 'NT': 'Neamț', 'OT': 'Olt', 'PH': 'Prahova',
+    'SM': 'Satu Mare', 'SJ': 'Sălaj', 'SB': 'Sibiu', 'SV': 'Suceava', 'TR': 'Teleorman',
+    'TM': 'Timiș', 'TL': 'Tulcea', 'VS': 'Vaslui', 'VL': 'Vâlcea', 'VN': 'Vrancea'
+  };
+  
+  return countyNames[countyCode] || countyCode;
+}
+
+// Metodă pentru calcularea statisticilor globale din datele active
+updateGlobalStatsFromActiveData(countyData: { [key: string]: CountyData }): void {
+  let totalRegisteredVoters = 0;
+  let totalVotersCount = 0;
+  
+  Object.values(countyData).forEach(county => {
+    totalRegisteredVoters += county.registeredVoters || 0;
+    totalVotersCount += county.totalVoters || 0;
+  });
+  
+  this.totalVoters = totalVotersCount.toString();
+  
+  if (totalRegisteredVoters > 0) {
+    const overallTurnout = (totalVotersCount / totalRegisteredVoters * 100);
+    this.totalPercentage = overallTurnout.toFixed(2);
+  } else {
+    this.totalPercentage = "0.00";
+  }
+}
+
+
   // Metoda pentru redimensionarea hartii la redimensionarea ferestrei
 // Metoda pentru redimensionarea hartii la redimensionarea ferestrei
 resizeMap(): void {

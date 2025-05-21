@@ -45,6 +45,7 @@ from .models import VoteToken
 from .forms import EmailListForm
 from django.core.mail import send_mail
 from datetime import timedelta
+from django.db.models import Count, Sum
 
 
 
@@ -566,6 +567,8 @@ class ConfirmVoteAndSendReceiptView(APIView):
         send_receipt = request.data.get('send_receipt', False)
         receipt_method = request.data.get('receipt_method', 'email')  # 'email' sau 'sms'
         contact_info = request.data.get('contact_info', '')  # email sau telefon furnizat de utilizator
+        county_code = request.data.get('county_code')  # Codul județului adăugat
+        uat = request.data.get('uat')  # UAT-ul adăugat
         
         if not candidates_data or not voting_section_id:
             return Response({
@@ -666,7 +669,10 @@ class ConfirmVoteAndSendReceiptView(APIView):
             'message': 'Votul dvs. a fost înregistrat cu succes!',
             'vote_reference': vote_reference,
             'votes_count': len(saved_votes),
-            'errors': errors if errors else None
+            'errors': errors if errors else None,
+            'county_code': county_code,  # Returnăm codul județului pentru logging/debug
+            'uat': uat  # Returnăm UAT-ul pentru logging/debug
+
         }, status=status.HTTP_201_CREATED)
     
     def send_vote_receipt_email(self, user, votes, voting_section, vote_reference, email):
@@ -2700,3 +2706,97 @@ class VoteSystemResultsUpdateView(APIView):
             return Response({
                 'error': 'Sistemul de vot nu a fost găsit.'
             }, status=status.HTTP_404_NOT_FOUND)
+        
+class ActiveRoundVotingStatisticsView(APIView):
+    permission_classes = [AllowAny]
+    
+    def get(self, request):
+        """
+        Returnează statisticile de vot pentru turul activ în funcție de județe
+        """
+        # Verificăm dacă există un vot activ în acest moment
+        now = timezone.now()
+        active_vote = VoteSettings.objects.filter(
+            is_active=True,
+            start_datetime__lte=now,
+            end_datetime__gte=now
+        ).first()
+        
+        if not active_vote:
+            return Response({'error': 'Nu există o sesiune de vot activă în acest moment.'}, status=status.HTTP_404_NOT_FOUND)
+        
+        # Tipul de vot determină tabela din care luăm datele
+        vote_type = active_vote.vote_type
+        
+        if vote_type == 'locale':
+            # Obținem datele de vot locale agregate pe județe
+            county_stats = LocalVote.objects.values('voting_section__county')\
+                .annotate(
+                    total_votes=Count('id'),
+                    unique_voters=Count('user', distinct=True)
+                )\
+                .order_by('voting_section__county')
+                
+            # Formatul datelor pentru frontend
+            data = {}
+            for stat in county_stats:
+                county_code = stat['voting_section__county']
+                if county_code:
+                    data[county_code] = {
+                        'total_voters': stat['total_votes'],
+                        'pollingStationCount': 0,  # Va fi actualizat mai jos
+                        'permanentListVoters': stat['unique_voters'],
+                        'supplementaryListVoters': 0,
+                        'specialCircumstancesVoters': 0,
+                        'mobileUrnsVoters': 0,
+                        'turnoutPercentage': '0.00'  # Va fi calculat după ce adăugăm registeredVoters
+                    }
+            
+            # Adăugăm numărul de secții de votare pentru fiecare județ
+            polling_stations = VotingSection.objects.values('county')\
+                .annotate(station_count=Count('id'))\
+                .order_by('county')
+                
+            for station in polling_stations:
+                county_code = station['county']
+                if county_code in data:
+                    data[county_code]['pollingStationCount'] = station['station_count']
+                else:
+                    # Inițializăm datele pentru județe care nu au voturi încă
+                    data[county_code] = {
+                        'total_voters': 0,
+                        'pollingStationCount': station['station_count'],
+                        'permanentListVoters': 0,
+                        'supplementaryListVoters': 0,
+                        'specialCircumstancesVoters': 0,
+                        'mobileUrnsVoters': 0,
+                        'turnoutPercentage': '0.00'
+                    }
+            
+            # Estimăm numărul de alegători înregistrați (simulare pentru exemplu)
+            # În practică, acestea ar trebui obținute din altă sursă
+            for county_code in data:
+                # Presupunem că fiecare secție are în medie 1000 de alegători
+                data[county_code]['registeredVoters'] = data[county_code]['pollingStationCount'] * 1000
+                
+                # Calculăm procentajul de prezență
+                if data[county_code]['registeredVoters'] > 0:
+                    turnout = (data[county_code]['total_voters'] / data[county_code]['registeredVoters']) * 100
+                    data[county_code]['turnoutPercentage'] = f"{turnout:.2f}"
+                
+        elif vote_type == 'prezidentiale':
+            # Logica pentru voturile prezidențiale
+            # Similar cu voturile locale, dar folosind tabela PresidentialVote
+            # Implementare simplificată aici
+            data = {}
+            
+        elif vote_type == 'parlamentare':
+            # Logica pentru voturile parlamentare
+            # Similar cu voturile locale, dar folosind tabela ParliamentaryVote
+            # Implementare simplificată aici
+            data = {}
+        
+        else:
+            return Response({'error': f'Tip de vot nesuportat: {vote_type}'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        return Response(data)

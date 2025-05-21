@@ -811,7 +811,10 @@ confirmFinalVote(): void {
     voting_section_id: this.votingSection.id,
     send_receipt: this.sendReceiptEmail,
     receipt_method: this.receiptMethod,
-    contact_info: this.sendReceiptEmail ? this.contactInfo : ''
+    contact_info: this.sendReceiptEmail ? this.contactInfo : '',
+    county_code: this.votingSection.county, // Adăugăm și codul județului
+    uat: this.votingSection.city // Adăugăm UAT-ul
+
   };
   
   console.log('Trimit datele pentru confirmare:', requestData);
