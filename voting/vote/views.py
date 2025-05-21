@@ -2800,3 +2800,84 @@ class ActiveRoundVotingStatisticsView(APIView):
             return Response({'error': f'Tip de vot nesuportat: {vote_type}'}, status=status.HTTP_400_BAD_REQUEST)
         
         return Response(data)
+    
+class ActiveRoundUATVotingStatisticsView(APIView):
+    permission_classes = [AllowAny]
+    
+    def get(self, request, county_code=None):
+        """
+        Returnează statisticile de vot pentru UAT-urile dintr-un județ specific în turul activ
+        """
+        # Verificăm dacă există un județ specificat
+        if not county_code:
+            return Response({'error': 'Codul județului este obligatoriu'}, status=status.HTTP_400_BAD_REQUEST)
+            
+        # Verificăm dacă există un vot activ în acest moment
+        now = timezone.now()
+        active_vote = VoteSettings.objects.filter(
+            is_active=True,
+            vote_type='locale',
+            start_datetime__lte=now,
+            end_datetime__gte=now
+        ).first()
+        
+        if not active_vote:
+            return Response({'error': 'Nu există o sesiune de vot local activă în acest moment.'}, status=status.HTTP_404_NOT_FOUND)
+        
+        # Normalizăm codul județului (upper case)
+        county_code = county_code.upper()
+        
+        # Obținem toate secțiile de votare din județul specificat (case insensitive)
+        voting_sections = VotingSection.objects.filter(county__iexact=county_code)
+        
+        if not voting_sections.exists():
+            return Response({'error': f'Nu există secții de votare pentru județul {county_code}'}, status=status.HTTP_404_NOT_FOUND)
+        
+        # Creăm un dicționar pentru a normaliza numele UAT-urilor
+        # Cheie: numele UAT în lowercase, Valoare: numele original
+        uat_names = {}
+        for section in voting_sections:
+            uat_lower = section.city.lower()
+            if uat_lower not in uat_names:
+                uat_names[uat_lower] = section.city  # Păstrăm formatul original
+        
+        # Inițializăm rezultatul
+        result = {}
+        
+        # Pentru fiecare UAT normalizat, calculăm statisticile
+        for uat_lower, uat_original in uat_names.items():
+            # Obținem secțiile de votare pentru acest UAT (case insensitive)
+            uat_sections = voting_sections.filter(city__iexact=uat_original)
+            section_ids = [section.id for section in uat_sections]
+            
+            # Obținem toate voturile pentru aceste secții
+            uat_votes = LocalVote.objects.filter(voting_section_id__in=section_ids)
+            
+            # Calculăm numărul de alegători înregistrați (simulat pentru exemplu)
+            # În practică, ar trebui să aveți această informație în baza de date
+            registered_voters = len(section_ids) * 1000  # Estimat: 1000 de alegători per secție
+            
+            # Calculăm statisticile
+            uat_data = {
+                'name': uat_original,  # Folosim numele original
+                'code': f'{county_code}-{uat_original.replace(" ", "_")}',
+                'countyCode': county_code,
+                'registeredVoters': registered_voters,
+                'pollingStationCount': len(section_ids),
+                'permanentListVoters': uat_votes.count(),  # Număr de voturi
+                'supplementaryListVoters': 0,
+                'specialCircumstancesVoters': 0,
+                'mobileUrnsVoters': 0,
+                'totalVoters': uat_votes.count(),
+                'turnoutPercentage': f"{(uat_votes.count() / registered_voters * 100) if registered_voters > 0 else 0:.2f}"
+            }
+            
+            # Adăugăm datele UAT-ului la rezultat
+            result[uat_data['code']] = uat_data
+            
+            # Adăugăm și o variantă normalizată pentru frontend
+            normalized_code = f'{county_code}-{uat_lower.replace(" ", "_")}'
+            if normalized_code != uat_data['code']:
+                result[normalized_code] = uat_data.copy()
+        
+        return Response(result)

@@ -4,7 +4,7 @@ import * as d3 from 'd3';
 import { Router } from '@angular/router';
 import { ActivatedRoute } from '@angular/router';
 import { Subscription } from 'rxjs';
-
+import { UATDataService } from '../services/uat-data.service';
 
 interface CountyData {
   name: string;
@@ -48,6 +48,8 @@ interface GeoJSONFeature {
 })
 export class MapComponent implements OnInit, AfterViewInit {
   @ViewChild('mapContainer') mapContainer!: ElementRef;
+
+  uatData: { [uatCode: string]: any } = {};
   
   // Configurare harta
   mapLevel: string = 'judete';
@@ -121,6 +123,7 @@ private roundSubscription: Subscription;
     private mapService: MapService,
     private renderer: Renderer2,
     private ngZone: NgZone,
+    private uatDataService: UATDataService,
     private router: Router,
     private route: ActivatedRoute
   ) {
@@ -234,9 +237,195 @@ startPolling(): void {
   this.pollingInterval = setInterval(() => {
     if (this.shouldPoll && this.currentRoundState.roundId === 'tur_activ') {
       console.log('Actualizare date tur activ prin polling');
+      
+      // Încarcă date pentru județe
       this.loadActiveRoundData();
+      
+      // Dacă suntem în vizualizare UAT, actualizează și datele UAT
+      if (this.isUATView && this.selectedCounty) {
+        this.uatDataService.getActiveRoundUATVotingData(this.selectedCounty).subscribe({
+          next: (uatData) => {
+            console.log(`Date UAT actualizate pentru județul ${this.selectedCounty}`);
+            this.uatData = uatData;
+            
+            // Actualizează culorile UAT-urilor pe hartă (dacă harta e vizibilă)
+            if (this.g) {
+              this.g.selectAll('.uat-path')
+                .attr('fill', (d: any) => this.getUATColor(d));
+            }
+          },
+          error: (error) => {
+            console.error(`Eroare la actualizarea datelor UAT:`, error);
+          }
+        });
+      }
     }
   }, 10000); // 10 secunde
+}
+
+getUATColor(feature: any): string {
+  // Pentru tururi fără date, utilizează culoarea gri indiferent de datele disponibile
+  if (!this.currentRoundState.hasData) {
+    return '#555555'; // Culoare pentru tur anulat
+  }
+  
+  if (!this.uatData || !feature.properties) return '#555555'; // Culoare implicită
+  
+  // Încearcă să găsească datele UAT după numele UAT-ului
+  const uatName = feature.properties.name;
+  
+  // 1. Încercăm formatul standard
+  const uatCode = `${this.selectedCounty}-${uatName.replace(/\s+/g, '_')}`;
+  if (this.uatData[uatCode]) {
+    const uatData = this.uatData[uatCode];
+    
+    // Pentru turul activ, utilizează logica similară cu cea pentru județe
+    if (this.currentRoundState.roundId === 'tur_activ') {
+      const turnout = parseFloat(uatData.turnoutPercentage);
+      
+      // Scala de culori în funcție de prezența la vot
+      if (turnout > 60) return '#304090';
+      if (turnout > 50) return '#4050c0';
+      if (turnout > 40) return '#5060d0';
+      if (turnout > 30) return '#6070e0';
+      if (turnout > 20) return '#8090e0';
+      if (turnout > 10) return '#a0b0e0';
+      return '#c0d0ff';
+    }
+    
+    // Pentru alte tururi cu date, utilizează o culoare standard
+    return '#80a0e0';
+  }
+  
+  // 2. Încercăm formatul cu numele UAT-ului în lowercase
+  const uatCodeLower = `${this.selectedCounty}-${uatName.toLowerCase().replace(/\s+/g, '_')}`;
+  if (this.uatData[uatCodeLower]) {
+    const uatData = this.uatData[uatCodeLower];
+    
+    // Pentru turul activ, utilizează logica similară cu cea pentru județe
+    if (this.currentRoundState.roundId === 'tur_activ') {
+      const turnout = parseFloat(uatData.turnoutPercentage);
+      
+      // Scala de culori în funcție de prezența la vot
+      if (turnout > 60) return '#304090';
+      if (turnout > 50) return '#4050c0';
+      if (turnout > 40) return '#5060d0';
+      if (turnout > 30) return '#6070e0';
+      if (turnout > 20) return '#8090e0';
+      if (turnout > 10) return '#a0b0e0';
+      return '#c0d0ff';
+    }
+    
+    // Pentru alte tururi cu date, utilizează o culoare standard
+    return '#80a0e0';
+  }
+
+  
+  // 3. Încercăm formatul cu numele UAT-ului în uppercase
+  const uatCodeUpper = `${this.selectedCounty}-${uatName.toUpperCase().replace(/\s+/g, '_')}`;
+  if (this.uatData[uatCodeUpper]) {
+    const uatData = this.uatData[uatCodeUpper];
+    
+    // Pentru turul activ, utilizează logica similară cu cea pentru județe
+    if (this.currentRoundState.roundId === 'tur_activ') {
+      const turnout = parseFloat(uatData.turnoutPercentage);
+      
+      // Scala de culori în funcție de prezența la vot
+      if (turnout > 60) return '#304090';
+      if (turnout > 50) return '#4050c0';
+      if (turnout > 40) return '#5060d0';
+      if (turnout > 30) return '#6070e0';
+      if (turnout > 20) return '#8090e0';
+      if (turnout > 10) return '#a0b0e0';
+      return '#c0d0ff';
+    }
+    
+    // Pentru alte tururi cu date, utilizează o culoare standard
+    return '#80a0e0';
+  }
+  
+  
+  // 4. Căutare case-insensitive prin parcurgerea tuturor valorilor
+  const nameLower = uatName.toLowerCase();
+  for (const key in this.uatData) {
+    if (this.uatData[key].name && this.uatData[key].name.toLowerCase() === nameLower) {
+      const uatData = this.uatData[key];
+      
+      // Pentru turul activ, utilizează logica similară cu cea pentru județe
+      if (this.currentRoundState.roundId === 'tur_activ') {
+        const turnout = parseFloat(uatData.turnoutPercentage);
+        
+        // Scala de culori în funcție de prezența la vot
+        if (turnout > 60) return '#304090';
+        if (turnout > 50) return '#4050c0';
+        if (turnout > 40) return '#5060d0';
+        if (turnout > 30) return '#6070e0';
+        if (turnout > 20) return '#8090e0';
+        if (turnout > 10) return '#a0b0e0';
+        return '#c0d0ff';
+      }
+      
+      // Pentru alte tururi cu date, utilizează o culoare standard
+      return '#80a0e0';
+    }
+  }
+  
+  // 5. Căutare parțială pentru a gestiona variații în formatare
+  // (de exemplu, "Comuna Drajna" vs "Drajna")
+  for (const key in this.uatData) {
+    if (this.uatData[key].name && 
+        (this.uatData[key].name.toLowerCase().includes(nameLower) ||
+         nameLower.includes(this.uatData[key].name.toLowerCase()))) {
+      const uatData = this.uatData[key];
+      
+      // Pentru turul activ, utilizează logica similară cu cea pentru județe
+      if (this.currentRoundState.roundId === 'tur_activ') {
+        const turnout = parseFloat(uatData.turnoutPercentage);
+        
+        // Scala de culori în funcție de prezența la vot
+        if (turnout > 60) return '#304090';
+        if (turnout > 50) return '#4050c0';
+        if (turnout > 40) return '#5060d0';
+        if (turnout > 30) return '#6070e0';
+        if (turnout > 20) return '#8090e0';
+        if (turnout > 10) return '#a0b0e0';
+        return '#c0d0ff';
+      }
+      
+      // Pentru alte tururi cu date, utilizează o culoare standard
+      return '#80a0e0';
+    }
+  }
+  
+  // Pentru debugging
+  if (uatName.toLowerCase() === 'drajna' || nameLower.includes('drajna')) {
+    console.log(`Nu s-au găsit date pentru ${uatName}. Coduri încercate:`, 
+                uatCode, uatCodeLower, uatCodeUpper);
+    console.log('Coduri disponibile:', Object.keys(this.uatData));
+    
+    // Listăm toate UAT-urile disponibile pentru a verifica dacă există vreo potrivire
+    console.log('UAT-uri disponibile:', 
+                Object.values(this.uatData).map(uat => uat.name));
+  }
+  
+  // Nu s-au găsit date pentru acest UAT
+  return '#555555'; // Culoare implicită pentru UAT-uri fără date
+}
+
+findUATDataByName(uatName: string): any {
+  if (!this.uatData) return null;
+  
+  // Normalizăm numele pentru căutare
+  const nameLower = uatName.toLowerCase();
+  
+  // Parcurgem toate datele UAT și căutăm o potrivire case-insensitive
+  for (const key in this.uatData) {
+    if (this.uatData[key].name.toLowerCase() === nameLower) {
+      return this.uatData[key];
+    }
+  }
+  
+  return null;
 }
 
 stopPolling(): void {
@@ -1935,7 +2124,7 @@ updateGlobalStats(): void {
       this.initializeMap();
     }
   }
-// În map.component.ts
+
 loadCountyUATMap(countyCode: string): void {
   if (!countyCode) return;
   
@@ -1961,6 +2150,9 @@ loadCountyUATMap(countyCode: string): void {
   this.isUATView = true;
   this.mapLevel = 'uaturi';
   
+  // Verifică dacă turul curent are date
+  const currentRound = this.currentRoundState;
+  
   // Obține datele GeoJSON pentru UAT
   this.mapService.getCountyUATGeoJson(countyCode).subscribe({
     next: (geoData) => {
@@ -1973,26 +2165,38 @@ loadCountyUATMap(countyCode: string): void {
       this.uatGeoJsonData = geoData;
       console.log('Date GeoJSON pentru UAT:', this.uatGeoJsonData);
       
-      // Oprește loading înainte de inițializarea hărții
-      this.isLoading = false;
-      
-      // Inițializăm imediat harta UAT
-      if (this.mapContainer) {
-        this.initializeUATMap();
-      } else {
-        console.error('Container hartă (mapContainer) nu este disponibil');
-      }
-      
-      // Actualizează selectorul de județe (dacă există) după ce harta este inițializată
-      setTimeout(() => {
-        const countySelector = document.getElementById('county-select') as HTMLSelectElement;
-        if (countySelector) {
-          countySelector.value = countyCode;
+      // Obține datele statistice pentru UAT-uri
+      // Pentru tururi fără date, serviciul va returna date goale
+      this.uatDataService.getUATVotingData(countyCode).subscribe({
+        next: (uatData) => {
+          console.log(`Date statistice UAT primite pentru județul ${countyCode}:`, uatData);
+          
+          // Stochează datele UAT pentru a fi utilizate la desenarea hărții
+          this.uatData = uatData;
+          
+          // Oprește loading înainte de inițializarea hărții
+          this.isLoading = false;
+          
+          // Inițializează harta UAT cu datele primite
+          if (this.mapContainer) {
+            this.initializeUATMap();
+          } else {
+            console.error('Container hartă (mapContainer) nu este disponibil');
+          }
+        },
+        error: (error) => {
+          console.error(`Eroare la încărcarea datelor statistice UAT:`, error);
+          this.isLoading = false;
+          
+          // Inițializează harta chiar și fără date
+          if (this.mapContainer) {
+            this.initializeUATMap();
+          }
         }
-      }, 100);
+      });
     },
     error: (error) => {
-      console.error(`Eroare la încărcarea UAT map pentru județul ${countyCode}:`, error);
+      console.error(`Eroare la încărcarea GeoJSON UAT pentru județul ${countyCode}:`, error);
       this.isLoading = false;
     }
   });
@@ -2067,6 +2271,88 @@ initializeUATMap(): void {
       // Aplică zoom
       svg.call(this.zoom);
       
+      // Funcție pentru obținerea datelor UAT pentru un feature
+const getUATDataForFeature = (feature: any): any => {
+  if (!this.uatData || !feature.properties) return null;
+  
+  // Încearcă să găsească datele UAT după numele UAT-ului
+  const uatName = feature.properties.name;
+  
+  // 1. Încercăm formatul standard
+  const uatCode = `${this.selectedCounty}-${uatName.replace(/\s+/g, '_')}`;
+  if (this.uatData[uatCode]) {
+    return this.uatData[uatCode];
+  }
+  
+  // 2. Încercăm formatul cu numele UAT-ului în lowercase
+  const uatCodeLower = `${this.selectedCounty}-${uatName.toLowerCase().replace(/\s+/g, '_')}`;
+  if (this.uatData[uatCodeLower]) {
+    return this.uatData[uatCodeLower];
+  }
+  
+  // 3. Încercăm formatul cu numele UAT-ului în uppercase
+  const uatCodeUpper = `${this.selectedCounty}-${uatName.toUpperCase().replace(/\s+/g, '_')}`;
+  if (this.uatData[uatCodeUpper]) {
+    return this.uatData[uatCodeUpper];
+  }
+  
+  // 4. Căutare case-insensitive prin parcurgerea tuturor valorilor
+  const nameLower = uatName.toLowerCase();
+  for (const key in this.uatData) {
+    if (this.uatData[key].name && this.uatData[key].name.toLowerCase() === nameLower) {
+      return this.uatData[key];
+    }
+  }
+  
+  // 5. Căutare parțială pentru a gestiona variații în formatare
+  // (de exemplu, "Comuna Drajna" vs "Drajna")
+  for (const key in this.uatData) {
+    if (this.uatData[key].name && 
+        (this.uatData[key].name.toLowerCase().includes(nameLower) ||
+         nameLower.includes(this.uatData[key].name.toLowerCase()))) {
+      return this.uatData[key];
+    }
+  }
+  
+  // Pentru debugging
+  if (uatName.toLowerCase() === 'drajna' || nameLower.includes('drajna')) {
+    console.log(`Nu s-au găsit date pentru ${uatName}. Coduri încercate:`, 
+                uatCode, uatCodeLower, uatCodeUpper);
+    console.log('Coduri disponibile:', Object.keys(this.uatData));
+    
+    // Listăm toate UAT-urile disponibile pentru a verifica dacă există vreo potrivire
+    console.log('UAT-uri disponibile:', 
+                Object.values(this.uatData).map(uat => uat.name));
+  }
+  
+  // Nu s-au găsit date pentru acest UAT
+  return null;
+};
+      
+      // Funcție pentru obținerea culorii UAT-ului pe baza datelor
+      const getUATColor = (feature: any): string => {
+        const uatData = getUATDataForFeature(feature);
+        
+        if (!uatData) return '#555555'; // Culoare implicită pentru UAT-uri fără date
+        
+        // Pentru turul activ, utilizează logica similară cu cea pentru județe
+        if (this.currentRoundState.roundId === 'tur_activ') {
+          const turnout = parseFloat(uatData.turnoutPercentage);
+          
+          // Scala de culori în funcție de prezența la vot
+          if (turnout > 60) return '#304090';
+          if (turnout > 50) return '#4050c0';
+          if (turnout > 40) return '#5060d0';
+          if (turnout > 30) return '#6070e0';
+          if (turnout > 20) return '#8090e0';
+          if (turnout > 10) return '#a0b0e0';
+          return '#c0d0ff';
+        }
+        
+        // Pentru alte tururi, utilizează o culoare standard
+        return '#80a0e0';
+      };
+      
       // Desenează UAT-urile
       const paths = g.selectAll('.uat-path')
         .data(this.uatGeoJsonData.features)
@@ -2074,67 +2360,85 @@ initializeUATMap(): void {
         .append('path')
         .attr('class', 'uat-path')
         .attr('d', this.path)
-        .attr('fill', () => {
-          // Setează o culoare mai deschisă pentru tururile fără date
-          return this.currentRoundState.hasData ? '#80a0e0' : '#555555';
-        })
+        .attr('fill', (d: any) => getUATColor(d))
         .attr('stroke', '#fff')
         .attr('stroke-width', 0.5);
       
       console.log('Număr de path-uri create:', paths.size());
       
-      // Adaugă evenimente de hover doar dacă turul actual are date
-      if (this.currentRoundState.hasData) {
-        paths.on('mouseover', (event, d: any) => {
-          this.ngZone.run(() => {
-            
-            d3.select(event.target)
-              .attr('fill', '#0066cc');
-            
-            // Actualizează tooltip
-            this.hoveredCounty = {
-              name: d.properties.name,
-              code: this.selectedCounty || '',
-              voters: 0,
-              percentage: 0,
-              registeredVoters: 0,
-              pollingStationCount: 0,
-              permanentListVoters: 0,
-              supplementaryListVoters: 0,
-              specialCircumstancesVoters: 0,
-              mobileUrnsVoters: 0,
-              totalVoters: 0,
-              turnoutPercentage: 0
-            };
-            
-            // Poziționează tooltip
-            const mapRect = this.mapContainer.nativeElement.getBoundingClientRect();
-            this.hoverPosition = {
-              x: event.pageX - mapRect.left,
-              y: event.pageY - mapRect.top
-            };
-          });
-        })
-        .on('mouseout', (event) => {
-          this.ngZone.run(() => {
-            d3.select(event.target)
-              .attr('fill', '#80a0e0');
-            
-            this.hoveredCounty = null;
-          });
+      // Adaugă evenimente de hover și afișează date statistice
+      paths.on('mouseover', (event: any, d: any) => {
+        this.ngZone.run(() => {
+          const uatData = getUATDataForFeature(d);
+          
+          d3.select(event.target)
+            .attr('fill', '#0066cc');
+          
+          // Actualizează tooltip cu datele disponibile
+          this.hoveredCounty = {
+            name: d.properties.name,
+            code: this.selectedCounty || '',
+            voters: uatData ? uatData.totalVoters : 0,
+            percentage: uatData ? parseFloat(uatData.turnoutPercentage) / 100 : 0,
+            registeredVoters: uatData ? uatData.registeredVoters : 0,
+            pollingStationCount: uatData ? uatData.pollingStationCount : 0,
+            permanentListVoters: uatData ? uatData.permanentListVoters : 0,
+            supplementaryListVoters: uatData ? uatData.supplementaryListVoters : 0,
+            specialCircumstancesVoters: uatData ? uatData.specialCircumstancesVoters : 0,
+            mobileUrnsVoters: uatData ? uatData.mobileUrnsVoters : 0,
+            totalVoters: uatData ? uatData.totalVoters : 0,
+            turnoutPercentage: uatData ? uatData.turnoutPercentage : "0.00"
+          };
+          
+          // Poziționează tooltip
+          const mapRect = this.mapContainer.nativeElement.getBoundingClientRect();
+          this.hoverPosition = {
+            x: event.pageX - mapRect.left,
+            y: event.pageY - mapRect.top
+          };
         });
-      } else {
-        // Adaugă o notificare vizuală pentru tururile fără date
-        svg.append('text')
-          .attr('x', width / 2)
-          .attr('y', height / 2)
-          .attr('text-anchor', 'middle')
-          .attr('fill', 'white')
-          .attr('font-size', '16px')
-          .text(`Nu există date disponibile pentru ${this.currentRoundState.roundId}`);
-      }
-
-      // Adaugă întotdeauna un titlu/antet pentru a identifica județul, indiferent de existența datelor
+      })
+      .on('mouseout', (event: any) => {
+        this.ngZone.run(() => {
+          d3.select(event.target)
+            .attr('fill', (d: any) => getUATColor(d));
+          
+          this.hoveredCounty = null;
+        });
+      });
+      
+      // Adaugă etichete pentru UAT-uri principale (opțional)
+      // Selectăm doar UAT-urile cu dimensiuni semnificative pentru a evita aglomerarea
+      const mainUATs = this.uatGeoJsonData.features.filter((feature: any) => {
+        const area = this.path.area(feature);
+        return area > 10; // Ajustează valoarea în funcție de densitatea hărții
+      });
+      
+      g.selectAll('.uat-label')
+        .data(mainUATs)
+        .enter()
+        .append('text')
+        .attr('class', 'uat-label')
+        .attr('x', (d: any) => {
+          const centroid = this.path.centroid(d);
+          return centroid[0];
+        })
+        .attr('y', (d: any) => {
+          const centroid = this.path.centroid(d);
+          return centroid[1];
+        })
+        .attr('text-anchor', 'middle')
+        .attr('alignment-baseline', 'middle')
+        .attr('fill', 'white')
+        .attr('font-size', '8px')
+        .attr('pointer-events', 'none')
+        .text((d: any) => {
+          // Afișează numele UAT-ului sau un cod scurt pentru nume lungi
+          const name = d.properties.name;
+          return name.length > 10 ? name.substring(0, 3) + '...' : name;
+        });
+      
+      // Adaugă titlul cu județul
       svg.append('text')
         .attr('x', width / 2)
         .attr('y', 25)
@@ -2143,6 +2447,26 @@ initializeUATMap(): void {
         .attr('font-size', '18px')
         .attr('font-weight', 'bold')
         .text(`UAT-uri ${this.getCountyName(this.selectedCounty || '')}`);
+      
+      // Adaugă subtitlu cu informații despre date (pentru turul activ)
+      if (this.currentRoundState.roundId === 'tur_activ') {
+        svg.append('text')
+          .attr('x', width / 2)
+          .attr('y', 50)
+          .attr('text-anchor', 'middle')
+          .attr('fill', 'white')
+          .attr('font-size', '14px')
+          .text(`Date în timp real - ${new Date().toLocaleTimeString()}`);
+      }else if (!this.currentRoundState.hasData) {
+      // Pentru tururi anulate/fără date
+      svg.append('text')
+        .attr('x', width / 2)
+        .attr('y', 50)
+        .attr('text-anchor', 'middle')
+        .attr('fill', '#ff9999') // Culoare roșiatică pentru mesajul de anulare
+        .attr('font-size', '14px')
+        .text(`TUR ANULAT - Nu există date disponibile`);
+      }
       
     } catch (error: any) {
       console.error('Eroare în procesarea sau desenarea GeoJSON:', error);

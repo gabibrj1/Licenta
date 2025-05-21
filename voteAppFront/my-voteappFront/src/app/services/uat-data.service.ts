@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
 import { environment } from '../../src/environments/environment';
+import { MapService, ElectionRoundState } from './map.service';
 
 export interface UATData {
   name: string;
@@ -25,39 +26,131 @@ export class UATDataService {
   private apiUrl = environment.apiUrl;
   private uatDataCache: { [countyCode: string]: { [uatCode: string]: UATData } } = {};
 
-  constructor(private http: HttpClient) { }
+  constructor(private http: HttpClient,
+    private mapService: MapService
+  ) { }
 
   /**
    * Obține datele de vot pentru UAT-urile dintr-un anumit județ
    */
-  getUATVotingData(countyCode: string): Observable<{ [uatCode: string]: UATData }> {
-    // Verifică dacă datele sunt deja în cache
-    if (this.uatDataCache[countyCode]) {
-      console.log(`Folosind date din cache pentru UAT-urile din județul ${countyCode}`);
-      return of(this.uatDataCache[countyCode]);
-    }
-
-    // URL-ul către endpoint-ul pentru datele UAT
-    const url = `${this.apiUrl}menu/counties/${countyCode}/uats/`;
-    console.log('URL API UAT apelat:', url);
-
-    return this.http.get<{ [uatCode: string]: UATData }>(url).pipe(
-      map(data => {
-        console.log(`Date UAT primite pentru județul ${countyCode}:`, data);
-        // Adaugă datele în cache
-        this.uatDataCache[countyCode] = data;
-        return data;
-      }),
-      catchError(error => {
-        console.error(`Eroare la obținerea datelor UAT pentru județul ${countyCode}:`, error);
-        
-        // Generează date fictive pentru testare
-        const mockData = this.generateMockUATData(countyCode);
-        this.uatDataCache[countyCode] = mockData;
-        return of(mockData);
-      })
-    );
+/**
+ * Obține datele de vot pentru UAT-urile dintr-un anumit județ
+ */
+getUATVotingData(countyCode: string): Observable<{ [uatCode: string]: UATData }> {
+  // Obține starea turului curent
+  const currentRound: ElectionRoundState = this.mapService.getCurrentRound();
+  
+  // Dacă este turul activ, obține date în timp real
+  if (currentRound.roundId === 'tur_activ') {
+    return this.getActiveRoundUATVotingData(countyCode);
   }
+  
+  // Verificăm dacă turul curent are date disponibile
+  if (!currentRound.hasData) {
+    console.log(`Tur fără date (${currentRound.roundId}) - se returnează UAT-uri goale pentru județul ${countyCode}`);
+    
+    // Returnăm date goale pentru UAT-uri
+    return of(this.generateEmptyUATData(countyCode));
+  }
+  
+  // Verifică dacă datele sunt deja în cache
+  if (this.uatDataCache[countyCode]) {
+    console.log(`Folosind date din cache pentru UAT-urile din județul ${countyCode}`);
+    return of(this.uatDataCache[countyCode]);
+  }
+
+  // URL-ul către endpoint-ul pentru datele UAT
+  const url = `${this.apiUrl}menu/counties/${countyCode}/uats/`;
+  console.log('URL API UAT apelat:', url);
+
+  return this.http.get<{ [uatCode: string]: UATData }>(url).pipe(
+    map(data => {
+      console.log(`Date UAT primite pentru județul ${countyCode}:`, data);
+      // Adaugă datele în cache
+      this.uatDataCache[countyCode] = data;
+      return data;
+    }),
+    catchError(error => {
+      console.error(`Eroare la obținerea datelor UAT pentru județul ${countyCode}:`, error);
+      
+      // Generează date fictive pentru testare
+      const mockData = this.generateMockUATData(countyCode);
+      this.uatDataCache[countyCode] = mockData;
+      return of(mockData);
+    })
+  );
+}
+
+/**
+ * Generează date goale pentru UAT-uri pentru un județ specific
+ */
+private generateEmptyUATData(countyCode: string): { [uatCode: string]: UATData } {
+  const result: { [uatCode: string]: UATData } = {};
+  
+  // Obține numărul de UAT-uri pentru județ
+  const uatCount = this.getUATCountForCounty(countyCode);
+  
+  // Generează date goale pentru fiecare UAT
+  for (let i = 1; i <= uatCount; i++) {
+    const uatCode = `${countyCode}-${i.toString().padStart(3, '0')}`;
+    const uatName = this.getUATName(countyCode, i);
+    
+    result[uatCode] = {
+      name: uatName,
+      code: uatCode,
+      countyCode: countyCode,
+      registeredVoters: 0,
+      pollingStationCount: 0,
+      permanentListVoters: 0,
+      supplementaryListVoters: 0,
+      specialCircumstancesVoters: 0,
+      mobileUrnsVoters: 0,
+      totalVoters: 0,
+      turnoutPercentage: "0.00"
+    };
+  }
+  
+  return result;
+}
+   /**
+   * Obține datele în timp real pentru UAT-urile dintr-un județ specific în turul activ
+   */
+getActiveRoundUATVotingData(countyCode: string): Observable<{ [uatCode: string]: UATData }> {
+  const url = `${this.apiUrl}vote/active-round-uat-statistics/${countyCode}/`;
+  console.log('Obțin date UAT în timp real de la:', url);
+  
+  return this.http.get<{ [uatCode: string]: UATData }>(url).pipe(
+    map(data => {
+      console.log(`Date UAT în timp real primite pentru județul ${countyCode}:`, data);
+      
+      // Adaugă și variante de coduri normalizate pentru compatibilitate
+      const normalizedData: { [uatCode: string]: UATData } = {...data};
+      
+      Object.keys(data).forEach(key => {
+        const uat = data[key];
+        if (uat.name) {
+          // Adaugă versiuni normalizate ale codurilor
+          const normalizedName = uat.name.toLowerCase();
+          const normalizedCode = `${countyCode}-${normalizedName.replace(/\s+/g, '_')}`;
+          
+          if (!normalizedData[normalizedCode]) {
+            normalizedData[normalizedCode] = {...uat};
+          }
+        }
+      });
+      
+      return normalizedData;
+    }),
+    catchError(error => {
+      console.error(`Eroare la obținerea datelor UAT în timp real pentru județul ${countyCode}:`, error);
+      
+      // Generează date fictive în caz de eroare
+      const mockData = this.generateMockUATData(countyCode);
+      return of(mockData);
+    })
+  );
+}
+
 
   /**
    * Generează date fictive pentru UAT-uri pentru un județ specific

@@ -6,8 +6,7 @@ from .views import UserPresidentialVotingEligibilityView, PresidentialCandidates
 from .views import UserParliamentaryVotingEligibilityView, ParliamentaryPartiesView, CheckParliamentaryVoteStatusView, SubmitParliamentaryVoteView, GenerateParliamentaryVoteReceiptPDFView
 from .views import CreateVoteSystemView, UserVoteSystemsView, VoteSystemDetailView, SubmitVoteView
 from .views import PublicVoteSystemView, PublicSubmitVoteView, PublicVoteResultsView
-from .views import ManageVoterEmailsView, SendVoteTokensView, VerifyVoteTokenView, CheckActiveVoteSystemView, VoteSystemResultsUpdateView, ActiveRoundVotingStatisticsView
-
+from .views import ManageVoterEmailsView, SendVoteTokensView, VerifyVoteTokenView, CheckActiveVoteSystemView, VoteSystemResultsUpdateView, ActiveRoundVotingStatisticsView, ActiveRoundUATVotingStatisticsView
 urlpatterns = [
     path('vote-settings/', VoteSettingsView.as_view(), name='vote-settings'),
     path('admin/vote-settings/', AdminVoteSettingsView.as_view(), name='admin-vote-settings'),
@@ -43,5 +42,5 @@ urlpatterns = [
     path('vote-systems/check-active/', CheckActiveVoteSystemView.as_view(), name='check-active-vote-system'),
     path('vote-systems/<int:system_id>/results-update/', VoteSystemResultsUpdateView.as_view(), name='vote-system-results-update'),
     path('vote/active-round-statistics/', ActiveRoundVotingStatisticsView.as_view(), name='active-round-statistics'),
-
+    path('vote/active-round-uat-statistics/<str:county_code>/', ActiveRoundUATVotingStatisticsView.as_view(), name='active-round-uat-statistics'),
 ] 
