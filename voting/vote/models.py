@@ -151,6 +151,7 @@ class PresidentialVote(models.Model):
     """Model pentru voturile prezidențiale înregistrate"""
     user = models.ForeignKey('users.User', on_delete=models.CASCADE)
     candidate = models.ForeignKey(PresidentialCandidate, on_delete=models.CASCADE)
+    voting_section = models.ForeignKey(VotingSection, on_delete=models.CASCADE, null=True, blank=True)
     vote_datetime = models.DateTimeField(auto_now_add=True)
     vote_reference = models.CharField(max_length=20, blank=True, null=True)
     

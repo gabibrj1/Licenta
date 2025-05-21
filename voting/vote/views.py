@@ -1070,9 +1070,13 @@ class SubmitPresidentialVoteView(APIView):
         """Înregistrează votul prezidențial și trimite confirmarea, dacă este solicitată"""
         user = request.user
         candidate_id = request.data.get('candidate_id')
+        voting_section_id = request.data.get('voting_section_id')
         send_receipt = request.data.get('send_receipt', False)
         receipt_method = request.data.get('receipt_method', 'email')
         contact_info = request.data.get('contact_info', '')
+        county_code = request.data.get('county_code') 
+        uat = request.data.get('uat')
+        
         
         # Verifică dacă utilizatorul este autentificat cu buletin
         if not hasattr(user, 'cnp') or not user.cnp:
@@ -1094,6 +1098,25 @@ class SubmitPresidentialVoteView(APIView):
         
         try:
             candidate = PresidentialCandidate.objects.get(pk=candidate_id)
+
+            # obtinem sectia de vot daca a fost furnizata
+            voting_section = None
+            if voting_section_id:
+                try:
+                    voting_section = VotingSection.objects.get(pk=voting_section_id)
+                except VotingSection.DoesNotExist:
+                    logger.warning(f"Secția de vot {voting_section_id} nu a fost găsită")
+
+        # Daca nu avem sectie de vot, dar avem judetul si uat ul incercam sa gasim o sectie potrivita
+            if not voting_section and county_code and uat:
+                try:
+                    voting_section = VotingSection.objects.filter(
+                        county=county_code,
+                        city=uat
+                    ).first()
+                except Exception as e:
+                    logger.warning(f"Nu s-a găsit o secție pentru județul {county_code} și UAT-ul {uat}: {e}")
+
         except PresidentialCandidate.DoesNotExist:
             return Response({
                 'error': 'Candidatul selectat nu există'
@@ -1120,6 +1143,7 @@ class SubmitPresidentialVoteView(APIView):
             vote = PresidentialVote.objects.create(
                 user=user,
                 candidate=candidate,
+                voting_section=voting_section,
                 vote_reference=vote_reference
             )
             
@@ -1142,7 +1166,9 @@ class SubmitPresidentialVoteView(APIView):
             
             return Response({
                 'message': 'Votul dvs. a fost înregistrat cu succes!',
-                'vote_reference': vote_reference
+                'vote_reference': vote_reference,
+                'county_code': county_code,
+                'uat': uat 
             }, status=status.HTTP_201_CREATED)
             
         except ValidationError as e:
@@ -2785,10 +2811,59 @@ class ActiveRoundVotingStatisticsView(APIView):
                     data[county_code]['turnoutPercentage'] = f"{turnout:.2f}"
                 
         elif vote_type == 'prezidentiale':
-            # Logica pentru voturile prezidențiale
-            # Similar cu voturile locale, dar folosind tabela PresidentialVote
-            # Implementare simplificată aici
+            county_stats = PresidentialVote.objects.filter(
+                voting_section__isnull=False
+            ).values('voting_section__county')\
+                .annotate(
+                    total_votes=Count('id'),
+                    unique_voters=Count('user', distinct=True)
+                )\
+                .order_by('voting_section__county')
+            
+            # Formatul datelor pentru frontend
             data = {}
+            for stat in county_stats:
+                county_code = stat['voting_section__county']
+                if county_code:
+                    data[county_code] = {
+                        'total_voters': stat['total_votes'],
+                        'pollingStationCount': 0,  # Va fi actualizat mai jos
+                        'permanentListVoters': stat['unique_voters'],
+                        'supplementaryListVoters': 0,
+                        'specialCircumstancesVoters': 0,
+                        'mobileUrnsVoters': 0,
+                        'turnoutPercentage': '0.00'  # Va fi calculat după ce adăugăm registeredVoters
+                    }
+
+                # Adăugăm numărul de secții de votare pentru fiecare județ
+            polling_stations = VotingSection.objects.values('county')\
+                .annotate(station_count=Count('id'))\
+                .order_by('county')
+            
+            for station in polling_stations:
+                county_code = station['county']
+                if county_code in data:
+                    data[county_code]['pollingStationCount'] = station['station_count']
+                else:
+                    # Inițializăm datele pentru județe care nu au voturi încă
+                    data[county_code] = {
+                        'total_voters': 0,
+                        'pollingStationCount': station['station_count'],
+                        'permanentListVoters': 0,
+                        'supplementaryListVoters': 0,
+                        'specialCircumstancesVoters': 0,
+                        'mobileUrnsVoters': 0,
+                        'turnoutPercentage': '0.00'
+                    }
+            # Estimăm numărul de alegători înregistrați (simulare pentru exemplu)
+            for county_code in data:
+                data[county_code]['registeredVoters'] = data[county_code]['pollingStationCount'] * 1000
+
+                # Calculăm procentajul de prezență
+                if data[county_code]['registeredVoters'] > 0:
+                    turnout = (data[county_code]['total_voters'] / data[county_code]['registeredVoters']) * 100
+                    data[county_code]['turnoutPercentage'] = f"{turnout:.2f}"
+                return Response(data)
             
         elif vote_type == 'parlamentare':
             # Logica pentru voturile parlamentare
@@ -2816,7 +2891,7 @@ class ActiveRoundUATVotingStatisticsView(APIView):
         now = timezone.now()
         active_vote = VoteSettings.objects.filter(
             is_active=True,
-            vote_type='locale',
+            #vote_type='locale',
             start_datetime__lte=now,
             end_datetime__gte=now
         ).first()
@@ -2843,6 +2918,9 @@ class ActiveRoundUATVotingStatisticsView(APIView):
         
         # Inițializăm rezultatul
         result = {}
+
+        # Tipul de vot determină tabela din care luăm datele
+        vote_type = active_vote.vote_type
         
         # Pentru fiecare UAT normalizat, calculăm statisticile
         for uat_lower, uat_original in uat_names.items():
@@ -2851,8 +2929,13 @@ class ActiveRoundUATVotingStatisticsView(APIView):
             section_ids = [section.id for section in uat_sections]
             
             # Obținem toate voturile pentru aceste secții
-            uat_votes = LocalVote.objects.filter(voting_section_id__in=section_ids)
-            
+            if vote_type == 'locale':
+                uat_votes = LocalVote.objects.filter(voting_section_id__in=section_ids)
+            elif vote_type == 'prezidentiale':
+                uat_votes = PresidentialVote.objects.filter(voting_section_id__in=section_ids)
+            else:
+                uat_votes = None
+                
             # Calculăm numărul de alegători înregistrați (simulat pentru exemplu)
             # În practică, ar trebui să aveți această informație în baza de date
             registered_voters = len(section_ids) * 1000  # Estimat: 1000 de alegători per secție

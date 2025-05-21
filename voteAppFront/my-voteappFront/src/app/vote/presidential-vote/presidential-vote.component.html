@@ -24,6 +24,14 @@
       <p><strong>Nume:</strong> {{ userInfo.last_name }} {{ userInfo.first_name }}</p>
       
       <p>Sunteți eligibil pentru a vota la alegerile prezidențiale.</p>
+    <div *ngIf="county && city" class="location-info">
+      <h4>Locația dumneavoastră</h4>
+      <p><strong>Județ:</strong> {{ county }}</p>
+      <p><strong>Localitate:</strong> {{ city }}</p>
+      <p *ngIf="votingSection"><strong>Secția de vot:</strong> {{ votingSection.name }} ({{ votingSection.section_id }})</p>
+  
+      <button class="btn-secondary" (click)="promptForLocation()">Schimbă locația</button>
+    </div> 
       
       <div *ngIf="candidates && candidates.length > 0" class="candidate-preview">
         <p>În acest tur de alegeri prezidențiale, veți putea vota unul dintre cei {{ candidates.length }} candidați.</p>

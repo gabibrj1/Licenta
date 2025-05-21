@@ -4,6 +4,7 @@ import { FormBuilder } from '@angular/forms';
 import { VoteMonitoringService } from '../../services/vote-monitoring.service';
 import { PresidentialVoteService } from '../../services/presidential-vote.service';
 import * as faceapi from 'face-api.js';
+import { LocalVoteService } from '../../services/local-vote.service';
 
 @Component({
   selector: 'app-presidential-vote',
@@ -19,6 +20,9 @@ export class PresidentialVoteComponent implements OnInit, OnDestroy {
   error = '';
   candidates: any[] = [];
   selectedCandidate: number | null = null;
+  county: string = '';
+  city: string = '';
+  votingSection: any = null;
 
   // Pentru monitorizarea video
   @ViewChild('videoElement', { static: false }) videoElement!: ElementRef<HTMLVideoElement>;
@@ -63,6 +67,7 @@ export class PresidentialVoteComponent implements OnInit, OnDestroy {
   constructor(
     private presidentialVoteService: PresidentialVoteService,
     private voteMonitoringService: VoteMonitoringService,
+    private localVoteService: LocalVoteService,
     private fb: FormBuilder,
     private router: Router,
     private cdr: ChangeDetectorRef
@@ -212,6 +217,8 @@ export class PresidentialVoteComponent implements OnInit, OnDestroy {
       (response) => {
         if (response.has_voted) {
           this.error = response.message;
+        }else{
+          this.checkLastVotingSection();
         }
       },
       (error) => {
@@ -219,6 +226,76 @@ export class PresidentialVoteComponent implements OnInit, OnDestroy {
       }
     );
   }
+  checkLastVotingSection(): void {
+  // Utilizăm localStorage pentru a salva temporar locația utilizatorului
+  const lastVotingData = localStorage.getItem('lastVotingData');
+  if (lastVotingData) {
+    try {
+      const data = JSON.parse(lastVotingData);
+      this.county = data.county;
+      this.city = data.city;
+      this.votingSection = data.votingSection;
+      console.log('S-au găsit date anterioare de vot:', data);
+    } catch (e) {
+      console.error('Eroare la preluarea datelor de vot anterioare:', e);
+    }
+  } else {
+    // Solicităm userului să-și introducă județul și localitatea
+    this.promptForLocation();
+  }
+}
+
+// Metodă pentru a solicita utilizatorului introducerea locației
+promptForLocation(): void {
+  // Implementare simplificată - în producție ai putea avea un dialog/formular mai elaborat
+  const countyPrompt = prompt('Introduceți codul județului (ex: B, CJ, IS):');
+  if (countyPrompt) {
+    this.county = countyPrompt.toUpperCase();
+    
+    const cityPrompt = prompt('Introduceți localitatea:');
+    if (cityPrompt) {
+      this.city = cityPrompt.toUpperCase();
+      
+      // După ce avem județul și localitatea, căutăm o secție de vot
+      this.findVotingSection();
+    }
+  }
+}
+
+// Metodă pentru a găsi o secție de vot
+findVotingSection(): void {
+  if (!this.county || !this.city) return;
+  
+  // Folosim serviciul LocalVoteService care are deja această funcționalitate
+  this.localVoteService.findVotingSection({
+    county: this.county,
+    city: this.city,
+    address: 'Centru' // Adresă generică pentru a găsi o secție centrală
+  }).subscribe({
+    next: (response) => {
+      if (response.multiple_sections) {
+        // Alegem prima secție dacă sunt mai multe
+        this.votingSection = response.sections[0];
+      } else {
+        this.votingSection = response.section;
+      }
+      
+      // Salvăm informațiile pentru utilizări viitoare
+      localStorage.setItem('lastVotingData', JSON.stringify({
+        county: this.county,
+        city: this.city,
+        votingSection: this.votingSection
+      }));
+      
+      console.log('S-a identificat secția de vot:', this.votingSection);
+    },
+    error: (error) => {
+      console.error('Eroare la identificarea secției de vot:', error);
+      // Nu blocăm procesul de vot dacă nu s-a găsit o secție
+    }
+  });
+}
+
 
   async loadFaceDetectionModels(): Promise<void> {
     try {
@@ -658,7 +735,10 @@ export class PresidentialVoteComponent implements OnInit, OnDestroy {
       candidate_id: this.selectedCandidate,
       send_receipt: this.sendReceiptEmail,
       receipt_method: this.receiptMethod,
-      contact_info: this.sendReceiptEmail ? this.contactInfo : ''
+      contact_info: this.sendReceiptEmail ? this.contactInfo : '',
+      voting_section_id: this.votingSection ? this.votingSection.id : null,
+      county_code: this.county,
+      uat: this.city
     };
     
     console.log('Trimit datele pentru confirmare:', requestData);
