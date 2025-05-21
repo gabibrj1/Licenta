@@ -30,7 +30,10 @@ export class ParliamentaryVoteService {
     party_id: number | null, 
     send_receipt: boolean,
     receipt_method: string,
-    contact_info: string 
+    contact_info: string,
+    voting_section_id?: number | null,
+    county_code?: string,
+    uat?: string
   }): Observable<any> {
     return this.http.post(`${this.apiUrl}vote/parliamentary/submit/`, data);
   }

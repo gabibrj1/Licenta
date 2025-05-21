@@ -67,7 +67,7 @@ export class PresidentialVoteComponent implements OnInit, OnDestroy {
   constructor(
     private presidentialVoteService: PresidentialVoteService,
     private voteMonitoringService: VoteMonitoringService,
-    private localVoteService: LocalVoteService,
+    private localVoteService: LocalVoteService, // pentru a gasi sectia de vot - reutilizare de cod
     private fb: FormBuilder,
     private router: Router,
     private cdr: ChangeDetectorRef

@@ -1517,6 +1517,9 @@ class SubmitParliamentaryVoteView(APIView):
         send_receipt = request.data.get('send_receipt', False)
         receipt_method = request.data.get('receipt_method', 'email')
         contact_info = request.data.get('contact_info', '')
+        voting_section_id = request.data.get('voting_section_id')  # nou
+        county_code = request.data.get('county_code')  # nou
+        uat = request.data.get('uat')  # nou
         
         # Verifică dacă utilizatorul este autentificat cu buletin
         if not hasattr(user, 'cnp') or not user.cnp:
@@ -1538,6 +1541,25 @@ class SubmitParliamentaryVoteView(APIView):
         
         try:
             party = ParliamentaryParty.objects.get(pk=party_id)
+            
+            # Obținem secția de vot dacă a fost furnizată
+            voting_section = None
+            if voting_section_id:
+                try:
+                    voting_section = VotingSection.objects.get(pk=voting_section_id)
+                except VotingSection.DoesNotExist:
+                    logger.warning(f"Secția de vot {voting_section_id} nu a fost găsită")
+            
+            # Dacă nu avem secție de vot, dar avem județul și uat-ul încercăm să găsim o secție potrivită
+            if not voting_section and county_code and uat:
+                try:
+                    voting_section = VotingSection.objects.filter(
+                        county=county_code,
+                        city=uat
+                    ).first()
+                except Exception as e:
+                    logger.warning(f"Nu s-a găsit o secție pentru județul {county_code} și UAT-ul {uat}: {e}")
+                    
         except ParliamentaryParty.DoesNotExist:
             return Response({
                 'error': 'Partidul selectat nu există'
@@ -1564,7 +1586,8 @@ class SubmitParliamentaryVoteView(APIView):
             vote = ParliamentaryVote.objects.create(
                 user=user,
                 party=party,
-                vote_reference=vote_reference
+                vote_reference=vote_reference,
+                voting_section=voting_section  # nou - adăugăm secția de vot
             )
             
             # Trimite chitanța de vot dacă utilizatorul a solicitat
@@ -1586,7 +1609,9 @@ class SubmitParliamentaryVoteView(APIView):
             
             return Response({
                 'message': 'Votul dvs. a fost înregistrat cu succes!',
-                'vote_reference': vote_reference
+                'vote_reference': vote_reference,
+                'county_code': county_code,  # nou
+                'uat': uat  # nou
             }, status=status.HTTP_201_CREATED)
             
         except ValidationError as e:
@@ -2866,10 +2891,58 @@ class ActiveRoundVotingStatisticsView(APIView):
                 return Response(data)
             
         elif vote_type == 'parlamentare':
-            # Logica pentru voturile parlamentare
-            # Similar cu voturile locale, dar folosind tabela ParliamentaryVote
-            # Implementare simplificată aici
+            county_stats = ParliamentaryVote.objects.filter(
+                voting_section__isnull=False
+            ).values('voting_section__county')\
+                .annotate(
+                    total_votes=Count('id'),
+                    unique_voters=Count('user', distinct=True)
+                )\
+                .order_by('voting_section__county')
+            
+            # Formatul datelor pentru frontend
             data = {}
+            for stat in county_stats:
+                county_code = stat['voting_section__county']
+                if county_code:
+                    data[county_code] = {
+                        'total_voters': stat['total_votes'],
+                        'pollingStationCount': 0,  # Va fi actualizat mai jos
+                        'permanentListVoters': stat['unique_voters'],
+                        'supplementaryListVoters': 0,
+                        'specialCircumstancesVoters': 0,
+                        'mobileUrnsVoters': 0,
+                        'turnoutPercentage': '0.00'  # Va fi calculat după ce adăugăm registeredVoters
+                    }
+
+            # Adăugăm numărul de secții de votare pentru fiecare județ
+            polling_stations = VotingSection.objects.values('county')\
+                .annotate(station_count=Count('id'))\
+                .order_by('county')
+            
+            for station in polling_stations:
+                county_code = station['county']
+                if county_code in data:
+                    data[county_code]['pollingStationCount'] = station['station_count']
+                else:
+                    # Inițializăm datele pentru județe care nu au voturi încă
+                    data[county_code] = {
+                        'total_voters': 0,
+                        'pollingStationCount': station['station_count'],
+                        'permanentListVoters': 0,
+                        'supplementaryListVoters': 0,
+                        'specialCircumstancesVoters': 0,
+                        'mobileUrnsVoters': 0,
+                        'turnoutPercentage': '0.00'
+                    }
+
+                for county_code in data:
+                    data[county_code]['registeredVoters'] = data[county_code]['pollingStationCount'] * 1000
+
+                    # Calculăm procentajul de prezență
+                    if data[county_code]['registeredVoters'] > 0:
+                        turnout = (data[county_code]['total_voters'] / data[county_code]['registeredVoters']) * 100
+                        data[county_code]['turnoutPercentage'] = f"{turnout:.2f}"
         
         else:
             return Response({'error': f'Tip de vot nesuportat: {vote_type}'}, status=status.HTTP_400_BAD_REQUEST)
@@ -2933,6 +3006,8 @@ class ActiveRoundUATVotingStatisticsView(APIView):
                 uat_votes = LocalVote.objects.filter(voting_section_id__in=section_ids)
             elif vote_type == 'prezidentiale':
                 uat_votes = PresidentialVote.objects.filter(voting_section_id__in=section_ids)
+            elif vote_type == 'parlamentare':
+                uat_votes = ParliamentaryVote.objects.filter(voting_section_id__in=section_ids)
             else:
                 uat_votes = None
                 

@@ -197,6 +197,7 @@ class ParliamentaryVote(models.Model):
     """Model pentru voturile parlamentare înregistrate"""
     user = models.ForeignKey('users.User', on_delete=models.CASCADE)
     party = models.ForeignKey(ParliamentaryParty, on_delete=models.CASCADE)
+    voting_section = models.ForeignKey(VotingSection, on_delete=models.CASCADE, null=True, blank=True)  # nou
     vote_datetime = models.DateTimeField(auto_now_add=True)
     vote_reference = models.CharField(max_length=20, blank=True, null=True)
     
@@ -219,8 +220,8 @@ class ParliamentaryVote(models.Model):
         super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"{self.user} - {self.party} - {self.vote_datetime.strftime('%d.%m.%Y, %H:%M')}"
-    
+        return f"{self.user} - {self.party} - {self.vote_datetime.strftime('%d.%m.%Y, %H:%M')}"  
+
 class VoteSystem(models.Model):
     """Model pentru sistemele de vot personalizate"""
     

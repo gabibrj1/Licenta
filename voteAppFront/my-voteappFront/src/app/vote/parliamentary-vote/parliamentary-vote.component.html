@@ -25,6 +25,15 @@
       
       <p>Sunteți eligibil pentru a vota la alegerile parlamentare.</p>
       
+    <div *ngIf="county && city" class="location-info">
+      <h4>Locația dumneavoastră</h4>
+      <p><strong>Județ:</strong> {{ county }}</p>
+      <p><strong>Localitate:</strong> {{ city }}</p>
+      <p *ngIf="votingSection"><strong>Secția de vot:</strong> {{ votingSection.name }} ({{ votingSection.section_id }})</p>
+
+      <button class="btn-secondary" (click)="promptForLocation()">Schimbă locația</button>
+    </div>
+      
       <div *ngIf="parties && parties.length > 0" class="party-preview">
         <p>În acest tur de alegeri parlamentare, veți putea vota unul dintre cele {{ parties.length }} partide înscrise.</p>
         <button class="btn-primary" (click)="proceedToVoting()">Continuați către vot</button>
