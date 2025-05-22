@@ -7,6 +7,8 @@ from .views import UserParliamentaryVotingEligibilityView, ParliamentaryPartiesV
 from .views import CreateVoteSystemView, UserVoteSystemsView, VoteSystemDetailView, SubmitVoteView
 from .views import PublicVoteSystemView, PublicSubmitVoteView, PublicVoteResultsView
 from .views import ManageVoterEmailsView, SendVoteTokensView, VerifyVoteTokenView, CheckActiveVoteSystemView, VoteSystemResultsUpdateView, ActiveRoundVotingStatisticsView, ActiveRoundUATVotingStatisticsView
+from .views import UserPresidentialRound2VotingEligibilityView, PresidentialRound2CandidatesView, CheckPresidentialRound2VoteStatusView, SubmitPresidentialRound2VoteView, GeneratePresidentialRound2VoteReceiptPDFView
+
 urlpatterns = [
     path('vote-settings/', VoteSettingsView.as_view(), name='vote-settings'),
     path('admin/vote-settings/', AdminVoteSettingsView.as_view(), name='admin-vote-settings'),
@@ -43,4 +45,10 @@ urlpatterns = [
     path('vote-systems/<int:system_id>/results-update/', VoteSystemResultsUpdateView.as_view(), name='vote-system-results-update'),
     path('vote/active-round-statistics/', ActiveRoundVotingStatisticsView.as_view(), name='active-round-statistics'),
     path('vote/active-round-uat-statistics/<str:county_code>/', ActiveRoundUATVotingStatisticsView.as_view(), name='active-round-uat-statistics'),
+    path('vote/presidential-round2/eligibility/', UserPresidentialRound2VotingEligibilityView.as_view(), name='presidential-round2-eligibility'),
+    path('vote/presidential-round2/candidates/', PresidentialRound2CandidatesView.as_view(), name='presidential-round2-candidates'),
+    path('vote/presidential-round2/check-status/', CheckPresidentialRound2VoteStatusView.as_view(), name='check-presidential-round2-vote-status'),
+    path('vote/presidential-round2/submit/', SubmitPresidentialRound2VoteView.as_view(), name='submit-presidential-round2-vote'),
+    path('vote/presidential-round2/receipt-pdf/', GeneratePresidentialRound2VoteReceiptPDFView.as_view(), name='generate-presidential-round2-vote-receipt-pdf'),
+
 ] 

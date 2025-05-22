@@ -1790,11 +1790,11 @@ handleCountyClick(feature: GeoFeature): void {
   console.log(`Județ selectat: ${feature.properties.name} (${countyCode})`);
   
   // Verifică dacă turul curent are date
-  if (!this.currentRoundState.hasData) {
-    // Pentru tururi fără date, afișăm un mesaj informativ
-    alert(`Nu există date disponibile pentru UAT-urile din județul ${feature.properties.name} în ${this.currentRoundState.roundId}.`);
-    return;
-  }
+  // if (!this.currentRoundState.hasData) {
+  //   // Pentru tururi fără date, afișăm un mesaj informativ
+  //   alert(`Nu există date disponibile pentru UAT-urile din județul ${feature.properties.name} în ${this.currentRoundState.roundId}.`);
+  //   return;
+  // }
   
   // Opțional: întreabă utilizatorul dacă dorește să vadă UAT-urile pentru acest județ
   if (confirm(`Doriți să vizualizați UAT-urile pentru județul ${feature.properties.name}?`)) {

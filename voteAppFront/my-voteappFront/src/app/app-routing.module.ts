@@ -37,6 +37,7 @@ import { CandidatiPrezidentialiComponent } from './candidati-prezidentiali/candi
 import { CandidatDetailComponent } from './candidati-prezidentiali/candidat-detail/candidat-detail.component';
 import { CandidatiLocaliComponent } from './candidati-locali/candidati-locali.component';
 import { SetariContComponent } from './setari-cont/setari-cont.component';
+import { PresidentialRound2VoteComponent } from './vote/presidential-round2-vote/presidential-round2-vote.component';
 
 const routes: Routes = [
   { path: '', component: HomeComponent },
@@ -72,6 +73,7 @@ const routes: Routes = [
       // Rute pentru vot și simulare
       { path: 'simulare-vot', component: VoteSimulationComponent },
       { path: 'vot/prezidentiale', component: PresidentialVoteComponent, canActivate: [AuthGuard] },
+      { path: 'vot/prezidentiale-tur2', component: PresidentialRound2VoteComponent, canActivate: [AuthGuard] },
       { path: 'vot/parlamentare', component: ParliamentaryVoteComponent, canActivate: [AuthGuard] },
       { path: 'vot/locale', component: LocalVoteComponent, canActivate: [AuthGuard] },
 

@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Confirmare Vot Prezidențial Turul 2 - SmartVote</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .container {
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 20px;
+            background-color: #f9f9f9;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .header h1 {
+            background-color: #007bff;
+            color: white;
+            padding: 15px;
+            margin: 0;
+            border-radius: 5px;
+        }
+        .info {
+            margin-bottom: 15px;
+        }
+        .candidate-info {
+            background-color: #e9f7fe;
+            color: #0078d4;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 5px;
+            text-align: center;
+        }
+        .candidate-info h3 {
+            margin: 0;
+            font-size: 18px;
+        }
+        .vote-reference {
+            background-color: #fff3cd;
+            color: #856404;
+            font-size: 20px;
+            font-weight: bold;
+            text-align: center;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 5px;
+            letter-spacing: 2px;
+        }
+        .download-btn {
+            display: inline-block;
+            background-color: #0078d4;
+            color: white;
+            padding: 12px 20px;
+            text-decoration: none;
+            border-radius: 5px;
+            margin-top: 15px;
+        }
+        .footer {
+            font-size: 12px;
+            color: #777;
+            margin-top: 30px;
+            text-align: center;
+        }
+        .warning {
+            background-color: #fff3cd;
+            color: #856404;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 15px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>SmartVote - Confirmare Vot Prezidențial Turul 2</h1>
+        </div>
+        
+        <div class="info">
+            <p>Dragă <strong>{{ user_name }}</strong>,</p>
+            <p>Vă mulțumim pentru participarea la procesul electoral. Votul dumneavoastră pentru <strong>turul 2 al alegerilor prezidențiale</strong> a fost înregistrat cu succes în sistemul SmartVote.</p>
+        </div>
+        
+        <div class="vote-reference">
+            Referință vot: {{ vote_reference }}
+        </div>
+        
+        <div class="info">
+            <p><strong>Data și ora votului:</strong> {{ vote_datetime }}</p>
+        </div>
+        
+        <div class="candidate-info">
+            <h3>Candidatul votat:</h3>
+            <p><strong>{{ candidate.name }}</strong></p>
+            <p>{{ candidate.party }}</p>
+            <p><em>{{ candidate.position }}</em></p>
+        </div>
+        
+        <div class="info" style="text-align: center;">
+            <a href="{{ download_url }}" class="download-btn">
+                📄 Descarcă confirmarea în format PDF
+            </a>
+        </div>
+        
+        <div class="warning">
+            <strong>Important:</strong> Păstrați această confirmare ca dovadă a participării la vot. Referința votului este unică și poate fi folosită pentru verificarea înregistrării votului.
+        </div>
+        
+        <div class="footer">
+            <p>Acest email a fost trimis automat. Vă rugăm să nu răspundeți la acest mesaj.</p>
+            <p>&copy; 2024 SmartVote. Toate drepturile rezervate.</p>
+        </div>
+    </div>
+</body>
+</html>

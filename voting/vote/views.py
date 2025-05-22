@@ -46,6 +46,7 @@ from .forms import EmailListForm
 from django.core.mail import send_mail
 from datetime import timedelta
 from django.db.models import Count, Sum
+from .models import PresidentialRound2Candidate, PresidentialRound2Vote
 
 
 
@@ -2888,6 +2889,61 @@ class ActiveRoundVotingStatisticsView(APIView):
                 if data[county_code]['registeredVoters'] > 0:
                     turnout = (data[county_code]['total_voters'] / data[county_code]['registeredVoters']) * 100
                     data[county_code]['turnoutPercentage'] = f"{turnout:.2f}"
+                
+                
+        elif vote_type == 'prezidentiale_tur2':
+                county_stats = PresidentialRound2Vote.objects.filter(
+                    voting_section__isnull=False
+                ).values('voting_section__county')\
+                    .annotate(
+                        total_votes=Count('id'),
+                        unique_voters=Count('user', distinct=True)
+                    )\
+                    .order_by('voting_section__county')
+                # Formatul datelor pentru frontend
+                data = {}
+                for stat in county_stats:
+                    county_code = stat['voting_section__county']
+                    if county_code:
+                        data[county_code] = {
+                            'total_voters': stat['total_votes'],
+                            'pollingStationCount': 0,  # Va fi actualizat mai jos
+                            'permanentListVoters': stat['unique_voters'],
+                            'supplementaryListVoters': 0,
+                            'specialCircumstancesVoters': 0,
+                            'mobileUrnsVoters': 0,
+                            'turnoutPercentage': '0.00'  # Va fi calculat după ce adăugăm registeredVoters
+                        }
+                # Adăugăm numărul de secții de votare pentru fiecare județ
+                polling_stations = VotingSection.objects.values('county')\
+                    .annotate(station_count=Count('id'))\
+                    .order_by('county')
+                
+                for station in polling_stations:
+                    county_code = station['county']
+                    if county_code in data:
+                        data[county_code]['pollingStationCount'] = station['station_count']
+                    else:
+                        # Inițializăm datele pentru județe care nu au voturi încă
+                        data[county_code] = {
+                            'total_voters': 0,
+                            'pollingStationCount': station['station_count'],
+                            'permanentListVoters': 0,
+                            'supplementaryListVoters': 0,
+                            'specialCircumstancesVoters': 0,
+                            'mobileUrnsVoters': 0,
+                            'turnoutPercentage': '0.00'
+                        }
+
+                # Estimăm numărul de alegători înregistrați (simulare pentru exemplu)
+                for county_code in data:
+                    data[county_code]['registeredVoters'] = data[county_code]['pollingStationCount'] * 1000
+
+                    # Calculăm procentajul de prezență
+                    if data[county_code]['registeredVoters'] > 0:
+                        turnout = (data[county_code]['total_voters'] / data[county_code]['registeredVoters']) * 100
+                        data[county_code]['turnoutPercentage'] = f"{turnout:.2f}"
+                    
                 return Response(data)
             
         elif vote_type == 'parlamentare':
@@ -3006,6 +3062,8 @@ class ActiveRoundUATVotingStatisticsView(APIView):
                 uat_votes = LocalVote.objects.filter(voting_section_id__in=section_ids)
             elif vote_type == 'prezidentiale':
                 uat_votes = PresidentialVote.objects.filter(voting_section_id__in=section_ids)
+            elif vote_type == 'prezidentiale_tur2':
+                uat_votes = PresidentialRound2Vote.objects.filter(voting_section_id__in=section_ids)
             elif vote_type == 'parlamentare':
                 uat_votes = ParliamentaryVote.objects.filter(voting_section_id__in=section_ids)
             else:
@@ -3039,3 +3097,448 @@ class ActiveRoundUATVotingStatisticsView(APIView):
                 result[normalized_code] = uat_data.copy()
         
         return Response(result)
+    
+# tur 2 alegeri prezidentiale
+# Adaugă la sfârșitul fișierului views.py din vote app
+
+class UserPresidentialRound2VotingEligibilityView(APIView):
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        """Verifică eligibilitatea utilizatorului pentru votul prezidențial turul 2"""
+        user = request.user
+        
+        # Verifică dacă utilizatorul este autentificat cu buletin (are CNP)
+        if not hasattr(user, 'cnp') or not user.cnp or not user.is_verified_by_id:
+            return Response({
+                'eligible': False,
+                'message': 'Pentru a participa la votul prezidențial turul 2, trebuie să vă autentificați folosind buletinul.',
+                'auth_type': 'email'
+            }, status=status.HTTP_200_OK)
+        
+        # Utilizatorul este autentificat cu buletin
+        return Response({
+            'eligible': True,
+            'message': 'Sunteți eligibil pentru a participa la votul prezidențial turul 2.',
+            'auth_type': 'id_card',
+            'user_info': {
+                'cnp': user.cnp,
+                'first_name': user.first_name,
+                'last_name': user.last_name
+            }
+        }, status=status.HTTP_200_OK)
+
+class PresidentialRound2CandidatesView(APIView):
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        """Obține lista de candidați pentru turul 2 prezidențial"""
+        try:
+            # Verifică ce nume de coloană este folosit pentru ordinea candidaților
+            with connection.cursor() as cursor:
+                cursor.execute("DESCRIBE vote_presidentialround2candidate")
+                columns = [col[0] for col in cursor.fetchall()]
+                
+                # Determină numele corect al coloanei pentru sortare
+                order_column = 'order_nr' if 'order_nr' in columns else 'order'
+            
+            # Construim query-ul utilizând ORM în funcție de coloana disponibilă
+            query = PresidentialRound2Candidate.objects.all()
+            
+            # Adăugăm criteriul de ordonare în funcție de coloana existentă
+            if order_column in columns:
+                query = query.order_by(order_column)
+            
+            # Extragem valorile necesare
+            candidates = query.values(
+                'id', 'name', 'party', 'photo_url', 'description', 'round1_votes', 'round1_percentage'
+            )
+            
+            return Response({
+                'candidates': candidates
+            })
+            
+        except Exception as e:
+            # Log pentru debugging
+            logger.error(f"Eroare la obținerea candidaților prezidențiali turul 2: {str(e)}")
+            
+            # Încearcă o abordare mai simplă, fără ordonare
+            try:
+                candidates = PresidentialRound2Candidate.objects.all().values(
+                    'id', 'name', 'party', 'photo_url', 'description', 'round1_votes', 'round1_percentage'
+                )
+                
+                return Response({
+                    'candidates': candidates
+                })
+            except Exception as fallback_error:
+                logger.error(f"Eroare la fallback pentru candidații prezidențiali turul 2: {str(fallback_error)}")
+                return Response({
+                    'error': 'Nu s-au putut obține candidații pentru turul 2 prezidențial',
+                    'detail': str(e)
+                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class CheckPresidentialRound2VoteStatusView(APIView):
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        """Verifică dacă utilizatorul a votat deja la turul 2 prezidențial"""
+        user = request.user
+        
+        # Verifică dacă utilizatorul este autentificat cu buletin
+        if not hasattr(user, 'cnp') or not user.cnp:
+            return Response({
+                'has_voted': False,
+                'message': 'Utilizatorul nu este autentificat cu buletinul.'
+            })
+        
+        # Verifică dacă utilizatorul a votat deja
+        existing_vote = PresidentialRound2Vote.objects.filter(user=user).first()
+        
+        if existing_vote:
+            return Response({
+                'has_voted': True,
+                'message': 'Ați votat deja în turul 2 prezidențial.',
+                'candidate_name': existing_vote.candidate.name,
+                'party': existing_vote.candidate.party
+            })
+        
+        return Response({
+            'has_voted': False,
+            'message': 'Nu ați votat încă în turul 2 prezidențial.'
+        })
+
+class SubmitPresidentialRound2VoteView(APIView):
+    permission_classes = [IsAuthenticated]
+    
+    def post(self, request):
+        """Înregistrează votul pentru turul 2 prezidențial și trimite confirmarea, dacă este solicitată"""
+        user = request.user
+        candidate_id = request.data.get('candidate_id')
+        voting_section_id = request.data.get('voting_section_id')
+        send_receipt = request.data.get('send_receipt', False)
+        receipt_method = request.data.get('receipt_method', 'email')
+        contact_info = request.data.get('contact_info', '')
+        county_code = request.data.get('county_code') 
+        uat = request.data.get('uat')
+        
+        # Verifică dacă utilizatorul este autentificat cu buletin
+        if not hasattr(user, 'cnp') or not user.cnp:
+            return Response({
+                'error': 'Autentificare cu buletin necesară pentru a vota'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Verifică dacă utilizatorul a votat deja
+        existing_vote = PresidentialRound2Vote.objects.filter(user=user).first()
+        if existing_vote:
+            return Response({
+                'error': 'Ați votat deja în turul 2 prezidențial'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        if not candidate_id:
+            return Response({
+                'error': 'Trebuie să selectați un candidat'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            candidate = PresidentialRound2Candidate.objects.get(pk=candidate_id)
+
+            # Obținem secția de vot dacă a fost furnizată
+            voting_section = None
+            if voting_section_id:
+                try:
+                    voting_section = VotingSection.objects.get(pk=voting_section_id)
+                except VotingSection.DoesNotExist:
+                    logger.warning(f"Secția de vot {voting_section_id} nu a fost găsită")
+
+            # Dacă nu avem secție de vot, dar avem județul și UAT-ul încercăm să găsim o secție potrivită
+            if not voting_section and county_code and uat:
+                try:
+                    voting_section = VotingSection.objects.filter(
+                        county=county_code,
+                        city=uat
+                    ).first()
+                except Exception as e:
+                    logger.warning(f"Nu s-a găsit o secție pentru județul {county_code} și UAT-ul {uat}: {e}")
+
+        except PresidentialRound2Candidate.DoesNotExist:
+            return Response({
+                'error': 'Candidatul selectat nu există'
+            }, status=status.HTTP_404_NOT_FOUND)
+        
+        # Validăm informațiile de contact dacă utilizatorul a solicitat confirmarea
+        if send_receipt:
+            if receipt_method == 'email':
+                if not contact_info or '@' not in contact_info:
+                    return Response({
+                        'error': 'Pentru a primi confirmarea prin email, trebuie să furnizați o adresă de email validă.'
+                    }, status=status.HTTP_400_BAD_REQUEST)
+            elif receipt_method == 'sms':
+                if not contact_info or len(contact_info) < 10:
+                    return Response({
+                        'error': 'Pentru a primi confirmarea prin SMS, trebuie să furnizați un număr de telefon valid.'
+                    }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Generăm un ID unic pentru vot
+        vote_reference = str(uuid.uuid4())[:8].upper()
+        
+        # Înregistrăm votul
+        try:
+            vote = PresidentialRound2Vote.objects.create(
+                user=user,
+                candidate=candidate,
+                voting_section=voting_section,
+                vote_reference=vote_reference
+            )
+            
+            # Trimite chitanța de vot dacă utilizatorul a solicitat
+            if send_receipt:
+                try:
+                    if receipt_method == 'email':
+                        email_success = self.send_vote_receipt_email(user, vote, contact_info)
+                        if not email_success:
+                            return Response({
+                                'message': 'Votul a fost înregistrat, dar confirmarea prin email nu a putut fi trimisă.',
+                                'vote_reference': vote_reference
+                            }, status=status.HTTP_201_CREATED)
+                except Exception as e:
+                    logger.error(f"Eroare trimitere confirmare: {str(e)}")
+                    return Response({
+                        'message': 'Votul a fost înregistrat, dar a apărut o eroare la trimiterea confirmării.',
+                        'vote_reference': vote_reference
+                    }, status=status.HTTP_201_CREATED)
+            
+            return Response({
+                'message': 'Votul dvs. pentru turul 2 a fost înregistrat cu succes!',
+                'vote_reference': vote_reference,
+                'county_code': county_code,
+                'uat': uat 
+            }, status=status.HTTP_201_CREATED)
+            
+        except ValidationError as e:
+            return Response({
+                'error': str(e)
+            }, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response({
+                'error': f'A apărut o eroare la înregistrarea votului: {str(e)}'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    def send_vote_receipt_email(self, user, vote, email):
+        """Trimite email cu chitanța pentru vot prezidențial turul 2"""
+        try:
+            # Data și ora curentă
+            vote_datetime = vote.vote_datetime.strftime("%d-%m-%Y %H:%M:%S")
+            
+            # Pregătim datele pentru template
+            candidate_info = {
+                'name': vote.candidate.name,
+                'party': vote.candidate.party,
+                'position': 'Președinte al României - Turul 2'
+            }
+
+            # Construim URL-ul pentru descărcarea PDF-ului 
+            from django.urls import reverse
+            from django.conf import settings
+            
+            backend_url = settings.BACKEND_URL.rstrip('/')  # Eliminăm trailing slash dacă există
+            pdf_url = f"{backend_url}{reverse('generate-presidential-round2-vote-receipt-pdf')}?vote_reference={vote.vote_reference}"
+           
+            context = {
+                'user_name': f"{user.first_name} {user.last_name}",
+                'vote_reference': vote.vote_reference,
+                'vote_datetime': vote_datetime,
+                'candidate': candidate_info,
+                'download_url': pdf_url  # Adăugăm URL-ul de descărcare PDF
+            }
+            
+            # Renderizăm template-ul pentru email
+            try:
+                html_message = render_to_string('presidential_round2_vote_receipt_email.html', context)
+            except Exception as template_error:
+                # Fallback la un mesaj HTML simplu
+                logger.error(f"Eroare la găsirea template-ului: {template_error}")
+                html_message = f"""
+                <html>
+                <head>
+                    <style>
+                        body {{ font-family: Arial, sans-serif; line-height: 1.6; }}
+                        .container {{ max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; }}
+                        .header {{ background-color: #007bff; color: white; padding: 10px; text-align: center; }}
+                        .download-btn {{ display: inline-block; background-color: #0080ff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; }}
+                    </style>
+                </head>
+                <body>
+                    <div class="container">
+                        <div class="header">
+                            <h1>SmartVote - Confirmare Vot Prezidențial Turul 2</h1>
+                        </div>
+                        
+                        <div class="section">
+                            <h2>Bună ziua, {user.first_name} {user.last_name}</h2>
+                            <p>Vă mulțumim pentru participarea la procesul electoral. Votul dumneavoastră pentru turul 2 al alegerilor prezidențiale a fost înregistrat cu succes.</p>
+                            <p>Referință vot: {vote.vote_reference}</p>
+                            <p>Data și ora: {vote_datetime}</p>
+                        </div>
+                        
+                        <div class="section">
+                            <h3>Candidatul votat:</h3>
+                            <p><strong>Președinte (Turul 2):</strong> {vote.candidate.name} ({vote.candidate.party})</p>
+                            
+                            <a href="{pdf_url}" class="download-btn">Descarcă confirmarea în format PDF</a>
+                        </div>
+                    </div>
+                </body>
+                </html>
+                """
+            
+            # Trimitem email-ul
+            email_msg = EmailMessage(
+                'Confirmare vot prezidențial turul 2 - SmartVote',
+                html_message,
+                config('EMAIL_FROM'),
+                [email],
+                reply_to=[config('EMAIL_FROM')],
+            )
+            email_msg.content_subtype = 'html'
+            email_msg.send()
+            
+            logger.info(f"Chitanța de vot prezidențial turul 2 trimisă prin email pentru utilizatorul {user.id} la adresa {email}")
+            return True
+        except Exception as e:
+            logger.error(f"Eroare la trimiterea chitanței prin email: {e}")
+            return False
+
+class GeneratePresidentialRound2VoteReceiptPDFView(APIView):
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        """Generează un PDF cu confirmarea votului prezidențial turul 2"""
+        vote_reference = request.GET.get('vote_reference')
+        if not vote_reference:
+            return Response({
+                'error': 'Referința votului este obligatorie'
+            }, status=status.HTTP_400_BAD_REQUEST)
+            
+        # Verifică dacă referința votului există
+        vote = PresidentialRound2Vote.objects.filter(vote_reference=vote_reference).first()
+        if not vote:
+            return Response({
+                'error': 'Nu a fost găsit un vot cu această referință'
+            }, status=status.HTTP_404_NOT_FOUND)
+            
+        # Generează PDF-ul
+        buffer = io.BytesIO()
+        self.create_pdf(buffer, vote.user, vote)
+        buffer.seek(0)
+        
+        # Returnează PDF-ul ca răspuns
+        response = HttpResponse(buffer, content_type='application/pdf')
+        response['Content-Disposition'] = f'attachment; filename="confirmare_vot_prezidential_tur2_{vote_reference}.pdf"'
+        return response
+    
+    def create_pdf(self, buffer, user, vote):
+        """Creează documentul PDF cu confirmarea votului prezidențial turul 2"""
+        # Configurează documentul
+        doc = SimpleDocTemplate(
+            buffer,
+            pagesize=A4,
+            rightMargin=72,
+            leftMargin=72,
+            topMargin=72,
+            bottomMargin=72
+        )
+        
+        # Configurarea fonturilor cu suport pentru diacritice
+        try:
+            font_path = os.path.join(settings.BASE_DIR, 'vote', 'static', 'fonts')
+            dejavu_regular = os.path.join(font_path, 'DejaVuSans.ttf')
+            dejavu_bold = os.path.join(font_path, 'DejaVuSans-Bold.ttf')
+            
+            pdfmetrics.registerFont(TTFont('DejaVuSans', dejavu_regular))
+            pdfmetrics.registerFont(TTFont('DejaVuSans-Bold', dejavu_bold))
+            font_name = 'DejaVuSans'
+            bold_font_name = 'DejaVuSans-Bold'
+        except Exception as e:
+            # Folosim fonturile implicite în caz de eroare
+            logger.error(f"Eroare la încărcarea fonturilor: {e}")
+            font_name = 'Helvetica'
+            bold_font_name = 'Helvetica-Bold'
+        
+        # Stiluri
+        styles = getSampleStyleSheet()
+        styles.add(ParagraphStyle(
+            name='CenterTitle',
+            parent=styles['Heading1'],
+            fontName=bold_font_name,
+            alignment=TA_CENTER,
+            spaceAfter=12
+        ))
+        styles.add(ParagraphStyle(
+            name='CenterNormal',
+            parent=styles['Normal'],
+            fontName=font_name,
+            alignment=TA_CENTER,
+            spaceAfter=6
+        ))
+        styles.add(ParagraphStyle(
+            name='NormalRomanian',
+            parent=styles['Normal'],
+            fontName=font_name,
+            spaceAfter=6
+        ))
+        styles.add(ParagraphStyle(
+            name='Heading3Romanian',
+            parent=styles['Heading3'],
+            fontName=bold_font_name,
+            spaceAfter=6
+        ))
+        
+        # Elemente PDF
+        elements = []
+        
+        # Titlu
+        elements.append(Paragraph("CONFIRMARE VOT PREZIDENȚIAL TURUL 2 - SMARTVOTE", styles['CenterTitle']))
+        elements.append(Spacer(1, 0.25 * inch))
+        
+        # Informații utilizator
+        elements.append(Paragraph(f"Bună ziua, {user.first_name} {user.last_name}", styles['NormalRomanian']))
+        elements.append(Spacer(1, 0.1 * inch))
+        elements.append(Paragraph("Vă mulțumim pentru participarea la procesul electoral. Votul dumneavoastră pentru turul 2 al alegerilor prezidențiale a fost înregistrat cu succes.", styles['NormalRomanian']))
+        elements.append(Spacer(1, 0.1 * inch))
+        
+        # Referință vot
+        elements.append(Paragraph(f"Referință vot: {vote.vote_reference}", styles['CenterNormal']))
+        elements.append(Paragraph(f"Data și ora: {vote.vote_datetime.strftime('%d-%m-%Y %H:%M:%S')}", styles['CenterNormal']))
+        elements.append(Spacer(1, 0.25 * inch))
+        
+        # Candidatul votat
+        elements.append(Paragraph("Candidatul votat:", styles['Heading3Romanian']))
+        
+        # Tabel pentru candidat
+        data = [["Funcție", "Nume", "Partid"]]
+        data.append(["Președinte al României - Turul 2", vote.candidate.name, vote.candidate.party])
+        
+        # Stilul pentru tabel
+        table_style = TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.lightblue),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 0), (-1, 0), bold_font_name),
+            ('FONTNAME', (0, 1), (-1, -1), font_name),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+            ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+            ('GRID', (0, 0), (-1, -1), 1, colors.black)
+        ])
+        
+        candidate_table = Table(data, style=table_style)
+        elements.append(candidate_table)
+        elements.append(Spacer(1, 0.25 * inch))
+        
+        # Avertisment și footer
+        elements.append(Paragraph("ATENȚIE: Acest document este confidențial și servește drept confirmare a votului dumneavoastră.", styles['NormalRomanian']))
+        elements.append(Spacer(1, 0.1 * inch))
+        elements.append(Paragraph("Toate drepturile rezervate © SmartVote 2024", styles['CenterNormal']))
+        
+        # Generează PDF-ul
+        doc.build(elements)

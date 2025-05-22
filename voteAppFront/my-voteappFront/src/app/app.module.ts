@@ -75,6 +75,7 @@ import { MatTabsModule } from '@angular/material/tabs';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { TwoFactorDialogComponent } from './shared/two-factor-dialog/two-factor-dialog.component';
 import { ClipboardModule } from '@angular/cdk/clipboard';
+import { PresidentialRound2VoteService } from './services/presidential-round2-vote.service';
 
 @NgModule({
   declarations: [
@@ -162,7 +163,8 @@ import { ClipboardModule } from '@angular/cdk/clipboard';
     { provide: HTTP_INTERCEPTORS, useClass: AuthBypassInterceptor, multi: true },
     VoteMonitoringService,
     PresidentialVoteService,
-    PresidentialCandidatesService
+    PresidentialCandidatesService,
+    PresidentialRound2VoteService
   ],
   bootstrap: [AppComponent]
 })

@@ -9,6 +9,7 @@ class VoteSettings(models.Model):
     vote_type = models.CharField(max_length=20, choices=[
         ('simulare', 'Simulare'),
         ('prezidentiale', 'Alegeri Prezidențiale'),
+        ('prezidentiale_tur2', 'Alegeri Prezidențiale Turul 2'),
         ('parlamentare', 'Alegeri Parlamentare'),
         ('locale', 'Alegeri Locale'),
     ])
@@ -382,3 +383,53 @@ class VoteToken(models.Model):
         """Verifică dacă token-ul este valid (nefolosit și neexpirat)"""
         now = timezone.now()
         return not self.used and now <= self.expires_at
+    
+class PresidentialRound2Candidate(models.Model):
+    """Model pentru candidații din turul 2 prezidențial"""
+    name = models.CharField(max_length=100)
+    party = models.CharField(max_length=100)
+    photo_url = models.URLField(blank=True, null=True)
+    description = models.TextField(blank=True, null=True)
+    order_nr = models.IntegerField(default=0)  # Pentru controlul ordinii de afișare
+    gender = models.CharField(max_length=1, blank=True, null=True)  # M sau F
+    
+    # Rezultate din turul 1 (opțional, pentru context)
+    round1_votes = models.IntegerField(default=0, help_text="Numărul de voturi din turul 1")
+    round1_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=0.00, help_text="Procentajul din turul 1")
+    
+    class Meta:
+        verbose_name = "Candidat Prezidențial Turul 2"
+        verbose_name_plural = "Candidați Prezidențiali Turul 2"
+        ordering = ['order_nr', 'name']
+    
+    def __str__(self):
+        return f"{self.name} ({self.party}) - Turul 2"
+
+class PresidentialRound2Vote(models.Model):
+    """Model pentru voturile din turul 2 prezidențial"""
+    user = models.ForeignKey('users.User', on_delete=models.CASCADE)
+    candidate = models.ForeignKey(PresidentialRound2Candidate, on_delete=models.CASCADE)
+    voting_section = models.ForeignKey(VotingSection, on_delete=models.CASCADE, null=True, blank=True)
+    vote_datetime = models.DateTimeField(auto_now_add=True)
+    vote_reference = models.CharField(max_length=20, blank=True, null=True)
+    
+    class Meta:
+        verbose_name = "Vot Prezidențial Turul 2"
+        verbose_name_plural = "Voturi Prezidențiale Turul 2"
+        unique_together = ('user', 'vote_reference')
+    
+    def save(self, *args, **kwargs):
+        # Verifică dacă utilizatorul a votat deja
+        if not self.pk:  # Doar pentru înregistrări noi
+            existing_vote = PresidentialRound2Vote.objects.filter(
+                user=self.user
+            ).exists()
+            
+            if existing_vote:
+                from django.core.exceptions import ValidationError
+                raise ValidationError('Utilizatorul a votat deja în turul 2 prezidențial')
+        
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.user} - {self.candidate} - Turul 2 - {self.vote_datetime.strftime('%d.%m.%Y, %H:%M')}"

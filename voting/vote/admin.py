@@ -6,6 +6,7 @@ from django.core.exceptions import ValidationError
 from .models import VoteSystem, VoteOption, VoteCast
 from django.utils import timezone
 from django.utils.html import format_html
+from .models import PresidentialRound2Candidate, PresidentialRound2Vote
 
 class VoteSettingsForm(forms.ModelForm):
     class Meta:
@@ -146,3 +147,35 @@ class VoteSystemAdmin(admin.ModelAdmin):
         
         self.message_user(request, f'{queryset.count()} sisteme de vot au fost respinse.')
     reject_vote_systems.short_description = "Respinge sistemele de vot selectate"
+
+
+@admin.register(PresidentialRound2Candidate)
+class PresidentialRound2CandidateAdmin(admin.ModelAdmin):
+    list_display = ('name', 'party', 'order_nr', 'round1_votes', 'round1_percentage')
+    search_fields = ('name', 'party')
+    list_filter = ('party',)
+    ordering = ('order_nr', 'name')
+    
+    fieldsets = (
+        ('Informații Candidate', {
+            'fields': ('name', 'party', 'photo_url', 'description', 'order_nr', 'gender')
+        }),
+        ('Rezultate Turul 1', {
+            'fields': ('round1_votes', 'round1_percentage'),
+            'description': 'Rezultatele candidatului din turul 1 (pentru context)'
+        }),
+    )
+
+@admin.register(PresidentialRound2Vote)
+class PresidentialRound2VoteAdmin(admin.ModelAdmin):
+    list_display = ('user', 'candidate', 'vote_datetime', 'vote_reference')
+    search_fields = ('user__email', 'user__cnp', 'user__first_name', 'user__last_name', 'candidate__name', 'vote_reference')
+    list_filter = ('vote_datetime', 'candidate')
+    readonly_fields = ('user', 'candidate', 'vote_datetime', 'vote_reference')
+    date_hierarchy = 'vote_datetime'
+    
+    def get_queryset(self, request):
+        # Preîncărcăm relațiile pentru a evita query-uri multiple
+        return super().get_queryset(request).select_related(
+            'user', 'candidate'
+        )

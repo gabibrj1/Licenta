@@ -166,10 +166,12 @@ export class MenuComponent implements OnInit, OnDestroy {
   }
   
   private updateVoteSettings(settings: any): void {
+    //console.log('Settings primite:', settings); 
     this.isVoteActive = settings.is_vote_active;
     
     if (this.isVoteActive) {
       this.activeVoteType = settings.vote_type;
+      //console.log('Tip vot activ setat la:', this.activeVoteType);
       this.remainingTime = settings.remaining_time;
       this.upcomingVoteType = null;
       this.timeUntilStart = 0;
@@ -350,56 +352,54 @@ switchRound(round: ElectionRound): void {
     }, 100); // Adăugăm un mic delay pentru a permite actualizarea serviciului
   }
 }
-  // Metodă nouă pentru navigarea către tipul corect de vot
-  navigateToVote(): void {
-    if (!this.isVoteActive) {
-      // Dacă votul nu este activ, sugerăm alternative
-      if (this.upcomingVoteType) {
-        // Există un vot programat în viitor
-        alert(`Votul de tip ${this.getVoteTypeText(this.upcomingVoteType)} va începe în curând. Poți încerca simularea procesului de vot între timp.`);
-      } else {
-        // Nu există vot programat - sugerăm simularea sau crearea propriului sistem
-        alert('Nu există o sesiune de vot activă în acest moment. Poți încerca simularea procesului de vot sau să creezi propriul sistem de vot.');
-      }
-      return;
+navigateToVote(): void {
+  if (!this.isVoteActive) {
+    // Dacă votul nu este activ, sugerăm alternative
+    if (this.upcomingVoteType) {
+      // Există un vot programat în viitor
+      alert(`Votul de tip ${this.getVoteTypeText(this.upcomingVoteType)} va începe în curând. Poți încerca simularea procesului de vot între timp.`);
+    } else {
+      // Nu există vot programat - sugerăm simularea sau crearea propriului sistem
+      alert('Nu există o sesiune de vot activă în acest moment. Poți încerca simularea procesului de vot sau să creezi propriul sistem de vot.');
     }
-    
-    // Redirecționăm către pagina corespunzătoare tipului de vot
-    // Acum rutele sunt relative la MenuComponent
-    switch (this.activeVoteType) {
-      case 'parlamentare':
-        this.router.navigate(['vot/parlamentare'], { relativeTo: this.route });
-        break;
-      case 'prezidentiale':
-        this.router.navigate(['vot/prezidentiale'], { relativeTo: this.route });
-        break;
-      case 'locale':
-        this.router.navigate(['vot/locale'], { relativeTo: this.route });
-        break;
-      case 'simulare':
-        this.router.navigate(['simulare-vot'], { relativeTo: this.route });
-        break;
-      default:
-        console.error('Tip de vot necunoscut:', this.activeVoteType);
-        // Pentru testare, defaultăm la simulare în caz că tipul nu este recunoscut
-        this.router.navigate(['simulare-vot'], { relativeTo: this.route });
-        break;
-    }
+    return;
   }
   
-  // Helper pentru afișarea tipului de vot într-un format prietenos
-  getVoteTypeText(voteType: string | null): string {
-    if (!voteType) return 'Necunoscut';
-    
-    switch (voteType) {
-      case 'parlamentare': return 'Alegeri Parlamentare';
-      case 'prezidentiale': return 'Alegeri Prezidențiale';
-      case 'locale': return 'Alegeri Locale';
-      case 'simulare': return 'Simulare';
-      default: return voteType;
-    }
+  // Normalizează string-ul (elimină spații)
+  const voteType = this.activeVoteType?.trim();
+  
+  // Folosim if-else în loc de switch pentru mai multă flexibilitate
+  if (voteType === 'parlamentare') {
+    this.router.navigate(['vot/parlamentare'], { relativeTo: this.route });
+  } else if (voteType === 'prezidentiale') {
+    this.router.navigate(['vot/prezidentiale'], { relativeTo: this.route });
+  } else if (voteType === 'prezidentiale_tur2') {
+    this.router.navigate(['vot/prezidentiale-tur2'], { relativeTo: this.route });
+  } else if (voteType === 'locale') {
+    this.router.navigate(['vot/locale'], { relativeTo: this.route });
+  } else if (voteType === 'simulare') {
+    this.router.navigate(['simulare-vot'], { relativeTo: this.route });
+  } else {
+    console.error('Tip de vot necunoscut:', voteType);
+    // Pentru testare, defaultăm la simulare în caz că tipul nu este recunoscut
+    this.router.navigate(['simulare-vot'], { relativeTo: this.route });
   }
+}
 
+// Helper pentru afișarea tipului de vot într-un format prietenos
+getVoteTypeText(voteType: string | null): string {
+  if (!voteType) return 'Necunoscut';
+  
+  const normalizedType = voteType.trim();
+  
+  if (normalizedType === 'parlamentare') return 'Alegeri Parlamentare';
+  if (normalizedType === 'prezidentiale') return 'Alegeri Prezidențiale';
+  if (normalizedType === 'prezidentiale_tur2') return 'Alegeri Prezidențiale Turul 2';
+  if (normalizedType === 'locale') return 'Alegeri Locale';
+  if (normalizedType === 'simulare') return 'Simulare';
+  
+  return voteType;
+}
   // Helper pentru formatarea timpului rămas
   formatRemainingTime(seconds: number): string {
     if (seconds <= 0) return '00:00:00';

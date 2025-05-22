@@ -1,0 +1,9 @@
+# Afiseaza rezultatele si permite selectia manuala
+python manage.py create_round2_candidates
+
+# Selecteaza automat primiii 2 candidate
+python manage.py create_round2_candidates --auto
+
+# Sterge candidatii existenti si creeaza noii candidati
+python manage.py create_round2_candidates --auto --clear
+
