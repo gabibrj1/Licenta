@@ -331,25 +331,42 @@ switchRound(round: ElectionRound): void {
   // Notificăm serviciul de hartă despre schimbarea turului
   this.mapService.setCurrentRound(round.id, round.hasData);
   
-  // Actualizăm harta dacă suntem pe pagina de hartă
-  if (this.currentView === 'harta') {
-    // Obține parametrii actuali din URL pentru a păstra starea UAT
-    const currentParams: {[key: string]: any} = { ...this.route.snapshot.queryParams };
-    
-    // Adăugăm noul tur la parametri, păstrând restul parametrilor
-    currentParams['round'] = round.id;
-    
-    // Păstrăm parametrul location, sau folosim valoarea implicită
-    if (!currentParams['location']) {
-      currentParams['location'] = this.locationFilter;
-    }
-    
-    // Navigăm cu toți parametrii, fără a folosi replaceUrl=true pentru a permite Back/Forward
+  // Obține ruta curentă pentru a determina ce pagină să reîmprospăteze
+  const currentUrl = this.router.url;
+  
+  // Obține parametrii actuali din URL pentru a păstra starea
+  const currentParams: {[key: string]: any} = { ...this.route.snapshot.queryParams };
+  
+  // Adăugăm noul tur la parametri, păstrând restul parametrilor
+  currentParams['round'] = round.id;
+  
+  // Păstrăm parametrul location, sau folosim valoarea implicită
+  if (!currentParams['location']) {
+    currentParams['location'] = this.locationFilter;
+  }
+  
+  // Determină ce pagină să reîmprospăteze pe baza URL-ului curent
+  if (currentUrl.includes('/harta')) {
+    // Pentru pagina de hartă
     setTimeout(() => {
       this.router.navigate(['menu/harta'], { 
         queryParams: currentParams
       });
-    }, 100); // Adăugăm un mic delay pentru a permite actualizarea serviciului
+    }, 100);
+  } else if (currentUrl.includes('/statistici')) {
+    // Pentru pagina de statistici - NOUA LOGICĂ
+    setTimeout(() => {
+      this.router.navigate(['menu/statistici'], { 
+        queryParams: currentParams
+      });
+    }, 100);
+  } else if (currentUrl.includes('/prezenta')) {
+    // Pentru pagina de prezență
+    setTimeout(() => {
+      this.router.navigate(['menu/prezenta'], { 
+        queryParams: currentParams
+      });
+    }, 100);
   }
 }
 navigateToVote(): void {
@@ -429,9 +446,15 @@ getVoteTypeText(voteType: string | null): string {
       case 'prezenta':
         this.router.navigate(['menu/prezenta']);
         break;
+      
       case 'statistici':
-        this.router.navigate(['menu/statistici']);
-        break;
+        this.router.navigate(['menu/statistici'], {
+          queryParams: { 
+            location: this.locationFilter,
+            round: this.currentRound.id
+          }
+       });
+       break;
       case 'harta':
         // Notificăm serviciul de hartă despre turul curent înainte de navigare
         this.mapService.setCurrentRound(this.currentRound.id, this.currentRound.hasData);
@@ -509,22 +532,44 @@ getVoteTypeText(voteType: string | null): string {
     }
   }
 
-  // În menu.component.ts
-  switchLocation(location: string): void {
-    this.locationFilter = location;
+switchLocation(location: string): void {
+  console.log(`Schimbare către locația: ${location}`);
+  
+  // Actualizăm filtrul de locație
+  this.locationFilter = location;
+  
+  // Obține ruta curentă și parametrii existenți
+  const currentUrl = this.router.url;
+  const currentParams: {[key: string]: any} = { ...this.route.snapshot.queryParams };
+  
+  // Actualizează parametrii cu noua locație
+  currentParams['location'] = location;
+  currentParams['round'] = this.currentRound.id;
+  
+  // Tratament special pentru harta
+  if (currentUrl.includes('/harta')) {
+    // Pentru hartă, actualizăm mai întâi serviciul pentru a evita conflictele
+    this.mapService.setCurrentRound(this.currentRound.id, this.currentRound.hasData);
     
-    // Dacă utilizatorul este deja pe pagina hartă, actualizează URL-ul
-    if (this.currentView === 'harta') {
-      this.router.navigate(['menu/harta'], { 
-        queryParams: { 
-          location: location,
-          round: this.currentRound.id
-        },
-        replaceUrl: true
-      });
-    }
+    // Navigăm imediat fără timeout și cu replaceUrl pentru o tranziție mai rapidă
+    const pathWithoutParams = currentUrl.split('?')[0];
+    this.router.navigate([pathWithoutParams], { 
+      queryParams: currentParams,
+      replaceUrl: true // Înlocuiește URL-ul curent în loc să adauge în istoric
+    });
+  } 
+  // Pentru alte pagini (statistici, prezență, etc.)
+  else if (currentUrl.includes('/statistici') || 
+           currentUrl.includes('/prezenta') ||
+           currentUrl.includes('/candidati_prezidentiali')) {
+    
+    // Pentru acestea păstrăm logica standard
+    const pathWithoutParams = currentUrl.split('?')[0];
+    this.router.navigate([pathWithoutParams], { 
+      queryParams: currentParams
+    });
   }
-
+}
   // Mask CNP for privacy
   maskCNP(cnp: string): string {
     if (!cnp) return '';

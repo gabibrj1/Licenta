@@ -1,0 +1,155 @@
+<div class="statistics-page">
+  <div class="statistics-header">
+    <h2>
+      Statistici {{ getRoundDisplayName() }} - {{ getLocationDisplayName() }}
+      <span *ngIf="isLiveMode" class="live-indicator">
+        <i class="fas fa-circle"></i> LIVE
+      </span>
+    </h2>
+    
+    <div *ngIf="liveData" class="live-stats">
+      <div class="live-stat-item">
+        <span class="label">Total voturi astăzi:</span>
+        <span class="value">{{ formatNumber(liveData.total_votes_today) }}</span>
+      </div>
+      <div class="live-stat-item">
+        <span class="label">Ultimele 30 min:</span>
+        <span class="value">{{ formatNumber(liveData.votes_last_30_min) }}</span>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="isLoading" class="loading">
+    <i class="fas fa-spinner fa-spin"></i>
+    <p>Se încarcă statisticile...</p>
+  </div>
+
+  <div *ngIf="error" class="error">
+    <i class="fas fa-exclamation-triangle"></i>
+    <p>{{ error }}</p>
+  </div>
+
+  <div *ngIf="statisticsData && !isLoading" class="statistics-content">
+    <!-- Sumar general -->
+    <div class="summary-cards">
+      <div class="summary-card">
+        <div class="card-icon">
+          <i class="fas fa-users"></i>
+        </div>
+        <div class="card-content">
+          <h3>Total voturi</h3>
+          <p class="big-number">{{ formatNumber(statisticsData.total_votes) }}</p>
+        </div>
+      </div>
+      
+      <div class="summary-card" *ngIf="statisticsData.age_distribution.length > 0">
+        <div class="card-icon">
+          <i class="fas fa-user-check"></i>
+        </div>
+        <div class="card-content">
+          <h3>Cea mai activă grupă</h3>
+          <p class="big-number">{{ getMostActiveAgeGroup() }}</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Grafice -->
+    <div class="charts-grid">
+      <!-- Grafic vârstă -->
+      <div class="chart-container" *ngIf="ageChartOptions">
+        <h3>Distribuția pe grupe de vârstă</h3>
+        <div echarts [options]="ageChartOptions" class="chart"></div>
+        
+        <!-- Tabel cu date -->
+        <div class="data-table">
+          <table>
+            <thead>
+              <tr>
+                <th>Grupa de vârstă</th>
+                <th>Numărul de voturi</th>
+                <th>Procentaj</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let item of statisticsData.age_distribution">
+                <td>{{ item.age_group }}</td>
+                <td>{{ formatNumber(item.count) }}</td>
+                <td>{{ item.percentage }}%</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Grafic gen -->
+      <div class="chart-container" *ngIf="genderChartOptions">
+        <h3>Distribuția pe gen</h3>
+        <div echarts [options]="genderChartOptions" class="chart"></div>
+        
+        <div class="data-table">
+          <table>
+            <thead>
+              <tr>
+                <th>Gen</th>
+                <th>Numărul de voturi</th>
+                <th>Procentaj</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let item of statisticsData.gender_distribution">
+                <td>{{ item.gender_name }}</td>
+                <td>{{ formatNumber(item.count) }}</td>
+                <td>{{ item.percentage }}%</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Grafic mediu (doar dacă există date) -->
+      <div class="chart-container" *ngIf="environmentChartOptions">
+        <h3>Distribuția pe mediu</h3>
+        <div echarts [options]="environmentChartOptions" class="chart"></div>
+        
+        <div class="data-table">
+          <table>
+            <thead>
+              <tr>
+                <th>Mediu</th>
+                <th>Numărul de voturi</th>
+                <th>Procentaj</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let item of statisticsData.environment_distribution">
+                <td>{{ item.environment_name }}</td>
+                <td>{{ formatNumber(item.count) }}</td>
+                <td>{{ item.percentage }}%</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Grafic aflux (doar dacă există date) -->
+      <div class="chart-container full-width" *ngIf="turnoutChartOptions">
+        <h3>Afluxul alegătorilor în timpul zilei</h3>
+        <div echarts [options]="turnoutChartOptions" class="chart large-chart"></div>
+      </div>
+    </div>
+
+    <!-- Informații despre datele afișate -->
+    <div class="data-info">
+      <p>
+        <i class="fas fa-info-circle"></i>
+        Statisticile afișate se bazează pe datele reale din baza de date pentru {{ getRoundDisplayName() }}
+        <span *ngIf="isLiveMode"> și se actualizează automat la fiecare 30 de secunde</span>.
+      </p>
+      <p *ngIf="statisticsData.round_info.period.start">
+        <strong>Perioada:</strong> 
+        {{ statisticsData.round_info.period.start | date:'dd.MM.yyyy HH:mm' }} - 
+        {{ statisticsData.round_info.period.end | date:'dd.MM.yyyy HH:mm' }}
+      </p>
+    </div>
+  </div>
+</div>

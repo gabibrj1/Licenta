@@ -38,6 +38,7 @@ import { CandidatDetailComponent } from './candidati-prezidentiali/candidat-deta
 import { CandidatiLocaliComponent } from './candidati-locali/candidati-locali.component';
 import { SetariContComponent } from './setari-cont/setari-cont.component';
 import { PresidentialRound2VoteComponent } from './vote/presidential-round2-vote/presidential-round2-vote.component';
+import { StatisticsComponent } from './statistics/statistics.component';
 
 const routes: Routes = [
   { path: '', component: HomeComponent },
@@ -54,8 +55,10 @@ const routes: Routes = [
       { path: 'despre/sisteme-vot/:id', component: VoteSystemDetailsComponent, canActivate: [AuthGuard] },
       { path: 'despre/status-vot/:id', component: VoteSystemStatusComponent, canActivate: [AuthGuard] },
       { path: 'news', component: NewsComponent},
+      { path: 'statistici', component: StatisticsComponent },
       { path: 'news/article/:slug', component: ArticleDetailComponent },
       { path: 'forumuri', component: ForumuriComponent},
+      
     
       { path: 'candidati_prezidentiali', component: CandidatiPrezidentialiComponent},
       { path: 'candidati_prezidentiali/:slug', component: CandidatDetailComponent},
@@ -77,6 +80,8 @@ const routes: Routes = [
       { path: 'vot/parlamentare', component: ParliamentaryVoteComponent, canActivate: [AuthGuard] },
       { path: 'vot/locale', component: LocalVoteComponent, canActivate: [AuthGuard] },
 
+      
+      
       // Aici poți adăuga alte rute pentru conținutul din meniu
       { path: '', redirectTo: '', pathMatch: 'full' } 
     ]
