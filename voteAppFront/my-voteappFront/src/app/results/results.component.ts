@@ -255,7 +255,7 @@ export class ResultsComponent implements OnInit, OnDestroy {
     this.resultsChartOptions = {
       title: {
         text: `Rezultate ${selectedCountyData.county}`,
-        left: 'center',
+        left: 'right',
         textStyle: {
           color: '#ffffff',
           fontSize: 16
@@ -372,11 +372,11 @@ export class ResultsComponent implements OnInit, OnDestroy {
   getChartTitle(): string {
     const voteType = this.resultsData.round_info.vote_type;
     if (voteType === 'parlamentare') {
-      return 'Rezultate Alegeri Parlamentare';
+      return '';
     } else if (voteType === 'prezidentiale_tur2') {
-      return 'Rezultate Alegeri Prezidențiale - Turul 2';
+      return '';
     } else {
-      return 'Rezultate Alegeri Prezidențiale';
+      return '';
     }
   }
 

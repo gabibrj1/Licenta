@@ -4,6 +4,11 @@ from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 import uuid
 from datetime import timedelta
+from django.db.models.signals import pre_delete, post_delete
+from django.dispatch import receiver
+import logging
+
+logger = logging.getLogger(__name__)
 
 class VoteSettings(models.Model):
     vote_type = models.CharField(max_length=20, choices=[
@@ -433,3 +438,66 @@ class PresidentialRound2Vote(models.Model):
 
     def __str__(self):
         return f"{self.user} - {self.candidate} - Turul 2 - {self.vote_datetime.strftime('%d.%m.%Y, %H:%M')}"
+    
+@receiver(pre_delete, sender=VoteSettings)
+def delete_related_votes_before_settings_delete(sender, instance, **kwargs):
+    """
+    Signal care se execută înainte de ștergerea unei configurații VoteSettings
+    Șterge toate voturile înregistrate pentru tipul de vot respectiv
+    """
+    vote_type = instance.vote_type
+    
+    logger.info(f"Pregătire ștergere voturi pentru tipul: {vote_type}")
+    
+    try:
+        if vote_type == 'locale':
+            # Șterge toate voturile locale
+            deleted_count = LocalVote.objects.all().count()
+            LocalVote.objects.all().delete()
+            logger.info(f"Au fost șterse {deleted_count} voturi locale")
+            
+        elif vote_type == 'prezidentiale':
+            # Șterge toate voturile prezidențiale
+            deleted_count = PresidentialVote.objects.all().count()
+            PresidentialVote.objects.all().delete()
+            logger.info(f"Au fost șterse {deleted_count} voturi prezidențiale")
+            
+        elif vote_type == 'prezidentiale_tur2':
+            # Șterge toate voturile pentru turul 2 prezidențial
+            deleted_count = PresidentialRound2Vote.objects.all().count()
+            PresidentialRound2Vote.objects.all().delete()
+            logger.info(f"Au fost șterse {deleted_count} voturi prezidențiale turul 2")
+            
+        elif vote_type == 'parlamentare':
+            # Șterge toate voturile parlamentare
+            deleted_count = ParliamentaryVote.objects.all().count()
+            ParliamentaryVote.objects.all().delete()
+            logger.info(f"Au fost șterse {deleted_count} voturi parlamentare")
+            
+        elif vote_type == 'simulare':
+            # Pentru simulare, șterge toate tipurile de voturi
+            local_count = LocalVote.objects.all().count()
+            presidential_count = PresidentialVote.objects.all().count()
+            presidential_r2_count = PresidentialRound2Vote.objects.all().count()
+            parliamentary_count = ParliamentaryVote.objects.all().count()
+            
+            LocalVote.objects.all().delete()
+            PresidentialVote.objects.all().delete()
+            PresidentialRound2Vote.objects.all().delete()
+            ParliamentaryVote.objects.all().delete()
+            
+            total_deleted = local_count + presidential_count + presidential_r2_count + parliamentary_count
+            logger.info(f"Au fost șterse {total_deleted} voturi în total pentru simulare")
+            
+    except Exception as e:
+        logger.error(f"Eroare la ștergerea voturilor pentru tipul {vote_type}: {str(e)}")
+        # Nu ridicăm excepția pentru a nu împiedica ștergerea configurației
+
+@receiver(post_delete, sender=VoteSettings)
+def log_vote_settings_deletion(sender, instance, **kwargs):
+    """
+    Signal care se execută după ștergerea unei configurații VoteSettings
+    Loghează confirmarea ștergerii
+    """
+    logger.info(f"Configurația de vot '{instance.vote_type}' a fost ștearsă cu succes din admin")
+
