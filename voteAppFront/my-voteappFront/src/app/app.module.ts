@@ -77,6 +77,7 @@ import { TwoFactorDialogComponent } from './shared/two-factor-dialog/two-factor-
 import { ClipboardModule } from '@angular/cdk/clipboard';
 import { PresidentialRound2VoteService } from './services/presidential-round2-vote.service';
 import { StatisticsComponent } from './statistics/statistics.component';
+import { ResultsComponent } from './results/results.component';
 
 @NgModule({
   declarations: [
@@ -121,6 +122,7 @@ import { StatisticsComponent } from './statistics/statistics.component';
     ConfirmDialogComponent,
     TwoFactorDialogComponent,
     StatisticsComponent,
+    ResultsComponent,
 
   ],
   imports: [

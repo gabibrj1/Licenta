@@ -360,10 +360,10 @@ switchRound(round: ElectionRound): void {
         queryParams: currentParams
       });
     }, 100);
-  } else if (currentUrl.includes('/prezenta')) {
+  } else if (currentUrl.includes('/rezultate')) {
     // Pentru pagina de prezență
     setTimeout(() => {
-      this.router.navigate(['menu/prezenta'], { 
+      this.router.navigate(['menu/rezultate'], { 
         queryParams: currentParams
       });
     }, 100);
@@ -481,7 +481,12 @@ getVoteTypeText(voteType: string | null): string {
       
       // Procese-verbale
       case 'rezultate':
-        this.router.navigate(['menu/rezultate']);
+        this.router.navigate(['menu/rezultate'], {
+          queryParams: { 
+            location: this.locationFilter,
+            round: this.currentRound.id
+          }
+        });
         break;
       case 'harta-rezultate':
         this.router.navigate(['menu/harta-rezultate']);
@@ -560,7 +565,7 @@ switchLocation(location: string): void {
   } 
   // Pentru alte pagini (statistici, prezență, etc.)
   else if (currentUrl.includes('/statistici') || 
-           currentUrl.includes('/prezenta') ||
+           currentUrl.includes('/rezultate') ||
            currentUrl.includes('/candidati_prezidentiali')) {
     
     // Pentru acestea păstrăm logica standard

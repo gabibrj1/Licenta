@@ -39,6 +39,8 @@ import { CandidatiLocaliComponent } from './candidati-locali/candidati-locali.co
 import { SetariContComponent } from './setari-cont/setari-cont.component';
 import { PresidentialRound2VoteComponent } from './vote/presidential-round2-vote/presidential-round2-vote.component';
 import { StatisticsComponent } from './statistics/statistics.component';
+import { ResultsComponent } from './results/results.component';
+
 
 const routes: Routes = [
   { path: '', component: HomeComponent },
@@ -56,6 +58,7 @@ const routes: Routes = [
       { path: 'despre/status-vot/:id', component: VoteSystemStatusComponent, canActivate: [AuthGuard] },
       { path: 'news', component: NewsComponent},
       { path: 'statistici', component: StatisticsComponent },
+      { path: 'rezultate', component: ResultsComponent },
       { path: 'news/article/:slug', component: ArticleDetailComponent },
       { path: 'forumuri', component: ForumuriComponent},
       

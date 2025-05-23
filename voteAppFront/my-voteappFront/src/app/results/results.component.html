@@ -1,0 +1,221 @@
+<div class="results-page">
+  <div class="results-header">
+    <h2>
+      Rezultate {{ getRoundDisplayName() }} - {{ getLocationDisplayName() }}
+      <span *ngIf="isLiveMode" class="live-indicator">
+        <i class="fas fa-circle"></i> LIVE
+      </span>
+    </h2>
+    
+    <!-- Countdown Timer -->
+    <div *ngIf="isLiveMode && timeRemaining > 0" class="countdown-timer">
+      <h3>Timp rămas până la închiderea urnelor:</h3>
+      <div class="countdown-display">{{ countdownDisplay }}</div>
+    </div>
+    
+    <div *ngIf="liveData" class="live-stats">
+      <div class="live-stat-item">
+        <span class="label">Total voturi astăzi:</span>
+        <span class="value">{{ formatNumber(liveData.total_votes_today) }}</span>
+      </div>
+      <div class="live-stat-item">
+        <span class="label">Ultimele 30 min:</span>
+        <span class="value">{{ formatNumber(liveData.votes_last_30_min) }}</span>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="isLoading" class="loading">
+    <i class="fas fa-spinner fa-spin"></i>
+    <p>Se încarcă rezultatele...</p>
+  </div>
+
+  <div *ngIf="error" class="error">
+    <i class="fas fa-exclamation-triangle"></i>
+    <p>{{ error }}</p>
+  </div>
+
+  <div *ngIf="resultsData && !isLoading" class="results-content">
+    <!-- Winner Section -->
+    <div *ngIf="resultsData.winner || resultsData.is_final" class="winner-section">
+      <div class="winner-card">
+        <div class="winner-icon">
+          <i class="fas fa-crown"></i>
+        </div>
+        <div class="winner-content">
+          <h3>{{ resultsData.is_final ? 'REZULTAT FINAL' : 'LIDER ACTUAL' }}</h3>
+          <p class="winner-message">{{ getWinnerMessage() }}</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="summary-cards">
+      <div class="summary-card">
+        <div class="card-icon">
+          <i class="fas fa-vote-yea"></i>
+        </div>
+        <div class="card-content">
+          <h3>Total voturi</h3>
+          <p class="big-number">{{ formatNumber(resultsData.total_votes) }}</p>
+        </div>
+      </div>
+      
+      <div class="summary-card" *ngIf="resultsData.results && resultsData.results.length > 0">
+        <div class="card-icon">
+          <i class="fas fa-users"></i>
+        </div>
+        <div class="card-content">
+          <h3>Candidați/Partide</h3>
+          <p class="big-number">{{ resultsData.results.length }}</p>
+        </div>
+      </div>
+      
+      <div class="summary-card" *ngIf="isLiveMode">
+        <div class="card-icon">
+          <i class="fas fa-clock"></i>
+        </div>
+        <div class="card-content">
+          <h3>Status</h3>
+          <p class="big-number">{{ resultsData.is_final ? 'FINAL' : 'LIVE' }}</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Charts Section -->
+    <div class="charts-grid">
+      <!-- County Selector for Local Elections -->
+      <div *ngIf="resultsData.round_info.vote_type === 'locale' && availableCounties.length > 1" class="county-selector-container">
+        <h3>Selectează județul pentru grafic:</h3>
+        <select [(ngModel)]="selectedCounty" (change)="onCountyChange()" class="county-selector">
+          <option *ngFor="let county of availableCounties" [value]="county">{{ county }}</option>
+        </select>
+      </div>
+
+      <!-- Results Chart -->
+      <div class="chart-container" *ngIf="resultsChartOptions">
+        <h3>{{ getChartTitle() }}</h3>
+        <div echarts [options]="resultsChartOptions" class="chart"></div>
+      </div>
+
+      <!-- Progress Chart -->
+      <div class="chart-container" *ngIf="progressChartOptions">
+        <h3>Evoluția numărării voturilor</h3>
+        <div echarts [options]="progressChartOptions" class="chart"></div>
+      </div>
+    </div>
+
+    <!-- Detailed Results Tables -->
+    <div class="results-tables">
+      <!-- National Results -->
+      <div *ngIf="resultsData.round_info.vote_type !== 'locale'" class="results-table-container">
+        <h3>Rezultate detaliate</h3>
+        <div class="results-table">
+          <table>
+            <thead>
+              <tr>
+                <th>Loc</th>
+                <th *ngIf="resultsData.round_info.vote_type === 'parlamentare'">Partid</th>
+                <th *ngIf="resultsData.round_info.vote_type !== 'parlamentare'">Candidat</th>
+                <th>Organizație politică</th>
+                <th>Voturi</th>
+                <th>Procentaj</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let result of resultsData.results; let i = index" 
+                  [class.winner-row]="i === 0 && resultsData.is_final">
+                <td class="place-cell">
+                  <span class="place-number">{{ i + 1 }}</span>
+                  <i *ngIf="i === 0 && resultsData.is_final" class="fas fa-crown winner-crown"></i>
+                </td>
+                <td class="candidate-cell">
+                  <span *ngIf="resultsData.round_info.vote_type === 'parlamentare'">
+                    {{ result.abbreviation }} - {{ result.party_name }}
+                  </span>
+                  <span *ngIf="resultsData.round_info.vote_type !== 'parlamentare'">
+                    {{ result.candidate_name }}
+                  </span>
+                </td>
+                <td class="party-cell">
+                  <span *ngIf="resultsData.round_info.vote_type === 'parlamentare'">
+                    {{ result.party_name }}
+                  </span>
+                  <span *ngIf="resultsData.round_info.vote_type !== 'parlamentare'">
+                    {{ result.party || 'Independent' }}
+                  </span>
+                </td>
+                <td class="votes-cell">{{ formatNumber(result.votes) }}</td>
+                <td class="percentage-cell">
+                  <div class="percentage-bar">
+                    <div class="percentage-fill" [style.width.%]="result.percentage"></div>
+                    <span class="percentage-text">{{ result.percentage }}%</span>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Local Results -->
+      <div *ngIf="resultsData.round_info.vote_type === 'locale'" class="local-results-container">
+        <h3>Rezultate locale pe județe</h3>
+        <div *ngFor="let county of resultsData.results" class="county-results">
+          <h4>{{ county.county }} ({{ formatNumber(county.total_votes) }} voturi)</h4>
+          <div class="results-table">
+            <table>
+              <thead>
+                <tr>
+                  <th>Loc</th>
+                  <th>Candidat</th>
+                  <th>Funcție</th>
+                  <th>Partid</th>
+                  <th>Voturi</th>
+                  <th>Procentaj</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let candidate of county.candidates; let i = index"
+                    [class.winner-row]="i === 0 && resultsData.is_final">
+                  <td class="place-cell">
+                    <span class="place-number">{{ i + 1 }}</span>
+                    <i *ngIf="i === 0 && resultsData.is_final" class="fas fa-crown winner-crown"></i>
+                  </td>
+                  <td>{{ candidate.candidate_name }}</td>
+                  <td>{{ getPositionInRomanian(candidate.position) }}</td>
+                  <td>{{ candidate.party || 'Independent' }}</td>
+                  <td>{{ formatNumber(candidate.votes) }}</td>
+                  <td>
+                    <div class="percentage-bar">
+                      <div class="percentage-fill" [style.width.%]="candidate.percentage"></div>
+                      <span class="percentage-text">{{ candidate.percentage }}%</span>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Information Section -->
+    <div class="data-info">
+      <p>
+        <i class="fas fa-info-circle"></i>
+        Rezultatele afișate se bazează pe datele reale din baza de date pentru {{ getRoundDisplayName() }}
+        <span *ngIf="isLiveMode"> și se actualizează automat la fiecare 15 secunde</span>.
+      </p>
+      <p *ngIf="resultsData.round_info.period.start">
+        <strong>Perioada:</strong> 
+        {{ resultsData.round_info.period.start | date:'dd.MM.yyyy HH:mm' }} - 
+        {{ resultsData.round_info.period.end | date:'dd.MM.yyyy HH:mm' }}
+      </p>
+      <p *ngIf="resultsData.is_final" class="final-notice">
+        <i class="fas fa-check-circle"></i>
+        <strong>Acestea sunt rezultatele finale oficiale.</strong>
+      </p>
+    </div>
+  </div>
+</div>
