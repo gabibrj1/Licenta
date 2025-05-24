@@ -78,6 +78,9 @@ import { ClipboardModule } from '@angular/cdk/clipboard';
 import { PresidentialRound2VoteService } from './services/presidential-round2-vote.service';
 import { StatisticsComponent } from './statistics/statistics.component';
 import { ResultsComponent } from './results/results.component';
+import { PresenceComponent } from './presence/presence.component';
+import { CsvDownloadComponent } from './csv-download/csv-download.component';
+import { CsvDownloadService } from './services/csv-download.service';
 
 @NgModule({
   declarations: [
@@ -123,6 +126,8 @@ import { ResultsComponent } from './results/results.component';
     TwoFactorDialogComponent,
     StatisticsComponent,
     ResultsComponent,
+    PresenceComponent,
+    CsvDownloadComponent,
 
   ],
   imports: [
@@ -168,7 +173,8 @@ import { ResultsComponent } from './results/results.component';
     VoteMonitoringService,
     PresidentialVoteService,
     PresidentialCandidatesService,
-    PresidentialRound2VoteService
+    PresidentialRound2VoteService,
+    CsvDownloadService,
   ],
   bootstrap: [AppComponent]
 })

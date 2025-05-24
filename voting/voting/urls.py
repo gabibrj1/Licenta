@@ -19,6 +19,8 @@ urlpatterns = [
     path('api/account/', include('account_settings.urls')),
     path('api/statistici/', include('statistici.urls')),
     path('api/rezultate/', include('rezultate.urls')),
+    path('api/prezenta/', include('prezenta.urls')),
+    path('api/csv/', include('csv_download.urls')),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT) \
   + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
 

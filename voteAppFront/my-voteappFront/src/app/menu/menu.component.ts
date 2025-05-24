@@ -361,9 +361,24 @@ switchRound(round: ElectionRound): void {
       });
     }, 100);
   } else if (currentUrl.includes('/rezultate')) {
-    // Pentru pagina de prezență
+    // Pentru pagina de rezultate
     setTimeout(() => {
       this.router.navigate(['menu/rezultate'], { 
+        queryParams: currentParams
+      });
+    }, 100);
+  }else if (currentUrl.includes('/prezenta')) {
+    // Pentru pagina de prezenta
+    setTimeout(() => {
+      this.router.navigate(['menu/prezenta'], { 
+        queryParams: currentParams
+      });
+    }, 100);
+  }
+  else if (currentUrl.includes('/csv-download')) {
+    // Pentru pagina de descarca csv
+    setTimeout(() => {
+      this.router.navigate(['menu/csv-download'], { 
         queryParams: currentParams
       });
     }, 100);
@@ -441,10 +456,24 @@ getVoteTypeText(voteType: string | null): string {
       case 'simulare-vot':
         this.router.navigate(['menu/simulare-vot']);
         break;
+
+      case 'csv-download':
+        this.router.navigate(['menu/csv-download'], {
+          queryParams: { 
+            location: this.locationFilter,
+             round: this.currentRound.id
+          }
+        });
+        break;
       
       // Prezență la vot
       case 'prezenta':
-        this.router.navigate(['menu/prezenta']);
+        this.router.navigate(['menu/prezenta'], {
+          queryParams: { 
+            location: this.locationFilter,
+            round: this.currentRound.id
+        }
+        });
         break;
       
       case 'statistici':
@@ -566,6 +595,8 @@ switchLocation(location: string): void {
   // Pentru alte pagini (statistici, prezență, etc.)
   else if (currentUrl.includes('/statistici') || 
            currentUrl.includes('/rezultate') ||
+           currentUrl.includes('/prezenta') ||
+           currentUrl.includes('/csv-download') ||
            currentUrl.includes('/candidati_prezidentiali')) {
     
     // Pentru acestea păstrăm logica standard

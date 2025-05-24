@@ -1,0 +1,279 @@
+<div class="presence-page">
+  <div class="presence-header">
+    <h2>
+      Prezența la Vot - {{ getRoundDisplayName() }} - {{ getLocationDisplayName() }}
+      <span *ngIf="isLiveMode" class="live-indicator">
+        <i class="fas fa-circle"></i> LIVE
+      </span>
+    </h2>
+    
+    <!-- Countdown Timer -->
+    <div *ngIf="isLiveMode && timeRemaining > 0" class="countdown-timer">
+      <h3>Timp rămas până la închiderea urnelor:</h3>
+      <div class="countdown-display">{{ countdownDisplay }}</div>
+    </div>
+    
+    <!-- Live Stats -->
+    <div *ngIf="liveData" class="live-stats">
+      <div class="live-stat-item">
+        <span class="label">Total voturi astăzi:</span>
+        <span class="value">{{ formatNumber(liveData.total_votes_today) }}</span>
+      </div>
+      <div class="live-stat-item">
+        <span class="label">Ultima oră:</span>
+        <span class="value">{{ formatNumber(liveData.votes_last_hour) }}</span>
+      </div>
+      <div class="live-stat-item" *ngIf="liveData.estimated_final_turnout">
+        <span class="label">Prezență estimată:</span>
+        <span class="value">{{ formatNumber(liveData.estimated_final_turnout) }}</span>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="isLoading" class="loading">
+    <i class="fas fa-spinner fa-spin"></i>
+    <p>Se încarcă datele de prezență...</p>
+  </div>
+
+  <div *ngIf="error" class="error">
+    <i class="fas fa-exclamation-triangle"></i>
+    <p>{{ error }}</p>
+  </div>
+
+  <div *ngIf="presenceData && !isLoading" class="presence-content">
+    
+    <!-- Status Message -->
+    <div class="status-section">
+      <div class="status-card">
+        <div class="status-icon">
+          <i class="fas fa-vote-yea"></i>
+        </div>
+        <div class="status-content">
+          <h3>{{ isLiveMode ? 'Status LIVE' : 'Status Final' }}</h3>
+          <p class="status-message">{{ getPresenceStatusMessage() }}</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- General Statistics Cards -->
+    <div class="stats-cards" *ngIf="presenceData.general_stats">
+      <div class="stat-card">
+        <div class="card-icon">
+          <i class="fas fa-users"></i>
+        </div>
+        <div class="card-content">
+          <h3>Înscriși pe liste</h3>
+          <p class="big-number">{{ formatNumber(presenceData.general_stats.registered_permanent) }}</p>
+        </div>
+      </div>
+      
+      <div class="stat-card">
+        <div class="card-icon">
+          <i class="fas fa-vote-yea"></i>
+        </div>
+        <div class="card-content">
+          <h3>Total votanți</h3>
+          <p class="big-number">{{ formatNumber(presenceData.general_stats.total_voters) }}</p>
+        </div>
+      </div>
+      
+      <div class="stat-card">
+        <div class="card-icon">
+          <i class="fas fa-list"></i>
+        </div>
+        <div class="card-content">
+          <h3>Liste permanente</h3>
+          <p class="big-number">{{ formatNumber(presenceData.general_stats.voters_permanent) }}</p>
+        </div>
+      </div>
+      
+      <div class="stat-card">
+        <div class="card-icon">
+          <i class="fas fa-plus"></i>
+        </div>
+        <div class="card-content">
+          <h3>Liste suplimentare</h3>
+          <p class="big-number">{{ formatNumber(presenceData.general_stats.voters_supplementary) }}</p>
+        </div>
+      </div>
+      
+      <div class="stat-card">
+        <div class="card-icon">
+          <i class="fas fa-briefcase"></i>
+        </div>
+        <div class="card-content">
+          <h3>Urnă mobilă</h3>
+          <p class="big-number">{{ formatNumber(presenceData.general_stats.voters_mobile) }}</p>
+        </div>
+      </div>
+      
+      <div class="stat-card highlight">
+        <div class="card-icon">
+          <i class="fas fa-percentage"></i>
+        </div>
+        <div class="card-content">
+          <h3>Rata de participare</h3>
+          <p class="big-number">{{ formatPercentage(presenceData.general_stats.participation_rate) }}</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Charts Section -->
+    <div class="charts-grid">
+      <!-- General Presence Chart -->
+      <div class="chart-container" *ngIf="generalChartOptions">
+        <div echarts [options]="generalChartOptions" class="chart"></div>
+      </div>
+
+      <!-- Urban vs Rural Chart -->
+      <div class="chart-container" *ngIf="urbanRuralChartOptions">
+        <div echarts [options]="urbanRuralChartOptions" class="chart"></div>
+      </div>
+
+      <!-- Top Counties Chart -->
+      <div class="chart-container" *ngIf="countyChartOptions">
+        <div echarts [options]="countyChartOptions" class="chart"></div>
+      </div>
+
+      <!-- Evolution Chart (Live only) -->
+      <div class="chart-container" *ngIf="evolutionChartOptions">
+        <div echarts [options]="evolutionChartOptions" class="chart"></div>
+      </div>
+    </div>
+
+    <!-- Urban vs Rural Comparison -->
+    <div class="comparison-section" *ngIf="presenceData.urban_rural">
+      <h3>Comparația Urban vs Rural</h3>
+      <div class="comparison-cards">
+        <div class="comparison-card urban">
+          <div class="card-header">
+            <i class="fas fa-city"></i>
+            <h4>Urban</h4>
+          </div>
+          <div class="card-stats">
+            <p><strong>Votanți:</strong> {{ formatNumber(presenceData.urban_rural.urban.voters) }}</p>
+            <p><strong>Înscriși:</strong> {{ formatNumber(presenceData.urban_rural.urban.registered) }}</p>
+            <p><strong>Participare:</strong> {{ formatPercentage(presenceData.urban_rural.urban.participation_rate) }}</p>
+          </div>
+        </div>
+        
+        <div class="comparison-card rural">
+          <div class="card-header">
+            <i class="fas fa-tree"></i>
+            <h4>Rural</h4>
+          </div>
+          <div class="card-stats">
+            <p><strong>Votanți:</strong> {{ formatNumber(presenceData.urban_rural.rural.voters) }}</p>
+            <p><strong>Înscriși:</strong> {{ formatNumber(presenceData.urban_rural.rural.registered) }}</p>
+            <p><strong>Participare:</strong> {{ formatPercentage(presenceData.urban_rural.rural.participation_rate) }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Counties/Countries List -->
+    <div class="counties-section">
+      <h3>{{ currentLocation === 'romania' ? 'Prezența pe Județe' : 'Prezența pe Țări' }}</h3>
+      
+      <div class="counties-table">
+        <table>
+          <thead>
+            <tr>
+              <th>Loc</th>
+              <th>{{ currentLocation === 'romania' ? 'Județ' : 'Țară' }}</th>
+              <th>Total Votanți</th>
+              <th>Înscriși</th>
+              <th>Participare</th>
+              <th>Urban</th>
+              <th>Rural</th>
+              <th>Bărbați</th>
+              <th>Femei</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let county of presenceData.counties; let i = index">
+              <td class="place-cell">{{ (currentPage - 1) * pageSize + i + 1 }}</td>
+              <td class="county-cell">{{ county.county }}</td>
+              <td class="number-cell">{{ formatNumber(county.total_voters) }}</td>
+              <td class="number-cell">{{ formatNumber(county.registered_permanent) }}</td>
+              <td class="percentage-cell">
+                <div class="percentage-bar">
+                  <div class="percentage-fill" [style.width.%]="county.participation_rate"></div>
+                  <span class="percentage-text">{{ formatPercentage(county.participation_rate) }}</span>
+                </div>
+              </td>
+              <td class="number-cell">{{ formatNumber(county.urban_voters) }}</td>
+              <td class="number-cell">{{ formatNumber(county.rural_voters) }}</td>
+              <td class="number-cell">{{ formatNumber(county.men_voters) }}</td>
+              <td class="number-cell">{{ formatNumber(county.women_voters) }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination -->
+      <div class="pagination" *ngIf="presenceData.pagination && presenceData.pagination.total_pages > 1">
+        <button 
+          class="pagination-btn" 
+          [disabled]="currentPage === 1"
+          (click)="onPageChange(1)">
+          <i class="fas fa-angle-double-left"></i>
+        </button>
+        
+        <button 
+          class="pagination-btn" 
+          [disabled]="currentPage === 1"
+          (click)="onPageChange(currentPage - 1)">
+          <i class="fas fa-angle-left"></i>
+        </button>
+        
+        <button 
+          *ngFor="let page of getPageNumbers()"
+          class="pagination-btn"
+          [class.active]="page === currentPage"
+          (click)="onPageChange(page)">
+          {{ page }}
+        </button>
+        
+        <button 
+          class="pagination-btn" 
+          [disabled]="currentPage === presenceData.pagination.total_pages"
+          (click)="onPageChange(currentPage + 1)">
+          <i class="fas fa-angle-right"></i>
+        </button>
+        
+        <button 
+          class="pagination-btn" 
+          [disabled]="currentPage === presenceData.pagination.total_pages"
+          (click)="onPageChange(presenceData.pagination.total_pages)">
+          <i class="fas fa-angle-double-right"></i>
+        </button>
+      </div>
+      
+      <div class="pagination-info" *ngIf="presenceData.pagination">
+        <p>
+          Pagina {{ presenceData.pagination.current_page }} din {{ presenceData.pagination.total_pages }}
+          ({{ formatNumber(presenceData.pagination.total_counties) }} {{ currentLocation === 'romania' ? 'județe' : 'țări' }} total)
+        </p>
+      </div>
+    </div>
+
+    <!-- Data Information -->
+    <div class="data-info">
+      <p>
+        <i class="fas fa-info-circle"></i>
+        Datele afișate se bazează pe {{ isLiveMode ? 'informațiile live din sistemul de vot' : 'datele oficiale de prezență' }}
+        pentru {{ getRoundDisplayName() }}
+        <span *ngIf="isLiveMode"> și se actualizează automat la fiecare 30 secunde</span>.
+      </p>
+      <p *ngIf="presenceData.round_info.period.start">
+        <strong>Perioada:</strong> 
+        {{ presenceData.round_info.period.start | date:'dd.MM.yyyy HH:mm' }} - 
+        {{ presenceData.round_info.period.end | date:'dd.MM.yyyy HH:mm' }}
+      </p>
+      <p *ngIf="presenceData.last_updated">
+        <strong>Ultima actualizare:</strong> {{ presenceData.last_updated | date:'dd.MM.yyyy HH:mm:ss' }}
+      </p>
+    </div>
+  </div>
+</div>

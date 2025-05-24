@@ -1,0 +1,104 @@
+<div class="csv-download-page">
+  <div class="page-header">
+    <h2>
+      <i class="fas fa-download"></i>
+      Descarcă CSV - {{ getRoundInfo()?.name }}
+    </h2>
+    <p class="location-info">
+      <i class="fas fa-map-marker-alt"></i>
+      {{ getLocationDisplayName() }}
+    </p>
+  </div>
+
+  <div *ngIf="isLoading" class="loading-section">
+    <i class="fas fa-spinner fa-spin"></i>
+    <p>Se verifică disponibilitatea datelor...</p>
+  </div>
+
+  <div *ngIf="error" class="error-section">
+    <i class="fas fa-exclamation-triangle"></i>
+    <p>{{ error }}</p>
+    <button class="btn btn-secondary" (click)="refreshStatus()">
+      <i class="fas fa-redo"></i> Încearcă din nou
+    </button>
+  </div>
+
+  <div *ngIf="downloadStatus && !isLoading" class="download-section">
+    
+    <!-- Informații despre tur -->
+    <div class="round-info-card">
+      <div class="card-header">
+        <h3>{{ getRoundInfo()?.name }}</h3>
+        <span class="status-badge" [class.available]="downloadStatus.available" 
+              [class.unavailable]="!downloadStatus.available">
+          {{ downloadStatus.available ? 'Disponibil' : 'Indisponibil' }}
+        </span>
+      </div>
+      <div class="card-content">
+        <p class="description">{{ getRoundInfo()?.description }}</p>
+        
+        <div class="data-info" *ngIf="downloadStatus.available">
+          <div class="info-item">
+            <span class="label">Număr înregistrări:</span>
+            <span class="value">{{ formatNumber(downloadStatus.data_count) }}</span>
+          </div>
+          <div class="info-item">
+            <span class="label">Dimensiune estimată:</span>
+            <span class="value">{{ downloadStatus.estimated_file_size }}</span>
+          </div>
+          <div class="info-item">
+            <span class="label">Tip vot:</span>
+            <span class="value">{{ downloadStatus.vote_type }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Buton de descărcare -->
+    <div class="download-actions">
+      <button 
+        class="btn btn-primary download-btn"
+        [disabled]="!downloadStatus.available || isDownloading"
+        (click)="downloadCSV()">
+        
+        <span *ngIf="!isDownloading">
+          <i class="fas fa-download"></i>
+          Descarcă CSV
+        </span>
+        
+        <span *ngIf="isDownloading">
+          <i class="fas fa-spinner fa-spin"></i>
+          Se descarcă...
+        </span>
+      </button>
+
+      <button class="btn btn-secondary" (click)="refreshStatus()">
+        <i class="fas fa-sync"></i>
+        Actualizează status
+      </button>
+    </div>
+
+    <!-- Mesaj pentru turul 2 anulat -->
+    <div *ngIf="currentRound === 'tur2_2024'" class="warning-message">
+      <i class="fas fa-info-circle"></i>
+      <p>
+        <strong>Atenție:</strong> Turul 2 al alegerilor prezidențiale a fost anulat oficial. 
+        Nu există date de prezență disponibile pentru această rundă.
+      </p>
+    </div>
+
+    <!-- Informații despre CSV -->
+    <div class="csv-info" *ngIf="downloadStatus.available">
+      <h4><i class="fas fa-info-circle"></i> Informații despre fișierul CSV</h4>
+      <ul>
+        <li>Conține toate datele de prezență la nivel de secție de votare</li>
+        <li>Include date demografice detaliate pe grupe de vârstă</li>
+        <li>Format compatibil cu Excel și alte aplicații de analiză</li>
+        <li *ngIf="currentRound === 'tur_activ'">
+          <strong>Notă:</strong> Pentru turul activ, datele sunt simulate pe baza alegerilor anterioare
+        </li>
+        <li>Encoding UTF-8 pentru caractere românești</li>
+      </ul>
+    </div>
+  </div>
+</div>

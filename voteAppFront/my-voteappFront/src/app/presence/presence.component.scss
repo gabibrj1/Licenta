@@ -1,0 +1,780 @@
+.presence-page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+  color: #fff;
+
+  .presence-header {
+    text-align: center;
+    margin-bottom: 30px;
+
+    h2 {
+      color: #3498db;
+      font-size: 2rem;
+      margin-bottom: 15px;
+
+      .live-indicator {
+        color: #e74c3c;
+        font-size: 0.8rem;
+        animation: pulse 2s infinite;
+
+        i {
+          margin-right: 5px;
+        }
+      }
+    }
+
+    .countdown-timer {
+      background: rgba(243, 156, 18, 0.1);
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      border: 1px solid rgba(243, 156, 18, 0.3);
+
+      h3 {
+        margin: 0 0 10px 0;
+        color: #f39c12;
+        font-size: 1.2rem;
+      }
+
+      .countdown-display {
+        font-size: 2.5rem;
+        font-weight: bold;
+        color: #f39c12;
+        font-family: 'Courier New', monospace;
+      }
+    }
+
+    .live-stats {
+      display: flex;
+      justify-content: center;
+      gap: 30px;
+      margin-top: 15px;
+      flex-wrap: wrap;
+
+      .live-stat-item {
+        background: rgba(52, 152, 219, 0.1);
+        padding: 10px 20px;
+        border-radius: 8px;
+        border: 1px solid rgba(52, 152, 219, 0.3);
+
+        .label {
+          color: #bdc3c7;
+          font-size: 0.9rem;
+          margin-right: 10px;
+        }
+
+        .value {
+          color: #3498db;
+          font-weight: bold;
+          font-size: 1.2rem;
+        }
+      }
+    }
+  }
+
+  .loading {
+    text-align: center;
+    margin: 40px 0;
+
+    i {
+      font-size: 2rem;
+      color: #3498db;
+      margin-bottom: 15px;
+    }
+
+    p {
+      color: #bdc3c7;
+    }
+  }
+
+  .error {
+    text-align: center;
+    margin: 40px 0;
+    color: #e74c3c;
+
+    i {
+      font-size: 2rem;
+      margin-bottom: 15px;
+    }
+  }
+
+  .presence-content {
+    .status-section {
+      margin-bottom: 30px;
+
+      .status-card {
+        background: rgba(46, 204, 113, 0.1);
+        padding: 20px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        backdrop-filter: blur(5px);
+        border: 1px solid rgba(46, 204, 113, 0.3);
+
+        .status-icon {
+          font-size: 2.5rem;
+          margin-right: 20px;
+          color: #2ecc71;
+        }
+
+        .status-content {
+          h3 {
+            margin: 0 0 10px 0;
+            font-size: 1.3rem;
+            color: #2ecc71;
+          }
+
+          .status-message {
+            margin: 0;
+            font-size: 1rem;
+            color: #fff;
+            line-height: 1.4;
+          }
+        }
+      }
+    }
+
+    .stats-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 20px;
+      margin-bottom: 30px;
+
+      .stat-card {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 8px;
+        padding: 20px;
+        display: flex;
+        align-items: center;
+        backdrop-filter: blur(5px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+
+        &:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+        }
+
+        &.highlight {
+          background: rgba(46, 204, 113, 0.15);
+          border-color: #2ecc71;
+
+          .card-icon {
+            color: #2ecc71;
+          }
+
+          .big-number {
+            color: #2ecc71;
+          }
+        }
+
+        .card-icon {
+          font-size: 2.5rem;
+          color: #3498db;
+          margin-right: 20px;
+          flex-shrink: 0;
+        }
+
+        .card-content {
+          h3 {
+            margin: 0 0 5px 0;
+            color: #bdc3c7;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+          }
+
+          .big-number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #fff;
+            margin: 0;
+            line-height: 1.2;
+          }
+        }
+      }
+    }
+
+    .charts-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+      gap: 30px;
+      margin-bottom: 30px;
+
+      .chart-container {
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 8px;
+        padding: 25px;
+        backdrop-filter: blur(5px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        position: relative;
+
+        h3 {
+          color: #3498db;
+          margin: 0 0 25px 0;
+          text-align: center;
+          font-size: 1.2rem;
+          position: relative;
+          z-index: 2;
+        }
+
+        .chart {
+          height: 350px;
+          position: relative;
+          z-index: 1;
+
+          // Optimizări pentru grafice cu nume lungi de țări
+          .echarts-tooltip, .echarts-legend, .echarts-label {
+            max-width: 200px;
+            word-wrap: break-word;
+            white-space: normal;
+          }
+
+          // Stiluri pentru etichetele de pe grafice
+          .echarts-label, .echarts-pie-label, .echarts-label-text {
+            font-weight: 600 !important;
+            font-size: 0.9rem !important;
+            fill: #fff !important;
+            stroke: #2c3e50 !important;
+            stroke-width: 1.5px !important;
+            paint-order: stroke fill;
+            text-shadow: 0 0 3px #000;
+            filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.8));
+          }
+
+          // Legende pentru nume lungi
+          .echarts-legend {
+            .echarts-legend-item {
+              max-width: 180px;
+              
+              .echarts-legend-text {
+                font-size: 0.85rem;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+              }
+            }
+          }
+
+          // Tooltip optimizat pentru nume lungi
+          .echarts-tooltip {
+            max-width: 250px;
+            word-break: break-word;
+            white-space: normal;
+            background: rgba(44, 62, 80, 0.95) !important;
+            border: 1px solid rgba(52, 152, 219, 0.5) !important;
+            border-radius: 6px !important;
+            padding: 10px !important;
+            font-size: 0.9rem !important;
+            color: #fff !important;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3) !important;
+          }
+
+          // Axe pentru graficele cu bare - rotire text pentru nume lungi
+          .echarts-axis-label {
+            font-size: 0.8rem !important;
+            fill: #bdc3c7 !important;
+            
+            &.echarts-xaxis-label {
+              transform-origin: center bottom;
+              text-anchor: end !important;
+            }
+          }
+        }
+      }
+    }
+
+    .comparison-section {
+      margin-bottom: 30px;
+      background: rgba(255, 255, 255, 0.05);
+      padding: 25px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+
+      h3 {
+        text-align: center;
+        margin: 0 0 25px 0;
+        color: #3498db;
+        font-size: 1.3rem;
+      }
+
+      .comparison-cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 20px;
+
+        .comparison-card {
+          background: rgba(255, 255, 255, 0.08);
+          border-radius: 8px;
+          padding: 20px;
+          border: 1px solid rgba(255, 255, 255, 0.15);
+          transition: transform 0.3s ease, box-shadow 0.3s ease;
+
+          &:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+          }
+
+          &.urban {
+            border-left: 4px solid #3498db;
+
+            .card-header i {
+              color: #3498db;
+            }
+          }
+
+          &.rural {
+            border-left: 4px solid #27ae60;
+
+            .card-header i {
+              color: #27ae60;
+            }
+          }
+
+          .card-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+
+            i {
+              font-size: 1.5rem;
+            }
+
+            h4 {
+              margin: 0;
+              font-size: 1.2rem;
+              color: #fff;
+            }
+          }
+
+          .card-stats {
+            p {
+              margin: 12px 0;
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              font-size: 0.95rem;
+
+              strong {
+                color: #bdc3c7;
+                font-weight: 500;
+              }
+            }
+          }
+        }
+      }
+    }
+
+    .counties-section {
+      margin-bottom: 30px;
+
+      h3 {
+        text-align: center;
+        margin: 0 0 25px 0;
+        color: #3498db;
+        font-size: 1.3rem;
+      }
+
+      .counties-table {
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 8px;
+        overflow: hidden;
+        margin-bottom: 20px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+
+        table {
+          width: 100%;
+          border-collapse: collapse;
+
+          th, td {
+            padding: 12px 10px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            font-size: 0.9rem;
+          }
+
+          th {
+            background: rgba(52, 152, 219, 0.15);
+            color: #3498db;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-size: 0.85rem;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+          }
+
+          td {
+            color: #fff;
+            
+            &.place-cell {
+              text-align: center;
+              font-weight: bold;
+              color: #2ecc71;
+              width: 60px;
+            }
+
+            &.county-cell {
+              font-weight: 600;
+              color: #fff;
+              max-width: 120px;
+              word-break: break-word;
+            }
+
+            &.number-cell {
+              text-align: right;
+              font-family: 'Courier New', monospace;
+              color: #ecf0f1;
+              font-weight: 500;
+            }
+
+            &.percentage-cell {
+              width: 140px;
+              padding-right: 15px;
+            }
+          }
+
+          tbody tr {
+            transition: background-color 0.3s ease;
+
+            &:hover {
+              background: rgba(255, 255, 255, 0.08);
+            }
+
+            &:nth-child(even) {
+              background: rgba(255, 255, 255, 0.02);
+            }
+          }
+
+          .percentage-bar {
+            position: relative;
+            background: rgba(255, 255, 255, 0.1);
+            height: 22px;
+            border-radius: 11px;
+            overflow: hidden;
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
+
+            .percentage-fill {
+              height: 100%;
+              background: linear-gradient(90deg, #2ecc71 0%, #27ae60 100%);
+              border-radius: 11px;
+              transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+              min-width: 2px;
+              box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+            }
+
+            .percentage-text {
+              position: absolute;
+              top: 50%;
+              left: 50%;
+              transform: translate(-50%, -50%);
+              font-size: 0.8rem;
+              font-weight: 600;
+              color: #ffffff;
+              text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7);
+              z-index: 2;
+            }
+          }
+        }
+      }
+
+      .pagination {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 20px;
+
+        .pagination-btn {
+          background: rgba(255, 255, 255, 0.1);
+          border: 1px solid rgba(255, 255, 255, 0.2);
+          color: #fff;
+          padding: 10px 14px;
+          border-radius: 6px;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          font-size: 0.9rem;
+          min-width: 44px;
+          height: 44px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+
+          &:hover:not(:disabled) {
+            background: rgba(52, 152, 219, 0.3);
+            border-color: #3498db;
+            transform: translateY(-1px);
+          }
+
+          &.active {
+            background: #3498db;
+            border-color: #3498db;
+            color: #fff;
+            font-weight: 600;
+          }
+
+          &:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            transform: none;
+          }
+
+          i {
+            font-size: 0.8rem;
+          }
+        }
+      }
+
+      .pagination-info {
+        text-align: center;
+        color: #bdc3c7;
+        font-size: 0.9rem;
+        margin-bottom: 10px;
+
+        p {
+          margin: 0;
+        }
+      }
+    }
+
+    .data-info {
+      background: rgba(46, 204, 113, 0.1);
+      padding: 20px;
+      border-radius: 8px;
+      border-left: 4px solid #2ecc71;
+      margin-top: 20px;
+
+      p {
+        margin: 8px 0;
+        color: #bdc3c7;
+        font-size: 0.9rem;
+        line-height: 1.5;
+
+        i {
+          color: #2ecc71;
+          margin-right: 8px;
+        }
+
+        strong {
+          color: #2ecc71;
+          font-weight: 600;
+        }
+
+        &:first-child {
+          margin-top: 0;
+        }
+
+        &:last-child {
+          margin-bottom: 0;
+        }
+      }
+    }
+  }
+
+  // Animații
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  // Aplicare animație pentru carduri
+  .stat-card, .comparison-card {
+    animation: fadeIn 0.6s ease-out;
+  }
+
+  // Media queries pentru responsive design
+  @media (max-width: 968px) {
+    .charts-grid {
+      grid-template-columns: 1fr;
+      gap: 20px;
+
+      .chart-container {
+        .chart {
+          height: 320px;
+        }
+      }
+    }
+
+    .stats-cards {
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 15px;
+    }
+  }
+
+  @media (max-width: 768px) {
+    padding: 15px;
+
+    .presence-header {
+      h2 {
+        font-size: 1.6rem;
+
+        .live-indicator {
+          display: block;
+          margin: 10px auto 0;
+          width: fit-content;
+        }
+      }
+
+      .countdown-timer {
+        .countdown-display {
+          font-size: 2rem;
+        }
+      }
+
+      .live-stats {
+        flex-direction: column;
+        gap: 15px;
+      }
+    }
+
+    .stats-cards {
+      grid-template-columns: 1fr;
+      gap: 15px;
+
+      .stat-card {
+        padding: 15px;
+
+        .card-icon {
+          font-size: 2rem;
+          margin-right: 15px;
+        }
+
+        .card-content .big-number {
+          font-size: 1.6rem;
+        }
+      }
+    }
+
+    .charts-grid {
+      .chart-container {
+        padding: 20px;
+
+        .chart {
+          height: 280px;
+        }
+      }
+    }
+
+    .comparison-section {
+      padding: 20px;
+
+      .comparison-cards {
+        grid-template-columns: 1fr;
+        gap: 15px;
+      }
+    }
+
+    .counties-table {
+      table {
+        font-size: 0.8rem;
+
+        th, td {
+          padding: 8px 6px;
+        }
+
+        .percentage-bar {
+          height: 20px;
+
+          .percentage-text {
+            font-size: 0.7rem;
+          }
+        }
+      }
+    }
+  }
+
+  @media (max-width: 480px) {
+    padding: 10px;
+
+    .presence-header h2 {
+      font-size: 1.4rem;
+    }
+
+    .stats-cards .stat-card {
+      padding: 12px;
+
+      .card-content .big-number {
+        font-size: 1.4rem;
+      }
+    }
+
+    .charts-grid .chart-container {
+      padding: 15px;
+
+      .chart {
+        height: 250px;
+      }
+    }
+
+    .counties-table table {
+      th, td {
+        padding: 6px 4px;
+        font-size: 0.75rem;
+      }
+
+      .percentage-bar {
+        height: 18px;
+
+        .percentage-text {
+          font-size: 0.65rem;
+        }
+      }
+    }
+
+    .pagination .pagination-btn {
+      padding: 8px 10px;
+      min-width: 36px;
+      height: 36px;
+      font-size: 0.8rem;
+    }
+  }
+
+  // Stiluri speciale pentru graficele cu țări cu nume lungi
+  .chart-container {
+    .chart {
+      // Tooltip optimizat pentru nume lungi de țări
+      .echarts-tooltip-content {
+        max-width: 280px !important;
+        white-space: normal !important;
+        word-wrap: break-word !important;
+      }
+
+      // Legende cu scroll pentru multe țări
+      .echarts-legend {
+        overflow-y: auto;
+        max-height: 120px;
+        
+        &::-webkit-scrollbar {
+          width: 4px;
+        }
+
+        &::-webkit-scrollbar-track {
+          background: rgba(255, 255, 255, 0.1);
+          border-radius: 2px;
+        }
+
+        &::-webkit-scrollbar-thumb {
+          background: rgba(52, 152, 219, 0.6);
+          border-radius: 2px;
+        }
+      }
+
+      // Pentru graficele cu bare - rotire etichete pentru țări cu nume lungi
+      .echarts-xAxis .echarts-axis-label {
+        transform: rotate(-45deg) !important;
+        text-anchor: end !important;
+        dominant-baseline: middle !important;
+      }
+    }
+  }
+}

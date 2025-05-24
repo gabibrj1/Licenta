@@ -40,7 +40,8 @@ import { SetariContComponent } from './setari-cont/setari-cont.component';
 import { PresidentialRound2VoteComponent } from './vote/presidential-round2-vote/presidential-round2-vote.component';
 import { StatisticsComponent } from './statistics/statistics.component';
 import { ResultsComponent } from './results/results.component';
-
+import { PresenceComponent } from './presence/presence.component';
+import { CsvDownloadComponent } from './csv-download/csv-download.component';
 
 const routes: Routes = [
   { path: '', component: HomeComponent },
@@ -59,6 +60,7 @@ const routes: Routes = [
       { path: 'news', component: NewsComponent},
       { path: 'statistici', component: StatisticsComponent },
       { path: 'rezultate', component: ResultsComponent },
+      { path: 'prezenta', component: PresenceComponent },
       { path: 'news/article/:slug', component: ArticleDetailComponent },
       { path: 'forumuri', component: ForumuriComponent},
       
@@ -78,6 +80,7 @@ const routes: Routes = [
       { path: 'harta', component: MapComponent},
       // Rute pentru vot și simulare
       { path: 'simulare-vot', component: VoteSimulationComponent },
+      { path: 'csv-download', component: CsvDownloadComponent },
       { path: 'vot/prezidentiale', component: PresidentialVoteComponent, canActivate: [AuthGuard] },
       { path: 'vot/prezidentiale-tur2', component: PresidentialRound2VoteComponent, canActivate: [AuthGuard] },
       { path: 'vot/parlamentare', component: ParliamentaryVoteComponent, canActivate: [AuthGuard] },
