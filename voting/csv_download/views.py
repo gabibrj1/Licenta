@@ -11,6 +11,7 @@ from vote.models import VoteSettings, PresidentialVote, PresidentialRound2Vote, 
 from django.contrib.auth import get_user_model
 from django.db.models import Count
 import logging
+from security.utils import log_vote_security_event, log_captcha_attempt, create_security_event
 
 logger = logging.getLogger(__name__)
 User = get_user_model()
@@ -24,7 +25,18 @@ class CSVDownloadView(APIView):
         round_type = request.query_params.get('round', 'tur1_2024')
         
         logger.info(f"Cerere descărcare CSV: location={location}, round={round_type}")
-        
+        create_security_event(
+            user=request.user if request.user.is_authenticated else None,
+            event_type='data_export',
+            description=f"Export CSV solicitat pentru {location}, {round_type}",
+            request=request,
+            additional_data={
+                'export_location': location,
+                'export_round': round_type,
+                'export_type': 'csv_download'
+            },
+            risk_level='low'
+        )
         vote_type, start_date, end_date = self.get_vote_parameters(round_type)
         
         if not vote_type:
@@ -53,9 +65,36 @@ class CSVDownloadView(APIView):
                 records_count = self.write_historical_data(writer, location, vote_type, start_date, end_date)
             
             logger.info(f"CSV generat cu succes: {filename}, {records_count} înregistrări")
-            
+            create_security_event(
+                user=request.user if request.user.is_authenticated else None,
+                event_type='data_export',
+                description=f"Export CSV finalizat cu succes: {filename}, {records_count} înregistrări",
+                request=request,
+                additional_data={
+                    'export_location': location,
+                    'export_round': round_type,
+                    'records_count': records_count,
+                    'filename': filename,
+                    'export_status': 'success'
+                },
+                risk_level='low'
+            )
         except Exception as e:
             logger.error(f"Eroare la generarea CSV: {str(e)}")
+            create_security_event(
+                user=request.user if request.user.is_authenticated else None,
+                event_type='data_export',
+                description=f"Export CSV eșuat: {str(e)}",
+                request=request,
+                additional_data={
+                    'export_location': location,
+                    'export_round': round_type,
+                    'error': str(e),
+                    'export_status': 'failed'
+                },
+                risk_level='medium'
+            )
+
             return Response({'error': 'Eroare la generarea fișierului CSV'}, status=500)
         
         return response

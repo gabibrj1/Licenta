@@ -7,7 +7,7 @@ import { AuthUserService } from '../services/auth-user.service';
 import { ActivatedRoute } from '@angular/router';
 import { MapService } from '../services/map.service';
 import { VoteSettingsService } from '../services/vote-settings.service';
-
+import { SecurityService } from '../services/security.service';
 export interface ElectionRound {
   id: string;
   name: string;
@@ -80,7 +80,9 @@ export class MenuComponent implements OnInit, OnDestroy {
     private router: Router,
     private route: ActivatedRoute,
     private mapService: MapService,
-    private voteSettingsService: VoteSettingsService
+    private voteSettingsService: VoteSettingsService,
+    private securityService: SecurityService 
+
   ) {
     // Inițializăm runda curentă cu Tur 1 2024 implicit
     this.currentRound = this.availableRounds[0];
@@ -446,6 +448,7 @@ getVoteTypeText(voteType: string | null): string {
   // Navigation
   navigateTo(view: string): void {
     this.currentView = view;
+    this.logMenuNavigation(view);
     
     // Rute pentru toate secțiunile
     switch (view) {
@@ -517,9 +520,6 @@ getVoteTypeText(voteType: string | null): string {
           }
         });
         break;
-      case 'harta-rezultate':
-        this.router.navigate(['menu/harta-rezultate']);
-        break;
       
       // Informații
       case 'news':
@@ -551,7 +551,7 @@ getVoteTypeText(voteType: string | null): string {
         this.router.navigate(['menu/setari-cont']);
         break;
       case 'securitate':
-        this.router.navigate(['menu/setari/securitate']);
+        this.router.navigate(['menu/securitate']);
         break;
       case 'notificari':
         this.router.navigate(['menu/setari/notificari']);
@@ -565,6 +565,15 @@ getVoteTypeText(voteType: string | null): string {
         break;
     }
   }
+
+private logMenuNavigation(page: string): void {
+  // Importează SecurityService în constructor dacă nu l-ai importat deja
+  this.securityService.logUserAction('navigate', page, {
+    current_round: this.currentRound?.id,
+    location_filter: this.locationFilter,
+    user_authenticated: this.isAuthenticated()
+  });
+}
 
 switchLocation(location: string): void {
   console.log(`Schimbare către locația: ${location}`);

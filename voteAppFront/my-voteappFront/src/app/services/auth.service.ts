@@ -102,11 +102,25 @@ export class AuthService {
     );
   }
 
-  logout(): void {
-    console.log('Logout - ștergem toate datele din localStorage');
-    localStorage.clear();
-    this.router.navigate(['/auth']);
-  }
+logout(): void {
+  console.log('Logout - trimit cerere către backend pentru logging');
+  
+  // Trimite cererea de logout către backend pentru logging
+  this.http.post(`${this.apiUrl}logout/`, {}).subscribe({
+    next: (response) => {
+      console.log('Logout logat cu succes:', response);
+    },
+    error: (error) => {
+      console.error('Eroare la logarea logout-ului:', error);
+    },
+    complete: () => {
+      // Indiferent de rezultat, șterge datele locale și navighează
+      console.log('Logout - ștergem toate datele din localStorage');
+      localStorage.clear();
+      this.router.navigate(['/auth']);
+    }
+  });
+}
 
   isAuthenticated(): boolean {
     const token = localStorage.getItem(this.TOKEN_KEY);
@@ -154,11 +168,12 @@ export class AuthService {
   }
 
   // Verificăm token-ul reCAPTCHA direct
-  verifyRecaptcha(token: string): Observable<any> {
-    return this.http.post(`${this.apiUrl}verify-recaptcha/`, {
-      token
-    });
-  }
+verifyRecaptcha(token: string, context: string = 'general'): Observable<any> {
+  return this.http.post(`${this.apiUrl}verify-recaptcha/`, {
+    token,
+    context
+  });
+}
 
   // incarcare imagine buletin
   uploadIDCard(formData: FormData): Observable<any> {

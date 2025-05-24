@@ -4,6 +4,7 @@ import { Router } from '@angular/router';
 import { LocalVoteService } from '../../services/local-vote.service';
 import { VoteMonitoringService } from '../../services/vote-monitoring.service';
 import * as faceapi from 'face-api.js';
+import { SecurityService } from '../../services/security.service';
 
 @Component({
   selector: 'app-local-vote',
@@ -76,7 +77,8 @@ export class LocalVoteComponent implements OnInit {
     private voteMonitoringService: VoteMonitoringService,
     private fb: FormBuilder,
     private router: Router,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private securityService: SecurityService
   ) {
     this.loadStampSound();
     this.addressForm = this.fb.group({
@@ -256,6 +258,10 @@ handleExpiredTimer(): void {
   }
 
   async ngOnInit() {
+        this.securityService.logUserAction('access', 'vote_local', {
+      vote_type: 'local'
+    });
+  
     await this.loadFaceDetectionModels();
     this.checkEligibility();
     this.localVoteService.checkUserVoteStatus().subscribe(

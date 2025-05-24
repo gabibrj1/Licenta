@@ -1,0 +1,721 @@
+<div class="security-page">
+  <div class="page-header">
+    <h2>
+      <i class="fas fa-shield-alt"></i>
+      Securitate Cont
+    </h2>
+    <button class="btn btn-refresh" (click)="refreshCurrentTab()">
+      <i class="fas fa-sync"></i>
+      Actualizează
+    </button>
+  </div>
+
+  <!-- Navigation Tabs -->
+  <div class="security-tabs">
+    <button 
+      class="tab-button" 
+      [class.active]="currentTab === 'dashboard'"
+      (click)="switchTab('dashboard')">
+      <i class="fas fa-tachometer-alt"></i>
+      Dashboard
+    </button>
+    
+    <button 
+      class="tab-button" 
+      [class.active]="currentTab === 'events'"
+      (click)="switchTab('events')">
+      <i class="fas fa-list"></i>
+      Istoric Evenimente
+    </button>
+    
+    <button 
+      class="tab-button" 
+      [class.active]="currentTab === 'sessions'"
+      (click)="switchTab('sessions')">
+      <i class="fas fa-users"></i>
+      Sesiuni Active
+    </button>
+    
+    <button 
+      class="tab-button" 
+      [class.active]="currentTab === 'alerts'"
+      (click)="switchTab('alerts')">
+      <i class="fas fa-exclamation-triangle"></i>
+      Alerte
+      <span *ngIf="dashboard && dashboard.statistics && dashboard.statistics.active_alerts > 0" class="alert-badge">
+        {{ dashboard.statistics.active_alerts }}
+      </span>
+    </button>
+    
+    <button 
+      class="tab-button" 
+      [class.active]="currentTab === 'devices'"
+      (click)="switchTab('devices')">
+      <i class="fas fa-laptop"></i>
+      Dispozitive
+    </button>
+    
+    <button 
+      class="tab-button" 
+      [class.active]="currentTab === 'analytics'"
+      (click)="switchTab('analytics')">
+      <i class="fas fa-chart-bar"></i>
+      Analize
+    </button>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="isLoading" class="loading-section">
+    <i class="fas fa-spinner fa-spin"></i>
+    <p>Se încarcă datele de securitate...</p>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="error" class="error-section">
+    <i class="fas fa-exclamation-triangle"></i>
+    <p>{{ error }}</p>
+    <button class="btn btn-secondary" (click)="refreshCurrentTab()">
+      <i class="fas fa-redo"></i> Încearcă din nou
+    </button>
+  </div>
+
+  <!-- Dashboard Tab -->
+  <div *ngIf="currentTab === 'dashboard' && dashboard && !isLoading" class="dashboard-content">
+    
+    <!-- Security Score -->
+    <div class="security-score-card">
+      <div class="score-header">
+        <h3>Scorul de Securitate</h3>
+        <div class="score-circle">
+          <div class="score-value" [style.color]="getSecurityScoreColor(dashboard.security_score)">
+            {{ dashboard.security_score }}
+          </div>
+          <div class="score-label">{{ getSecurityScoreText(dashboard.security_score) }}</div>
+        </div>
+      </div>
+      <div class="score-description">
+        <p>Scorul dvs. de securitate se bazează pe activitatea recentă, alertele active și comportamentul de autentificare.</p>
+      </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-icon">
+          <i class="fas fa-list"></i>
+        </div>
+        <div class="stat-content">
+          <h4>Evenimente Totale</h4>
+          <p class="stat-number">{{ dashboard.statistics.total_events }}</p>
+          <p class="stat-subtitle">{{ dashboard.statistics.recent_events }} în ultima lună</p>
+        </div>
+      </div>
+      
+      <div class="stat-card">
+        <div class="stat-icon">
+          <i class="fas fa-users"></i>
+        </div>
+        <div class="stat-content">
+          <h4>Sesiuni Active</h4>
+          <p class="stat-number">{{ dashboard.statistics.active_sessions }}</p>
+          <p class="stat-subtitle">Dispozitive conectate</p>
+        </div>
+      </div>
+      
+      <div class="stat-card" [class.warning]="dashboard.statistics.active_alerts > 0">
+        <div class="stat-icon">
+          <i class="fas fa-exclamation-triangle"></i>
+        </div>
+        <div class="stat-content">
+          <h4>Alerte Active</h4>
+          <p class="stat-number">{{ dashboard.statistics.active_alerts }}</p>
+          <p class="stat-subtitle">Necesită atenție</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recent Events -->
+    <div class="recent-events-section">
+      <h3>Evenimente Recente</h3>
+      <div class="events-list">
+        <div *ngFor="let event of dashboard.recent_events" class="event-item">
+          <div class="event-icon">
+            <i class="fas fa-circle" [style.color]="getRiskLevelColor(event.risk_level)"></i>
+          </div>
+          <div class="event-content">
+            <h4>{{ event.event_type_display }}</h4>
+            <p>{{ event.description }}</p>
+            <div class="event-meta">
+              <span class="timestamp">{{ formatDate(event.timestamp) }}</span>
+              <span class="ip-address">{{ event.ip_address }}</span>
+              <span class="risk-badge" [style.background-color]="getRiskLevelColor(event.risk_level)">
+                {{ event.risk_level_display }}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Active Sessions Preview -->
+    <div class="active-sessions-section" *ngIf="dashboard.active_sessions.length > 0">
+      <h3>Sesiuni Active</h3>
+      <div class="sessions-preview">
+        <div *ngFor="let session of dashboard.active_sessions" class="session-preview-item">
+          <div class="session-icon">
+            <i [class]="getDeviceIcon(session.device_info)"></i>
+            <span *ngIf="session.is_current" class="current-badge">CURENT</span>
+          </div>
+          <div class="session-content">
+            <p class="device-name">{{ getDeviceDisplayName(session.device_info) }}</p>
+            <p class="session-details">
+              {{ session.ip_address }} • {{ formatDate(session.last_activity) }}
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Active Alerts -->
+    <div class="active-alerts-section" *ngIf="dashboard.alerts.length > 0">
+      <h3>Alerte Active</h3>
+      <div class="alerts-list">
+        <div *ngFor="let alert of dashboard.alerts" class="alert-item" [class]="alert.severity">
+          <div class="alert-icon">
+            <i class="fas fa-exclamation-triangle" [style.color]="getSeverityColor(alert.severity)"></i>
+          </div>
+          <div class="alert-content">
+            <h4>{{ alert.title }}</h4>
+            <p>{{ alert.message }}</p>
+            <div class="alert-actions">
+              <span class="alert-time">{{ formatDate(alert.created_at) }}</span>
+              <button class="btn btn-small" (click)="acknowledgeAlert(alert.id)">
+                <i class="fas fa-check"></i> Recunosc
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Events Tab -->
+  <div *ngIf="currentTab === 'events' && !isLoading" class="events-content">
+    
+    <!-- Filters -->
+    <div class="events-filters" *ngIf="availableFilters">
+      <div class="filter-group">
+        <label>Tip eveniment:</label>
+        <select [(ngModel)]="selectedEventType" (change)="applyEventFilters()">
+          <option value="">Toate tipurile</option>
+          <option *ngFor="let type of availableFilters.event_types" [value]="type[0]">
+            {{ type[1] }}
+          </option>
+        </select>
+      </div>
+      
+      <div class="filter-group">
+        <label>Nivel de risc:</label>
+        <select [(ngModel)]="selectedRiskLevel" (change)="applyEventFilters()">
+          <option value="">Toate nivelurile</option>
+          <option *ngFor="let level of availableFilters.risk_levels" [value]="level[0]">
+            {{ level[1] }}
+          </option>
+        </select>
+      </div>
+      
+      <button class="btn btn-secondary" (click)="clearEventFilters()">
+        <i class="fas fa-times"></i> Curăță filtrele
+      </button>
+    </div>
+
+    <!-- Events List -->
+    <div class="events-table">
+      <table>
+        <thead>
+          <tr>
+            <th>Tip</th>
+            <th>Descriere</th>
+            <th>Risc</th>
+            <th>IP</th>
+            <th>Dispozitiv</th>
+            <th>Data</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let event of securityEvents">
+            <td>
+              <span class="event-type-badge">{{ event.event_type_display }}</span>
+            </td>
+            <td>{{ event.description }}</td>
+            <td>
+              <span class="risk-badge" [style.background-color]="getRiskLevelColor(event.risk_level)">
+                {{ event.risk_level_display }}
+              </span>
+            </td>
+            <td>{{ event.ip_address }}</td>
+            <td>
+              <div class="device-cell">
+                <i [class]="getDeviceIcon(event.device_info)"></i>
+                {{ getDeviceDisplayName(event.device_info) }}
+              </div>
+            </td>
+            <td>{{ formatDate(event.timestamp) }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    <div class="pagination" *ngIf="eventsTotalPages > 1">
+      <button 
+        class="pagination-btn" 
+        [disabled]="eventsPage === 1"
+        (click)="onEventsPageChange(1)">
+        <i class="fas fa-angle-double-left"></i>
+      </button>
+      
+      <button 
+        class="pagination-btn" 
+        [disabled]="eventsPage === 1"
+        (click)="onEventsPageChange(eventsPage - 1)">
+        <i class="fas fa-angle-left"></i>
+      </button>
+      
+      <button 
+        *ngFor="let page of getEventsPageNumbers()"
+        class="pagination-btn"
+        [class.active]="page === eventsPage"
+        (click)="onEventsPageChange(page)">
+        {{ page }}
+      </button>
+      
+      <button 
+        class="pagination-btn" 
+        [disabled]="eventsPage === eventsTotalPages"
+        (click)="onEventsPageChange(eventsPage + 1)">
+        <i class="fas fa-angle-right"></i>
+      </button>
+      
+      <button 
+        class="pagination-btn" 
+        [disabled]="eventsPage === eventsTotalPages"
+        (click)="onEventsPageChange(eventsTotalPages)">
+        <i class="fas fa-angle-double-right"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- Sessions Tab - ÎMBUNĂTĂȚIT -->
+  <div *ngIf="currentTab === 'sessions' && !isLoading" class="sessions-content">
+    
+    <!-- Explicația funcționalității -->
+    <div class="sessions-explanation">
+      <div class="info-banner">
+        <i class="fas fa-info-circle"></i>
+        <div class="info-content">
+          <h4>Ce sunt sesiunile active?</h4>
+          <p>Sesiunile active reprezintă toate dispozitivele de pe care sunteți conectat în acest moment. 
+             Monitorizarea acestora vă ajută să identificați accesul neautorizat la contul dvs.</p>
+          <ul>
+            <li><strong>Sesiunea curentă:</strong> Dispozitivul pe care vă aflați acum</li>
+            <li><strong>Sesiuni active:</strong> Alte dispozitive de pe care sunteți conectat</li>
+            <li><strong>Terminarea sesiunilor:</strong> Vă deconectează forțat din acel dispozitiv</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="sessions-header">
+      <h3>Gestionare Sesiuni Active</h3>
+      <div class="sessions-actions">
+        <button class="btn btn-danger" (click)="terminateAllSessions()">
+          <i class="fas fa-sign-out-alt"></i>
+          Termină toate sesiunile
+        </button>
+        <span class="action-info">Vă va deconecta din toate dispozitivele except cel curent</span>
+      </div>
+    </div>
+
+    <div *ngIf="userSessions.length === 0" class="no-sessions">
+      <i class="fas fa-laptop"></i>
+      <p>Nu există sesiuni active în acest moment.</p>
+    </div>
+
+    <div class="sessions-list" *ngIf="userSessions.length > 0">
+      <div *ngFor="let session of userSessions" class="session-item" [class.current]="session.is_current">
+        <div class="session-status">
+          <i [class]="getDeviceIcon(session.device_info)"></i>
+          <span *ngIf="session.is_current" class="current-badge">
+            <i class="fas fa-check-circle"></i> SESIUNEA CURENTĂ
+          </span>
+          <span *ngIf="!session.is_current" class="active-badge">
+            <i class="fas fa-circle"></i> ACTIVĂ
+          </span>
+        </div>
+        
+        <div class="session-details">
+          <h4>{{ getDeviceDisplayName(session.device_info) }}</h4>
+          <div class="session-info">
+            <div class="info-row">
+              <span class="label">Adresa IP:</span>
+              <span class="value">{{ session.ip_address }}</span>
+            </div>
+            <div class="info-row">
+              <span class="label">Conectat din:</span>
+              <span class="value">{{ formatDate(session.created_at) }}</span>
+            </div>
+            <div class="info-row">
+              <span class="label">Ultima activitate:</span>
+              <span class="value">{{ formatDate(session.last_activity) }}</span>
+            </div>
+            <div class="info-row">
+              <span class="label">Durată conexiune:</span>
+              <span class="value">{{ formatDuration(session.duration) }}</span>
+            </div>
+            <div class="info-row">
+              <span class="label">Status:</span>
+              <span class="value status-text">{{ getSessionStatusText(session) }}</span>
+            </div>
+          </div>
+        </div>
+        
+        <div class="session-actions" *ngIf="!session.is_current">
+          <button class="btn btn-danger" (click)="terminateSession(session.id)" title="Termină această sesiune">
+            <i class="fas fa-times"></i>
+            Deconectează
+          </button>
+        </div>
+
+        <div class="current-session-info" *ngIf="session.is_current">
+          <i class="fas fa-shield-check"></i>
+          <span>Nu puteți termina sesiunea curentă</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sfaturi de securitate -->
+    <div class="security-tips">
+      <h4><i class="fas fa-lightbulb"></i> Sfaturi de securitate:</h4>
+      <ul>
+        <li>Verificați regulat sesiunile active pentru a detecta activitatea suspectă</li>
+        <li>Terminați sesiunile din dispozitivele pe care nu le mai folosiți</li>
+        <li>Dacă vedeți sesiuni necunoscute, schimbați-vă parola imediat</li>
+        <li>Evitați să vă conectați de pe computere publice sau nesigure</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Alerts Tab -->
+  <div *ngIf="currentTab === 'alerts' && !isLoading" class="alerts-content">
+    
+    <h3>Alerte de Securitate</h3>
+    
+    <div *ngIf="securityAlerts.length === 0" class="no-alerts">
+      <i class="fas fa-shield-alt"></i>
+      <p>Nu există alerte de securitate active. Contul dvs. este securizat!</p>
+    </div>
+
+    <div class="alerts-list" *ngIf="securityAlerts.length > 0">
+      <div *ngFor="let alert of securityAlerts" class="alert-item" [class]="alert.severity">
+        <div class="alert-icon">
+          <i class="fas fa-exclamation-triangle" [style.color]="getSeverityColor(alert.severity)"></i>
+        </div>
+        
+        <div class="alert-content">
+          <div class="alert-header">
+            <h4>{{ alert.title }}</h4>
+            <span class="severity-badge" [style.background-color]="getSeverityColor(alert.severity)">
+              {{ alert.severity_display }}
+            </span>
+          </div>
+          
+          <p>{{ alert.message }}</p>
+          
+          <div class="alert-meta">
+            <span class="alert-time">{{ formatDate(alert.created_at) }}</span>
+            <span class="alert-type">{{ alert.alert_type_display }}</span>
+          </div>
+          
+          <div class="alert-actions" *ngIf="alert.requires_user_action">
+            <button class="btn btn-primary" (click)="acknowledgeAlert(alert.id)">
+              <i class="fas fa-check"></i>
+              Recunosc și închid
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Devices Tab - ÎMBUNĂTĂȚIT -->
+  <div *ngIf="currentTab === 'devices' && !isLoading" class="devices-content">
+    
+    <div class="devices-explanation">
+      <div class="info-banner">
+        <i class="fas fa-info-circle"></i>
+        <div class="info-content">
+          <h4>Gestionarea Dispozitivelor de Încredere</h4>
+          <p>Aici puteți gestiona dispozitivele pe care le considerați sigure. 
+             Dispozitivele de încredere vor avea acces mai ușor la contul dvs. și vor genera mai puține alerte de securitate.</p>
+        </div>
+      </div>
+    </div>
+    
+    <h3>Statistici Dispozitive</h3>
+    
+    <!-- Device Stats - ACTUALIZATE ÎN TIMP REAL -->
+    <div class="device-stats-grid" *ngIf="deviceStats">
+      <div class="device-stat-card">
+        <div class="stat-icon">
+          <i class="fas fa-laptop"></i>
+        </div>
+        <div class="stat-content">
+          <h4>Total Dispozitive</h4>
+          <p class="stat-number">{{ deviceStats.total_devices }}</p>
+          <span class="stat-subtitle">Înregistrate în sistem</span>
+        </div>
+      </div>
+      
+      <div class="device-stat-card trusted">
+        <div class="stat-icon">
+          <i class="fas fa-shield-check"></i>
+        </div>
+        <div class="stat-content">
+          <h4>De Încredere</h4>
+          <p class="stat-number">{{ deviceStats.trusted_devices }}</p>
+          <span class="stat-subtitle">{{ deviceStats.trust_ratio }}% din total</span>
+        </div>
+      </div>
+      
+      <div class="device-stat-card suspicious" *ngIf="deviceStats.suspicious_devices > 0">
+        <div class="stat-icon">
+          <i class="fas fa-exclamation-triangle"></i>
+        </div>
+        <div class="stat-content">
+          <h4>Suspecte</h4>
+          <p class="stat-number">{{ deviceStats.suspicious_devices }}</p>
+          <span class="stat-subtitle">Necesită atenție</span>
+        </div>
+      </div>
+      
+      <div class="device-stat-card">
+        <div class="stat-icon">
+          <i class="fas fa-plus"></i>
+        </div>
+        <div class="stat-content">
+          <h4>Recente</h4>
+          <p class="stat-number">{{ deviceStats.recent_devices }}</p>
+          <span class="stat-subtitle">Ultimele 30 zile</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toate Dispozitivele -->
+    <div class="all-devices-section">
+      <h4>Toate Dispozitivele</h4>
+      
+      <div *ngIf="allDevices.length === 0" class="no-devices">
+        <i class="fas fa-laptop"></i>
+        <p>Nu aveți dispozitive înregistrate.</p>
+      </div>
+
+      <div class="devices-list" *ngIf="allDevices.length > 0">
+        <div *ngFor="let device of allDevices" class="device-item" [class.trusted]="device.is_trusted" [class.current]="device.is_current">
+          <div class="device-status">
+            <i class="fas fa-laptop"></i>
+            <div class="device-badges">
+              <span *ngIf="device.is_current" class="current-badge">
+                <i class="fas fa-check-circle"></i> CURENT
+              </span>
+              <span *ngIf="device.is_trusted" class="trusted-badge">
+                <i class="fas fa-shield-check"></i> DE ÎNCREDERE
+              </span>
+              <span *ngIf="!device.is_trusted && !device.is_current" class="unknown-badge">
+                <i class="fas fa-question-circle"></i> NECUNOSCUT
+              </span>
+            </div>
+          </div>
+          
+          <div class="device-details">
+            <h5>{{ device.platform || 'Dispozitiv necunoscut' }}</h5>
+            <div class="device-info">
+              <div class="info-row">
+                <span class="label">Rezoluție ecran:</span>
+                <span class="value">{{ device.screen_resolution || 'Necunoscută' }}</span>
+              </div>
+              <div class="info-row">
+                <span class="label">Primul acces:</span>
+                <span class="value">{{ formatDate(device.first_seen) }}</span>
+              </div>
+              <div class="info-row">
+                <span class="label">Ultimul acces:</span>
+                <span class="value">{{ formatDate(device.last_seen) }}</span>
+              </div>
+              <div class="info-row">
+                <span class="label">Numărul de utilizări:</span>
+                <span class="value">{{ device.usage_count }}</span>
+              </div>
+              <div class="info-row">
+                <span class="label">ID dispozitiv:</span>
+                <span class="value device-id">{{ device.fingerprint_hash }}</span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="device-actions" *ngIf="canModifyDevice(device)">
+            <button 
+              *ngIf="!device.is_trusted" 
+              class="btn btn-success btn-small" 
+              (click)="updateDeviceTrust(device, 'trust')"
+              title="Marchează ca dispozitiv de încredere">
+              <i class="fas fa-shield-check"></i>
+              Marchează de încredere
+            </button>
+            
+            <button 
+              *ngIf="device.is_trusted" 
+              class="btn btn-warning btn-small" 
+              (click)="updateDeviceTrust(device, 'untrust')"
+              title="Elimină din dispozitivele de încredere">
+              <i class="fas fa-shield-times"></i>
+              Elimină încrederea
+            </button>
+          </div>
+
+          <div class="current-device-info" *ngIf="device.is_current">
+            <i class="fas fa-info-circle"></i>
+            <span>Acesta este dispozitivul curent</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sfaturi pentru dispozitive -->
+    <div class="device-tips">
+      <h4><i class="fas fa-lightbulb"></i> Sfaturi pentru gestionarea dispozitivelor:</h4>
+      <ul>
+        <li>Marcați ca "de încredere" doar dispozitivele personale și sigure</li>
+        <li>Dispozitivele de încredere vor genera mai puține alerte de securitate</li>
+        <li>Verificați regulat lista pentru dispozitive necunoscute</li>
+        <li>Nu marcați computere publice sau împărtășite ca fiind de încredere</li>
+        <li>Dispozitivul curent este automat considerat de încredere</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Analytics Tab -->
+  <div *ngIf="currentTab === 'analytics' && !isLoading" class="analytics-content">
+    
+    <div class="analytics-header">
+      <h3>Analize de Securitate</h3>
+      <div class="range-selector">
+        <button 
+          class="btn" 
+          [class.active]="analyticsRange === 7"
+          (click)="changeAnalyticsRange(7)">
+          7 zile
+        </button>
+        <button 
+          class="btn" 
+          [class.active]="analyticsRange === 30"
+          (click)="changeAnalyticsRange(30)">
+          30 zile
+        </button>
+        <button 
+          class="btn" 
+          [class.active]="analyticsRange === 90"
+          (click)="changeAnalyticsRange(90)">
+          90 zile
+        </button>
+      </div>
+    </div>
+
+    <div *ngIf="analytics" class="analytics-grid">
+      
+      <!-- Event Distribution -->
+      <div class="analytics-card">
+        <h4>Distribuția Evenimentelor</h4>
+        <div class="distribution-list">
+          <div *ngFor="let item of analytics.event_distribution" class="distribution-item">
+            <span class="event-name">{{ item.event_type }}</span>
+            <span class="event-count">{{ item.count }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Risk Distribution -->
+      <div class="analytics-card">
+        <h4>Distribuția pe Nivel de Risc</h4>
+        <div class="distribution-list">
+          <div *ngFor="let item of analytics.risk_distribution" class="distribution-item">
+            <span class="risk-name" [style.color]="getRiskLevelColor(item.risk_level)">
+              {{ item.risk_level }}
+            </span>
+            <span class="risk-count">{{ item.count }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- CAPTCHA Stats -->
+      <div class="analytics-card" *ngIf="captchaStats">
+        <h4>Statistici CAPTCHA</h4>
+        <div class="captcha-stats">
+          <div class="captcha-overview">
+            <div class="captcha-metric">
+              <span class="metric-label">Total încercări:</span>
+              <span class="metric-value">{{ captchaStats.total_attempts }}</span>
+            </div>
+            <div class="captcha-metric">
+              <span class="metric-label">Rata de succes:</span>
+              <span class="metric-value" [style.color]="captchaStats.success_rate > 80 ? '#4CAF50' : '#FF9800'">
+                {{ captchaStats.success_rate }}%
+              </span>
+            </div>
+            <div class="captcha-metric">
+              <span class="metric-label">Eșecuri:</span>
+              <span class="metric-value" [style.color]="captchaStats.failed_attempts > 10 ? '#f44336' : '#ccc'">
+                {{ captchaStats.failed_attempts }}
+              </span>
+            </div>
+          </div>
+          
+          <div class="captcha-contexts" *ngIf="captchaStats.context_breakdown.length > 0">
+            <h5>Pe contexte:</h5>
+            <div *ngFor="let context of captchaStats.context_breakdown" class="context-item">
+              <span class="context-name">{{ context.context || 'General' }}</span>
+              <span class="context-attempts">{{ context.attempts }} încercări</span>
+              <span class="context-success">{{ context.successes }} succese</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- IP Usage -->
+      <div class="analytics-card">
+        <h4>IP-uri Utilizate</h4>
+        <div class="distribution-list">
+          <div *ngFor="let item of analytics.ip_usage" class="distribution-item">
+            <span class="ip-address">{{ item.ip_address }}</span>
+            <span class="ip-count">{{ item.count }} folosiri</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Daily Activity -->
+      <div class="analytics-card full-width">
+        <h4>Activitatea Zilnică</h4>
+        <div class="activity-chart">
+          <div *ngFor="let day of analytics.daily_activity" class="activity-bar">
+            <div 
+              class="bar" 
+              [style.height.px]="day.events * 3"
+              [title]="day.date + ': ' + day.events + ' evenimente'">
+            </div>
+            <span class="day-label">{{ day.date | date:'dd/MM' }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

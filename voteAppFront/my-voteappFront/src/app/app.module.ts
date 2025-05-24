@@ -81,6 +81,8 @@ import { ResultsComponent } from './results/results.component';
 import { PresenceComponent } from './presence/presence.component';
 import { CsvDownloadComponent } from './csv-download/csv-download.component';
 import { CsvDownloadService } from './services/csv-download.service';
+import { SecurityComponent } from './security/security.component';
+import { SecurityService } from './services/security.service';
 
 @NgModule({
   declarations: [
@@ -128,6 +130,7 @@ import { CsvDownloadService } from './services/csv-download.service';
     ResultsComponent,
     PresenceComponent,
     CsvDownloadComponent,
+    SecurityComponent,
 
   ],
   imports: [
@@ -175,6 +178,7 @@ import { CsvDownloadService } from './services/csv-download.service';
     PresidentialCandidatesService,
     PresidentialRound2VoteService,
     CsvDownloadService,
+    SecurityService,
   ],
   bootstrap: [AppComponent]
 })

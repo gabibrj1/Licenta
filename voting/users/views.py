@@ -50,6 +50,8 @@ from .utils import verify_recaptcha
 import pyotp
 from account_settings.models import AccountSettings
 from .utils import ProcessorCNP
+from security.utils import create_security_event, log_captcha_attempt, log_2fa_event, log_gdpr_event
+from django.utils import timezone
 
 logger = logging.getLogger(__name__)
 
@@ -66,6 +68,13 @@ class RegisterWithIDCardView(APIView):
             if cnp:
                 processor_cnp = ProcessorCNP()
                 if not processor_cnp.este_major(cnp):
+                    create_security_event(
+                        user=None,  # Nu avem utilizator la acest pas
+                        event_type='profile_update',
+                        description=f"Încercare înregistrare minor cu CNP: {cnp[:3]}***",
+                        drequest=request,
+                        risk_level='high'
+                    )
                     return Response(
                         {'error': 'Înregistrarea este permisă doar persoanelor majore (peste 18 ani).'},
                         status=status.HTTP_400_BAD_REQUEST
@@ -82,18 +91,74 @@ class RegisterWithIDCardView(APIView):
                 existing_user = User.objects.filter(email=email).first()
 
             if existing_user:
+                create_security_event(
+                    user=existing_user,
+                    event_type='profile_update',
+                    description=f"Încercare înregistrare dublă pentru {email or 'CNP: ' + cnp[:3] + '***'}",
+                    drequest=request,
+                    risk_level='medium'
+                )
                 return Response({'error': 'Utilizatorul există deja. Încearcă să te autentifici.'}, status=status.HTTP_400_BAD_REQUEST)
 
             # Cream un nou utilizator
             user = serializer.save(is_active=False, is_verified_by_id=True)  # 🔹 Initial, contul este inactiv
 
+            create_security_event(
+                user=user,
+                event_type='profile_update',
+                description=f"Cont nou creat cu buletin pentru {user.email if user.email else 'CNP: ' + user.cnp[:3] + '***'}",
+                request=request,
+                additional_data={
+                    'registration_method': 'id_card',
+                    'has_email': bool(user.email),
+                    'is_verified_by_id': True
+                },
+            )
+            log_gdpr_event(
+                user=user,
+                action='id_card_registration_consent',
+                request=request
+            )
+           
+           
             # Salvam imaginea buletinului daca este incarcata
             image = request.FILES.get('id_card_image')
             if image:
                 user.id_card_image.save(f'id_cards/{user.id}_{image.name}', image, save=True)
 
+                create_security_event(
+                    user=user,
+                    event_type='id_card_scan_success',
+                    description=f"Imagine buletin salvată pentru {user.cnp[:3]}***",
+                    request=request,
+                    risk_level='low'
+                )
+
+                # Log pentru scanarea reusita a buletinului
+                create_security_event(
+                    user=user,
+                    event_type='id_card_scan_success', 
+                    description=f"Scanare buletin reușită pentru utilizator {user.cnp[:3]}***",
+                    request=request,
+                    additional_data={
+                        'image_uploaded': True,
+                        'registration_method': 'id_card'
+                    },
+                    risk_level='low'
+                )
+
+
             return Response({'message': 'Înregistrare cu buletinul completată cu succes!'}, status=status.HTTP_201_CREATED)
 
+        create_security_event(
+            user=None,  
+            event_type='profile_update',
+            description="Încercare eșuată de înregistrare cu buletin - erori de validare",
+            request=request,
+            additional_data={'errors': serializer.errors},
+            risk_level='medium'
+        )
+        
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 # Calea catre modelul de anti - spoofing
@@ -408,6 +473,13 @@ class UploadIdView(APIView):
         is_valid_id = any(keyword in extracted_text.upper() for keyword in self.valid_keywords)
 
         if not is_valid_id:
+            create_security_event(
+                user=request.user if request.user.is_authenticated else None,
+                event_type='id_card_scan_failed',
+                description="Scanare buletin eșuată - document invalid",
+                request=request,
+                risk_level='medium'
+            )
             # Oglindim imaginea și rulăm OCR din nou
             flipped_image = cv2.flip(cropped_image, 1)  # 1 pentru oglindire orizontala
             flipped_file_path = cropped_file_path.replace('.jpg', '_flipped.jpg')
@@ -420,6 +492,14 @@ class UploadIdView(APIView):
         if not is_valid_id:
             return Response({'error': 'Imaginea încărcată nu corespunde unui act de identitate'}, 
                             status=status.HTTP_400_BAD_REQUEST)
+        
+        create_security_event(
+            user=request.user if request.user.is_authenticated else None,
+            event_type='id_card_scan_success',
+            description="Scanare și validare buletin reușită",
+            request=request,
+            risk_level='low'
+        )
 
         return Response({
             'message': 'Imaginea a fost încărcată și procesată cu succes.',
@@ -696,10 +776,36 @@ class RegisterView(APIView):
             user = serializer.save()
             user.is_active = False # initial contul este inactiv pentru toti utilizatorii noi
 
+            create_security_event(
+                user=user,
+                event_type='profile_update',
+                description=f"Cont nou creat pentru {user.email if user.email else 'CNP: ' + user.cnp[:3] + '***'}",
+                request=request,
+                additional_data={
+                    'registration_method': 'email' if email else 'cnp',
+                    'has_email': bool(email),
+                    'has_cnp': bool(cnp)
+                },
+                risk_level='low'
+            )
+
+            log_gdpr_event(
+                user=user,
+                action='registration_consent',
+                request=request
+            )
+            
             # verificam daca utilizatorul s-a autentificat prin Google
             if SocialAccount.objects.filter(user=user, provider='google').exists():
                 user.is_active = True
                 user.save()
+                create_security_event(
+                    user=user,
+                    event_type='login_success',
+                    description=f"Cont activat automat prin Google pentru {user.email}",
+                    request=request,
+                    risk_level='low'
+                )
                 return Response({'message': 'Utilizatorul s-a autentificat prin Google. Cont activat automat.'}, status=status.HTTP_201_CREATED)
 
             # pt utilizatorii care folosesc email și parola, trimitem un cod de verificare prin mail
@@ -707,6 +813,19 @@ class RegisterView(APIView):
                 verification_code = str(random.randint(100000, 999999))
                 user.verification_code = verification_code
                 user.save()
+
+                create_security_event(
+                    user=user,
+                    event_type='email_verification',
+                    description=f"Începe trimiterea codului de verificare email pentru înregistrare către {email}",
+                    request=request,
+                    additional_data={
+                        'email_type': 'account_verification',
+                        'recipient_email': email,
+                        'verification_code_length': len(verification_code)
+                    },
+                    risk_level='low'
+                )
 
                 html_message = render_to_string('email_template.html', {
                     'verification_code': verification_code
@@ -722,6 +841,21 @@ class RegisterView(APIView):
                 email.content_subtype = 'html'
                 email.send()
 
+                create_security_event(
+                    user=user,
+                    event_type='email_verification',
+                    description=f"Codul de verificare email pentru înregistrare trimis cu succes către {email}",
+                    request=request,
+                    additional_data={
+                        'email_type': 'account_verification',
+                        'recipient_email': email,
+                        'status': 'success'
+                    },
+                    risk_level='low'
+                )
+                
+
+
                 return Response({'message': 'Utilizatorul a fost înregistrat cu succes. Verificați emailul pentru codul de verificare.'}, status=status.HTTP_201_CREATED)
 
             # pt utilizatorii care se inregistreaza cu buletin
@@ -729,6 +863,16 @@ class RegisterView(APIView):
                 user.is_verified_by_id = True
                 user.save()
                 return Response({'message': 'Utilizatorul a fost înregistrat cu succes cu buletinul.'}, status=status.HTTP_201_CREATED)
+            
+        create_security_event(
+            user=None,
+            event_type='profile_update',
+            description=f"Încercare eșuată de înregistrare pentru {email or 'CNP: ' + str(cnp)[:3] + '***' if cnp else 'date necunoscute'}",
+            request=request,
+            additional_data={'errors': serializer.errors},
+            risk_level='medium'
+        )
+
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -874,6 +1018,13 @@ class LoginWithIDCardView(APIView):
         logger.info(f"Tip autentificare: {auth_type}")
         
         if not cnp:
+            create_security_event(
+                user=None,
+                event_type='login_failed',
+                description="Încercare de autentificare cu buletin fără CNP",
+                request=request,
+                risk_level='medium'
+            )
             return Response(
                 {"detail": "CNP-ul este necesar pentru autentificare."},
                 status=400
@@ -882,8 +1033,27 @@ class LoginWithIDCardView(APIView):
         try:
             user = User.objects.get(cnp=cnp)
             logger.info(f"Utilizator găsit cu CNP: {cnp}")
+            create_security_event(
+                user=user,
+                event_type='login_success',
+                description=f"Încercare autentificare cu buletin pentru CNP: {cnp[:3]}*** folosind {auth_type}",
+                request=request,
+                additional_data={
+                    'auth_type': auth_type,
+                    'facial_recognition': is_facial_recognition,
+                    'manual_auth': is_manual_id_auth
+                },
+                risk_level='low'
+            )
             
             if not user.is_verified_by_id:
+                create_security_event(
+                    user=user,
+                    event_type='login_failed',
+                    description=f"Încercare autentificare cu cont neverificat prin buletin: {cnp[:3]}***",
+                    request=request,
+                    risk_level='medium'
+                )
                 return Response({"detail": "Contul nu este verificat prin buletin."}, status=403)
                 
             if not user.is_active:
@@ -892,6 +1062,13 @@ class LoginWithIDCardView(APIView):
                 user.save()
                 
         except User.DoesNotExist:
+            create_security_event(
+                user=None,
+                event_type='login_failed',
+                description=f"Încercare de autentificare cu CNP inexistent: {cnp[:3]}***",
+                request=request,
+                risk_level='high'
+            )
             return Response({"detail": "Utilizator inexistent."}, status=401)
         
         has_2fa = False
@@ -905,6 +1082,13 @@ class LoginWithIDCardView(APIView):
 
         if is_facial_recognition:
             if not live_image:
+                create_security_event(
+                    user=user,
+                    event_type='facial_recognition_failed',
+                    description=f"Autentificare facială fără imagine live pentru {cnp[:3]}***",
+                    request=request,
+                    risk_level='medium'
+                )
                 return Response(
                     {"detail": "Imaginea live este necesară pentru autentificarea cu recunoaștere facială."},
                     status=400
@@ -920,6 +1104,13 @@ class LoginWithIDCardView(APIView):
                 id_card_path = user.id_card_image.path if default_storage.exists(user.id_card_image.name) else None
                 
                 if not id_card_path:
+                    create_security_event(
+                        user=user,
+                        event_type='facial_recognition_failed',
+                        description=f"Imagine de referință lipsă pentru {cnp[:3]}***",
+                        request=request,
+                        risk_level='high'
+                    )
                     return Response({"detail": "Nu există imaginea de referință în baza de date."}, status=404)
                     
                 id_card_pil = Image.open(id_card_path).convert("RGB")
@@ -933,17 +1124,86 @@ class LoginWithIDCardView(APIView):
                 match, message = self.compare_faces(id_card_array, live_array)
                 
                 if not match:
+                    if 'spoofing' in message.lower() or 'fraud' in message.lower():
+                        create_security_event(
+                            user=user,
+                            event_type='anti_spoofing_triggered',
+                            description=f"Detectată încercare de spoofing pentru {cnp[:3]}***: {message}",
+                            request=request,
+                            risk_level='critical'
+                        )
+                    elif 'multiple' in message.lower():
+                        create_security_event(
+                            user=user,
+                            event_type='multiple_faces_detected',
+                            description=f"Multiple fețe detectate pentru {cnp[:3]}***: {message}",
+                            request=request,
+                            risk_level='critical'
+                        )
+                    else:
+                        create_security_event(
+                            user=user,
+                            event_type='facial_recognition_failed',
+                            description=f"Recunoaștere facială eșuată pentru {cnp[:3]}***: {message}",
+                            request=request,
+                            risk_level='high'
+                        )
+                        return Response({"detail": "Fraudă detectată: folosiți o imagine reală!"}, status=401)
                     return Response({"detail": message}, status=401)
+                else:
+                    create_security_event(
+                        user=user,
+                        event_type='facial_recognition_success',
+                        description=f"Recunoaștere facială reușită pentru {cnp[:3]}***",
+                        request=request,
+                        risk_level='low'
+                    )
+                
             else:
+                create_security_event(
+                    user=user,
+                    event_type='facial_recognition_failed',
+                    description=f"Imaginea de referință lipsește pentru {cnp[:3]}***",
+                    request=request,
+                    risk_level='high'
+                )
                 return Response({"detail": "Imaginea de referință lipsește."}, status=404)
         
         elif is_manual_id_auth:
             if user.first_name.lower() != first_name.lower() or user.last_name.lower() != last_name.lower():
+                create_security_event(
+                    user=user,
+                    event_type='login_failed',
+                    description=f"Nume și prenume incorecte pentru {cnp[:3]}***",
+                    request=request,
+                    risk_level='high'
+                )
                 return Response({"detail": "Numele și prenumele nu corespund cu cele din baza de date."}, status=401)
             
             if hasattr(user, 'id_series') and user.id_series and user.id_series != id_series:
+                create_security_event(
+                    user=user,
+                    event_type='login_failed',
+                    description=f"Seria buletinului incorectă pentru {cnp[:3]}***",
+                    request=request,
+                    risk_level='high'
+                )
                 return Response({"detail": "Seria buletinului nu corespunde cu cea din baza de date."}, status=401)
+            create_security_event(
+                user=user,
+                event_type='login_success',
+                description=f"Autentificare manuală cu buletin reușită pentru {cnp[:3]}***",
+                request=request,
+                risk_level='low'
+            )
         else:
+            create_security_event(
+                user=user,
+                event_type='login_failed',
+                description=f"Date insuficiente pentru autentificare cu buletin: {cnp[:3]}***",
+                request=request,
+                risk_level='medium'
+            )
             return Response(
                 {"detail": "Date insuficiente pentru autentificare."},
                 status=400
@@ -965,7 +1225,17 @@ class LoginWithIDCardView(APIView):
         access_token = str(refresh.access_token)
         
         logger.info(f"Autentificare reușită pentru utilizatorul cu CNP {user.cnp}")
-        
+        create_security_event(
+            user=user,
+            event_type='login_success',
+            description=f"Autentificare completă cu buletin reușită pentru {user.cnp[:3]}***",
+            request=request,
+            additional_data={
+                'auth_method': 'id_card',
+                'auth_type': auth_type
+            },
+        ) 
+       
         response_data = {
             'refresh': str(refresh),
             'access': access_token,
@@ -985,18 +1255,97 @@ class LoginWithIDCardView(APIView):
         return Response(response_data, status=200)
 
 #Endpoint pentru verificarea reCAPTCHA
+# ÎNLOCUIEȘTE VerifyRecaptchaView din inregistrare_autentificare/views.py
 class VerifyRecaptchaView(APIView):
     permission_classes = [AllowAny]
     
     def post(self, request):
         token = request.data.get('token')
+        context = request.data.get('context', 'general')  # Adaugă context
+        
+        if not token:
+            create_security_event(
+                user=request.user if request.user.is_authenticated else None,
+                event_type='captcha_failed',
+                description="Verificare CAPTCHA eșuată - token lipsă",
+                request=request,
+                additional_data={'context': context, 'reason': 'missing_token'},
+                risk_level='medium'
+            )
+            return Response({'success': False, 'detail': 'Token CAPTCHA lipsă'}, status=status.HTTP_400_BAD_REQUEST)
+        
         is_valid = verify_recaptcha(token)
+
+        # Log evenimente CAPTCHA
+        log_captcha_attempt(
+            request=request,
+            is_success=is_valid,
+            captcha_type='recaptcha',
+            context=context,
+            user=request.user if request.user.is_authenticated else None
+        )
+        
+        if is_valid:
+            create_security_event(
+                user=request.user if request.user.is_authenticated else None,
+                event_type='captcha_success',
+                description="Verificare reCAPTCHA reușită",
+                request=request,
+                additional_data={'context': context},
+                risk_level='low'
+            )
+        else:
+            create_security_event(
+                user=request.user if request.user.is_authenticated else None,
+                event_type='captcha_failed',
+                description="Verificare reCAPTCHA eșuată",
+                request=request,
+                additional_data={'context': context, 'reason': 'invalid_token'},
+                risk_level='medium'
+            )
+            
+            # Verifică pentru încercări multiple
+            self.check_multiple_captcha_attempts(request)
         
         if is_valid:
             return Response({'success': True}, status=status.HTTP_200_OK)
         else:
             return Response({'success': False, 'detail': 'Verificarea reCAPTCHA a eșuat'}, status=status.HTTP_400_BAD_REQUEST)
-
+    
+    def check_multiple_captcha_attempts(self, request):
+        """Verifică pentru încercări multiple CAPTCHA eșuate"""
+        from datetime import timedelta
+        from security.models import CaptchaAttempt
+        
+        ip_address = self.get_client_ip(request)
+        recent_failures = CaptchaAttempt.objects.filter(
+            ip_address=ip_address,
+            is_success=False,
+            timestamp__gte=timezone.now() - timedelta(minutes=10)
+        ).count()
+        
+        if recent_failures >= 3:  # 3 eșecuri în 10 minute
+            create_security_event(
+                user=request.user if request.user.is_authenticated else None,
+                event_type='captcha_multiple_attempts',
+                description=f'Detectate {recent_failures} eșecuri CAPTCHA în ultimele 10 minute',
+                request=request,
+                additional_data={
+                    'failure_count': recent_failures,
+                    'ip_address': ip_address,
+                    'time_window': '10 minutes'
+                },
+                risk_level='high'
+            )
+    
+    def get_client_ip(self, request):
+        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+        if x_forwarded_for:
+            ip = x_forwarded_for.split(',')[0]
+        else:
+            ip = request.META.get('REMOTE_ADDR')
+        return ip
+    
 # view pt autentif clasica cu mail si parola   
 class LoginView(APIView):
     permission_classes = [AllowAny]
@@ -1011,6 +1360,13 @@ class LoginView(APIView):
         try:
             user = User.objects.get(email=email)
         except User.DoesNotExist:
+            create_security_event(
+                user=None,
+                event_type='login_failed',
+                description=f"Încercare de autentificare cu email inexistent: {email}",
+                request=request,
+                risk_level='medium'
+            )
             return Response(
                 {"detail": "Autentificare eșuată. Verifică email-ul și parola."},
                 status=status.HTTP_401_UNAUTHORIZED
@@ -1018,6 +1374,13 @@ class LoginView(APIView):
 
         # Verifică dacă utilizatorul are un cont social asociat
         if SocialAccount.objects.filter(user=user).exists():
+            create_security_event(
+                user=user,
+                event_type='login_failed',
+                description=f"Încercare de autentificare clasică pe cont social: {email}",
+                request=request,
+                risk_level='medium'
+            )
             return Response(
                 {"detail": "Folosește autentificarea socială pentru acest cont (Facebook/Google)."},
                 status=status.HTTP_403_FORBIDDEN
@@ -1046,8 +1409,17 @@ class LoginView(APIView):
                 has_2fa = False
             
             if has_2fa:
+                create_security_event(
+                    user=user,
+                    event_type='login_success',
+                    description=f"Autentificare parțială reușită pentru {user.email} - necesită 2FA",
+                    request=request,
+                    risk_level='low'
+                )
+
                 # Returnăm un răspuns care indică necesitatea 2FA
                 logger.info(f"Se solicită 2FA pentru utilizatorul {user.email}")
+            
                 return Response({
                     'requires_2fa': True,
                     'email': user.email,
@@ -1058,6 +1430,15 @@ class LoginView(APIView):
                     'message': 'Este necesară verificarea cu doi factori.'
                 }, status=status.HTTP_200_OK)
             else:
+
+                create_security_event(
+                    user=user,
+                    event_type='login_success',
+                    description=f"Autentificare completă reușită pentru {user.email}",
+                    request=request,
+                    risk_level='low'
+                )
+
                 # Generează token-uri JWT
                 refresh = RefreshToken.for_user(user)
                 
@@ -1072,6 +1453,13 @@ class LoginView(APIView):
                 }, status=status.HTTP_200_OK)
 
         # Parola este greșită
+        create_security_event(
+            user=None,
+            event_type='login_failed',
+            description=f"Autentificare eșuată - parolă incorectă pentru {email}",
+            request=request,
+            risk_level='medium'
+        )
         return Response(
             {"detail": "Autentificare eșuată. Verifică email-ul și parola."},
             status=status.HTTP_401_UNAUTHORIZED
@@ -1093,10 +1481,37 @@ class RequestPasswordResetView(APIView):
                 return Response({'error': 'Contul este asociat cu autentificare socială. Nu se poate reseta parola.'}, 
                                status=status.HTTP_400_BAD_REQUEST)
             
+            # log inceput proces de resetare parola
+            create_security_event(
+                user=user,
+                event_type='password_reset_request',
+                description=f"Solicitare resetare parolă pentru {user.email}",
+                request=request,
+                additional_data={
+                    'email': email,
+                    'reset_method': 'email_code'
+                },
+                risk_level='low'
+            )
+            
             # Generăm un cod de resetare
             reset_code = str(random.randint(100000, 999999))
             user.verification_code = reset_code  # Folosim același câmp ca pentru verificarea emailului
             user.save()
+
+            # log inceput dee trimitere mail
+            create_security_event(
+                user=user,
+                event_type='email_verification',
+                description=f"Începe trimiterea codului de resetare parolă prin email către {email}",
+                request=request,
+                additional_data={
+                    'email_type': 'password_reset',
+                    'recipient_email': email,
+                    'reset_code_length': len(reset_code)
+                },
+                risk_level='low'
+            )
             
             # Trimitem codul prin email
             html_message = render_to_string('password_reset_email.html', {
@@ -1113,10 +1528,50 @@ class RequestPasswordResetView(APIView):
             email.content_subtype = 'html'
             email.send()
             
+            create_security_event(
+                user=user,
+                event_type='email_verification',
+                description=f"Codul de resetare parolă trimis cu succes prin email către {email}",
+                request=request,
+                additional_data={
+                    'email_type': 'password_reset',
+                    'recipient_email': email,
+                    'status': 'success'
+                },
+                risk_level='low'
+            )
             return Response({'message': 'Un cod de resetare a fost trimis pe adresa de email.'}, 
                           status=status.HTTP_200_OK)
+        except Exception as email_error:
+                        create_security_event(
+                user=user,
+                event_type='email_verification',
+                description=f"Eșec trimitere cod resetare parolă prin email către {email}: {str(email_error)}",
+                request=request,
+                additional_data={
+                    'email_type': 'password_reset',
+                    'recipient_email': email,
+                    'status': 'failed',
+                    'error': str(email_error)
+                },
+                risk_level='medium'
+            )
+                        return Response({'error': 'Eroare la trimiterea email-ului. Încercați din nou.'}, 
+                          status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
         
         except User.DoesNotExist:
+            create_security_event(
+                user=None,
+                event_type='password_reset_request',
+                description=f"Încercare resetare parolă pentru email inexistent: {email}",
+                request=request,
+                additional_data={
+                    'email': email,
+                    'reason': 'user_not_found'
+                },
+                risk_level='medium'
+            )
             # Pentru securitate, nu dezvăluim că email-ul nu există
             return Response({'message': 'Dacă email-ul există în sistem, un cod de resetare a fost trimis.'}, 
                           status=status.HTTP_200_OK)
@@ -1245,6 +1700,13 @@ class ResetPasswordView(APIView):
             user.set_password(new_password)
             user.verification_code = None  # Resetăm codul după utilizare
             user.save()
+            create_security_event(
+                user=user,
+                event_type='password_reset_success',
+                description=f"Parolă resetată cu succes pentru {user.email}",
+                request=request,
+                risk_level='low'
+            )
             
             return Response({'message': 'Parola a fost resetată cu succes.'}, 
                           status=status.HTTP_200_OK)
@@ -1275,9 +1737,23 @@ class VerifyEmailView(APIView):
             user.is_active = True
             user.verification_code = None
             user.save()
+            create_security_event(
+                user=user,
+                event_type='email_verification',
+                description=f"Email verificat cu succes pentru {user.email}",
+                request=request,
+                risk_level='low'
+            )
             return Response({'message': 'Contul a fost verificat cu succes și activat!'}, status=status.HTTP_200_OK)
 
         except User.DoesNotExist:
+            create_security_event(
+                user=None,
+                event_type='email_verification',
+                description=f"Verificare email eșuată pentru {email} - cod invalid: {verification_code}",
+                request=request,
+                risk_level='medium'
+            )
             print(f"Utilizator negăsit pentru {email} cu codul {verification_code}")  # Log pentru debug
             return Response({'error': 'Cod de verificare incorect sau email invalid.'}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -1388,6 +1864,13 @@ class VerifyTwoFactorLoginView(APIView):
             
         if not user:
             logger.warning("Utilizator negăsit pentru verificare 2FA")
+            create_security_event(
+                user=None,
+                vent_type='2fa_failed',
+                description=f"Încercare 2FA cu utilizator inexistent: {email or cnp[:3] + '***'}",
+                request=request,
+                risk_level='high'
+            )
             return Response(
                 {'error': 'Utilizator negăsit în baza de date.'},
                 status=status.HTTP_404_NOT_FOUND
@@ -1402,6 +1885,13 @@ class VerifyTwoFactorLoginView(APIView):
             
             if not account_settings.two_factor_enabled:
                 logger.warning(f"2FA nu este activat pentru {user.email or user.cnp}")
+                create_security_event(
+                    user=user,
+                    event_type='2fa_failed',
+                    description=f"Încercare 2FA pe cont fără 2FA activat: {user.email or user.cnp[:3] + '***'}",
+                    request=request,
+                    risk_level='medium'
+                )
                 return Response(
                     {'error': 'Autentificarea cu doi factori nu este activată pentru acest cont.'},
                     status=status.HTTP_400_BAD_REQUEST
@@ -1409,6 +1899,13 @@ class VerifyTwoFactorLoginView(APIView):
                 
             if not account_settings.two_factor_secret:
                 logger.warning(f"Lipsă secret 2FA pentru {user.email or user.cnp}")
+                create_security_event(
+                    user=user,
+                    event_type='2fa_failed',
+                    description=f"Secret 2FA lipsă pentru: {user.email or user.cnp[:3] + '***'}",
+                    request=request,
+                    risk_level='high'
+                )
                 return Response(
                     {'error': 'Secret-ul pentru autentificarea cu doi factori lipsește. Vă rugăm reconfigurați autentificarea cu doi factori.'},
                     status=status.HTTP_400_BAD_REQUEST
@@ -1420,6 +1917,16 @@ class VerifyTwoFactorLoginView(APIView):
             logger.info(f"Verificare cod 2FA pentru {user.email or user.cnp}: {is_valid}")
             
             if is_valid:
+                log_2fa_event(
+                    user=user,
+                    event_type='2fa',
+                    is_success=True,
+                    request=request,
+                    additional_data={
+                        'code_verified': True,
+                        'auth_method': 'email' if user.email else 'id_card'
+                    }
+                )
                 # Generează token JWT și returnează răspunsul
                 refresh = RefreshToken.for_user(user)
                 
@@ -1446,6 +1953,17 @@ class VerifyTwoFactorLoginView(APIView):
                 current_code = totp.now()
                 logger.warning(f"Cod 2FA invalid pentru {user.email or user.cnp}. Cod furnizat: {code}, cod curent valid: {current_code}")
                 
+                log_2fa_event(
+                    user=user,
+                    event_type='2fa',
+                    is_success=False,
+                    request=request,
+                    additional_data={
+                        'code_provided': code,
+                        'expected_code': current_code,
+                        'auth_method': 'email' if user.email else 'id_card'
+                    }
+                )
                 return Response(
                     {'error': 'Cod de verificare invalid. Vă rugăm să introduceți codul corect din aplicația de autentificare.'},
                     status=status.HTTP_400_BAD_REQUEST
@@ -1453,6 +1971,14 @@ class VerifyTwoFactorLoginView(APIView):
                 
         except AccountSettings.DoesNotExist:
             logger.error(f"Nu există setări pentru utilizatorul {user.email or user.cnp}")
+            
+            create_security_event(
+                user=user,
+                event_type='2fa_failed',
+                description=f"Setări 2FA lipsă pentru: {user.email or user.cnp[:3] + '***'}",
+                request=request,
+                risk_level='medium'
+            )
             
             # Creăm automat setările lipsă pentru a evita această eroare în viitor
             try:
@@ -1480,3 +2006,23 @@ class VerifyTwoFactorLoginView(APIView):
                 {'error': 'A apărut o eroare la verificarea codului. Vă rugăm încercați din nou sau contactați administratorul.'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+        
+class LogoutView(APIView):
+    permission_classes = [IsAuthenticated]
+    
+    def post(self, request):
+        user = request.user
+        
+        create_security_event(
+            user=user,
+            event_type='logout',
+            description=f"Utilizatorul {user.email if user.email else 'CNP: ' + user.cnp[:3] + '***'} s-a deconectat",
+            request=request,
+            additional_data={
+                'logout_method': 'manual_button',
+                'auth_method': 'email' if user.email else 'id_card'
+            },
+            risk_level='low'
+        )
+        
+        return Response({'message': 'Deconectare reușită'}, status=status.HTTP_200_OK)

@@ -47,6 +47,7 @@ from django.core.mail import send_mail
 from datetime import timedelta
 from django.db.models import Count, Sum
 from .models import PresidentialRound2Candidate, PresidentialRound2Vote
+from security.utils import log_vote_security_event, log_captcha_attempt, create_security_event
 
 
 
@@ -412,14 +413,49 @@ class SubmitLocalVoteView(APIView):
         """Înregistrează votul local al utilizatorului"""
         # Verifică dacă utilizatorul este autentificat cu buletin
         user = request.user
+        candidate_id = request.data.get('candidate_id')
+        voting_section_id = request.data.get('voting_section_id')
+        log_vote_security_event(
+            user=user,
+            event_type='vote_attempted',
+            description=f"Încercare de vot local pentru {user.cnp[:3] if user.cnp else user.email}***",
+            request=request,
+            additional_data={
+                'vote_type': 'local',
+                'candidate_id': candidate_id,
+                'voting_section_id': voting_section_id
+            }
+        )
+
         if not hasattr(user, 'cnp') or not user.cnp:
+            log_vote_security_event(
+                user=user,
+                event_type='vote_attempted',
+                description="Încercare de vot local fără autentificare prin buletin",
+                request=request
+            )
             return Response({
                 'error': 'Autentificare cu buletinul necesară pentru a vota'
             }, status=status.HTTP_400_BAD_REQUEST)
+        # Logăm încercarea de vot
+        log_vote_security_event(
+            user=user,
+            event_type='vote_attempted',
+            description=f"Utilizatorul {user.cnp} încearcă să voteze local",
+            request=request,
+            additional_data={'vote_type': 'local'}
+        )
         
         # Verifică dacă utilizatorul a votat deja
         existing_vote = LocalVote.objects.filter(user=user).first()
         if existing_vote:
+            log_vote_security_event(
+                user=user,
+                event_type='vote_attempted',
+                description=f"Încercare de vot dublă pentru {user.cnp}",
+                request=request,
+                additional_data={'vote_type': 'local', 'reason': 'already_voted'}
+            )
             return Response({
                 'error': 'Ați votat deja în acest scrutin'
             }, status=status.HTTP_400_BAD_REQUEST)
@@ -448,6 +484,20 @@ class SubmitLocalVoteView(APIView):
                 candidate=candidate,
                 voting_section=voting_section
             )
+            # Logăm votul reușit
+            log_vote_security_event(
+                user=user,
+                event_type='vote_cast',
+                description=f"Vot local emis cu succes pentru {user.cnp}",
+                request=request,
+                additional_data={
+                    'vote_type': 'local',
+                    'candidate_id': candidate.id,
+                    'candidate_name': candidate.name,
+                    'voting_section_id': voting_section.id,
+                    'vote_id': vote.id
+                }
+            )
             
             return Response({
                 'message': 'Votul dvs. a fost înregistrat cu succes!',
@@ -455,6 +505,14 @@ class SubmitLocalVoteView(APIView):
             }, status=status.HTTP_201_CREATED)
             
         except Exception as e:
+            log_vote_security_event(
+                user=user,
+                event_type='vote_attempted',
+                description=f"Eroare la înregistrarea votului local: {str(e)}",
+                request=request,
+                additional_data={'vote_type': 'local', 'error': str(e)}
+            )
+
             return Response({
                 'error': f'A apărut o eroare la înregistrarea votului: {str(e)}'
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -506,8 +564,22 @@ class VoteMonitoringView(APIView):
         print("POST primit în VoteMonitoringView")
         user = request.user
         live_image = request.FILES.get('live_image')
+
+        # Inceputul procesului de monitorizare
+        log_vote_security_event(
+            user=user,
+            event_type='vote_session_started',
+            description=f"Utilizatorul {user.email if user.email else user.cnp} a început verificarea pentru vot",
+            request=request
+        )
         
         if not live_image:
+            log_vote_security_event(
+                user=user,
+                event_type='vote_verification_failed',
+                description="Nu s-a furnizat imaginea live pentru verificare",
+                request=request
+            )
             return Response(
                 {"error": "Imaginea live este necesară pentru monitorizarea"},
                 status=status.HTTP_400_BAD_REQUEST
@@ -515,6 +587,13 @@ class VoteMonitoringView(APIView):
         
         # Verificăm dacă utilizatorul are imagine de buletin stocată
         if not user.id_card_image:
+            log_vote_security_event(
+                user=user,
+                event_type='vote_verification_failed',
+                description="Nu există imagine de referință pentru utilizator",
+                request=request
+            )
+
             return Response(
                 {"error": "Nu există imagine de referință pentru acest utilizator"},
                 status=status.HTTP_400_BAD_REQUEST
@@ -524,6 +603,12 @@ class VoteMonitoringView(APIView):
             # Încărcăm imaginea de referință din buletin
             id_card_path = user.id_card_image.path if default_storage.exists(user.id_card_image.name) else None
             if not id_card_path:
+                log_vote_security_event(
+                    user=user,
+                    event_type='vote_verification_failed',
+                    description="Imaginea de referință nu există în sistem",
+                    request=request
+                )
                 return Response({"error": "Nu există imaginea de referință în baza de date."}, status=404)
                 
             # Pregătim imaginea de buletin
@@ -533,6 +618,12 @@ class VoteMonitoringView(APIView):
             # Extragem encoding-ul feței din buletin
             reference_encoding, error, _ = self.monitoring_service.detect_and_encode_face(id_card_array)
             if reference_encoding is None:
+                log_vote_security_event(
+                    user=user,
+                    event_type='facial_recognition_failed',
+                    description=f"Detectarea feței din buletinul de referință a eșuat: {error}",
+                    request=request
+                )
                 return Response({"error": error}, status=status.HTTP_400_BAD_REQUEST)
             
             # Citim imaginea live
@@ -543,6 +634,41 @@ class VoteMonitoringView(APIView):
                 reference_encoding, 
                 live_image_data
             )
+
+            if match:
+                log_vote_security_event(
+                    user=user,
+                    event_type='facial_recognition_success',
+                    description=f"Verificarea facială a fost reușită pentru {user.email if user.email else user.cnp}",
+                    request=request,
+                    additional_data={'faces_detected': num_faces}
+                )
+            else:
+                # Detectam tipul specific de problemă
+                if num_faces > 1:
+                    log_vote_security_event(
+                        user=user,
+                        event_type='multiple_faces_detected',
+                        description=f"S-au detectat {num_faces} fețe în cadru în timpul votului",
+                        request=request,
+                        additional_data={'faces_detected': num_faces}
+                    )
+                elif 'spoofing' in message.lower() or 'fraud' in message.lower():
+                    log_vote_security_event(
+                        user=user,
+                        event_type='anti_spoofing_triggered',
+                        description=f"Detectată încercare de spoofing: {message}",
+                        request=request
+                    )
+                else:
+                    log_vote_security_event(
+                        user=user,
+                        event_type='facial_recognition_failed',
+                        description=f"Verificarea facială a eșuat: {message}",
+                        request=request,
+                        additional_data={'faces_detected': num_faces}
+                    )
+
             
             return Response({
                 "match": match,
@@ -552,6 +678,12 @@ class VoteMonitoringView(APIView):
                 
         except Exception as e:
             logger.error(f"Eroare în monitorizarea votului: {e}")
+            log_vote_security_event(
+                user=user,
+                event_type='vote_verification_error',
+                description=f"Eroare la verificarea facială: {str(e)}",
+                request=request
+            )
             return Response(
                 {"error": f"Eroare în procesarea imaginii: {str(e)}"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -679,6 +811,18 @@ class ConfirmVoteAndSendReceiptView(APIView):
     def send_vote_receipt_email(self, user, votes, voting_section, vote_reference, email):
         """Trimite email cu chitanța pentru vot"""
         try:
+            create_security_event(
+                user=user,
+                event_type='email_verification',
+                description=f"Începe trimiterea confirmării vot local prin email către {email}",
+                additional_data={
+                    'email_type': 'vote_confirmation',
+                    'vote_type': 'local',
+                    'vote_reference': vote_reference,
+                    'recipient_email': email
+                },
+                risk_level='low'
+            )
             # Data și ora curentă
             vote_datetime = timezone.now().strftime("%d-%m-%Y %H:%M:%S")
             
@@ -790,9 +934,37 @@ class ConfirmVoteAndSendReceiptView(APIView):
             email_msg.send()
             
             logger.info(f"Chitanța de vot trimisă prin email pentru utilizatorul {user.id} la adresa {email}")
+            create_security_event(
+                user=user,
+                event_type='email_verification',
+                description=f"Confirmarea vot local trimisă cu succes prin email către {email}",
+                additional_data={
+                    'email_type': 'vote_confirmation',
+                    'vote_type': 'local',
+                    'vote_reference': vote_reference,
+                    'recipient_email': email,
+                    'status': 'success'
+                },
+                risk_level='low'
+            )
+            
             return True
         except Exception as e:
             logger.error(f"Eroare la trimiterea chitanței prin email: {e}")
+            create_security_event(
+                user=user,
+                event_type='email_verification',
+                description=f"Eșec trimitere confirmarea vot local prin email către {email}: {str(e)}",
+                additional_data={
+                    'email_type': 'vote_confirmation',
+                    'vote_type': 'local',
+                    'vote_reference': vote_reference,
+                    'recipient_email': email,
+                    'status': 'failed',
+                    'error': str(e)
+                },
+                risk_level='medium'
+            )
             return False
         
 class GenerateVoteReceiptPDFView(APIView):
@@ -1077,10 +1249,27 @@ class SubmitPresidentialVoteView(APIView):
         contact_info = request.data.get('contact_info', '')
         county_code = request.data.get('county_code') 
         uat = request.data.get('uat')
+        log_vote_security_event(
+            user=user,
+            event_type='vote_attempted',
+            description=f"Încercare de vot prezidențial pentru {user.cnp[:3] if user.cnp else user.email}***",
+            request=request,
+            additional_data={
+                'vote_type': 'presidential',
+                'candidate_id': candidate_id
+            }
+        )
         
         
         # Verifică dacă utilizatorul este autentificat cu buletin
         if not hasattr(user, 'cnp') or not user.cnp:
+            log_vote_security_event(
+                user=user,
+                event_type='vote_attempted',
+                description=f"Utilizatorul {user.cnp} încearcă să voteze prezidențial",
+                request=request,
+                additional_data={'vote_type': 'presidential'}
+            )
             return Response({
                 'error': 'Autentificare cu buletin necesară pentru a vota'
             }, status=status.HTTP_400_BAD_REQUEST)
@@ -1088,6 +1277,13 @@ class SubmitPresidentialVoteView(APIView):
         # Verifică dacă utilizatorul a votat deja
         existing_vote = PresidentialVote.objects.filter(user=user).first()
         if existing_vote:
+            log_vote_security_event(
+                user=user,
+                event_type='vote_attempted',
+                description=f"Încercare de vot dublă prezidențial pentru {user.cnp}",
+                request=request,
+                additional_data={'vote_type': 'presidential', 'reason': 'already_voted'}
+            )
             return Response({
                 'error': 'Ați votat deja în acest scrutin prezidențial'
             }, status=status.HTTP_400_BAD_REQUEST)
@@ -1147,6 +1343,18 @@ class SubmitPresidentialVoteView(APIView):
                 voting_section=voting_section,
                 vote_reference=vote_reference
             )
+            log_vote_security_event(
+                user=user,
+                event_type='vote_cast',
+                description=f"Vot prezidențial emis cu succes pentru {user.cnp}",
+                request=request,
+                additional_data={
+                    'vote_type': 'presidential',
+                    'candidate_id': candidate.id,
+                    'candidate_name': candidate.name,
+                    'vote_reference': vote_reference
+                }
+            )
             
             # Trimite chitanța de vot dacă utilizatorul a solicitat
             if send_receipt:
@@ -1184,6 +1392,18 @@ class SubmitPresidentialVoteView(APIView):
     def send_vote_receipt_email(self, user, vote, email):
         """Trimite email cu chitanța pentru vot prezidențial"""
         try:
+            create_security_event(
+                user=user,
+                event_type='email_verification',
+                description=f"Începe trimiterea confirmării vot prezidențial prin email către {email}",
+                additional_data={
+                    'email_type': 'vote_confirmation',
+                    'vote_type': 'presidential',
+                    'vote_reference': vote.vote_reference,
+                    'recipient_email': email
+                },
+                risk_level='low'
+            )
             # Data și ora curentă
             vote_datetime = vote.vote_datetime.strftime("%d-%m-%Y %H:%M:%S")
             
@@ -1261,9 +1481,38 @@ class SubmitPresidentialVoteView(APIView):
             email_msg.send()
             
             logger.info(f"Chitanța de vot prezidențial trimisă prin email pentru utilizatorul {user.id} la adresa {email}")
+            create_security_event(
+                user=user,
+                event_type='email_verification',
+                description=f"Confirmarea vot prezidențial trimisă cu succes prin email către {email}",
+                additional_data={
+                    'email_type': 'vote_confirmation',
+                    'vote_type': 'presidential',
+                    'vote_reference': vote.vote_reference,
+                    'recipient_email': email,
+                    'status': 'success'
+                },
+                risk_level='low'
+            )
+            
             return True
         except Exception as e:
             logger.error(f"Eroare la trimiterea chitanței prin email: {e}")
+            create_security_event(
+                user=user,
+                event_type='email_verification',
+                description=f"Eșec trimitere confirmarea vot prezidențial prin email către {email}: {str(e)}",
+                additional_data={
+                    'email_type': 'vote_confirmation',
+                    'vote_type': 'presidential',
+                    'vote_reference': vote.vote_reference,
+                    'recipient_email': email,
+                    'status': 'failed',
+                    'error': str(e)
+                },
+                risk_level='medium'
+            )
+            
             return False
 
 class GeneratePresidentialVoteReceiptPDFView(APIView):
@@ -1524,6 +1773,13 @@ class SubmitParliamentaryVoteView(APIView):
         
         # Verifică dacă utilizatorul este autentificat cu buletin
         if not hasattr(user, 'cnp') or not user.cnp:
+            log_vote_security_event(
+                user=user,
+                event_type='vote_attempted',
+                description=f"Utilizatorul {user.cnp} încearcă să voteze parlamentar",
+                request=request,
+                additional_data={'vote_type': 'parliamentary'}
+            )
             return Response({
                 'error': 'Autentificare cu buletin necesară pentru a vota'
             }, status=status.HTTP_400_BAD_REQUEST)
@@ -1531,6 +1787,13 @@ class SubmitParliamentaryVoteView(APIView):
         # Verifică dacă utilizatorul a votat deja
         existing_vote = ParliamentaryVote.objects.filter(user=user).first()
         if existing_vote:
+            log_vote_security_event(
+                user=user,
+                event_type='vote_attempted',
+                description=f"Încercare de vot dublă parlamentară pentru {user.cnp}",
+                request=request,
+                additional_data={'vote_type': 'parliamentary', 'reason': 'already_voted'}
+            )
             return Response({
                 'error': 'Ați votat deja în acest scrutin parlamentar'
             }, status=status.HTTP_400_BAD_REQUEST)
@@ -1590,6 +1853,18 @@ class SubmitParliamentaryVoteView(APIView):
                 vote_reference=vote_reference,
                 voting_section=voting_section  # nou - adăugăm secția de vot
             )
+            log_vote_security_event(
+                user=user,
+                event_type='vote_cast',
+                description=f"Vot parlamentar emis cu succes pentru {user.cnp}",
+                request=request,
+                additional_data={
+                    'vote_type': 'parliamentary',
+                    'party_id': party.id,
+                    'party_name': party.name,
+                    'vote_reference': vote_reference
+                }
+            )
             
             # Trimite chitanța de vot dacă utilizatorul a solicitat
             if send_receipt:
@@ -1627,6 +1902,18 @@ class SubmitParliamentaryVoteView(APIView):
     def send_vote_receipt_email(self, user, vote, email):
         """Trimite email cu chitanța pentru vot parlamentar"""
         try:
+            create_security_event(
+                user=user,
+                event_type='email_verification',
+                description=f"Începe trimiterea confirmării vot parlamentar prin email către {email}",
+                additional_data={
+                    'email_type': 'vote_confirmation',
+                    'vote_type': 'parliamentary',
+                    'vote_reference': vote.vote_reference,
+                    'recipient_email': email
+                },
+                risk_level='low'
+            )
             # Data și ora curentă
             vote_datetime = vote.vote_datetime.strftime("%d-%m-%Y %H:%M:%S")
             
@@ -1703,9 +1990,37 @@ class SubmitParliamentaryVoteView(APIView):
             email_msg.send()
             
             logger.info(f"Chitanța de vot parlamentar trimisă prin email pentru utilizatorul {user.id} la adresa {email}")
+            create_security_event(
+                user=user,
+                event_type='email_verification',
+                description=f"Confirmarea vot parlamentar trimisă cu succes prin email către {email}",
+                additional_data={
+                    'email_type': 'vote_confirmation',
+                    'vote_type': 'parliamentary',
+                    'vote_reference': vote.vote_reference,
+                    'recipient_email': email,
+                    'status': 'success'
+                },
+                risk_level='low'
+            )
             return True
         except Exception as e:
             logger.error(f"Eroare la trimiterea chitanței prin email: {e}")
+            create_security_event(
+                user=user,
+                event_type='email_verification',
+                description=f"Eșec trimitere confirmarea vot parlamentar prin email către {email}: {str(e)}",
+                additional_data={
+                    'email_type': 'vote_confirmation',
+                    'vote_type': 'parliamentary',
+                    'vote_reference': vote.vote_reference,
+                    'recipient_email': email,
+                    'status': 'failed',
+                    'error': str(e)
+                },
+                risk_level='medium'
+            )
+            
             return False
 
 class GenerateParliamentaryVoteReceiptPDFView(APIView):
@@ -3221,6 +3536,16 @@ class SubmitPresidentialRound2VoteView(APIView):
         contact_info = request.data.get('contact_info', '')
         county_code = request.data.get('county_code') 
         uat = request.data.get('uat')
+        log_vote_security_event(
+            user=user,
+            event_type='vote_attempted',
+            description=f"Încercare de vot prezidențial pentru {user.cnp[:3] if user.cnp else user.email}***",
+            request=request,
+            additional_data={
+                'vote_type': 'presidential',
+                'candidate_id': candidate_id
+            }
+        )
         
         # Verifică dacă utilizatorul este autentificat cu buletin
         if not hasattr(user, 'cnp') or not user.cnp:
@@ -3327,6 +3652,18 @@ class SubmitPresidentialRound2VoteView(APIView):
     def send_vote_receipt_email(self, user, vote, email):
         """Trimite email cu chitanța pentru vot prezidențial turul 2"""
         try:
+            create_security_event(
+                user=user,
+                event_type='email_verification',
+                description=f"Începe trimiterea confirmării vot prezidențial tur 2 prin email către {email}",
+                additional_data={
+                    'email_type': 'vote_confirmation',
+                    'vote_type': 'presidential_round2',
+                    'vote_reference': vote.vote_reference,
+                    'recipient_email': email
+                },
+                risk_level='low'
+            )
             # Data și ora curentă
             vote_datetime = vote.vote_datetime.strftime("%d-%m-%Y %H:%M:%S")
             
@@ -3404,9 +3741,38 @@ class SubmitPresidentialRound2VoteView(APIView):
             email_msg.send()
             
             logger.info(f"Chitanța de vot prezidențial turul 2 trimisă prin email pentru utilizatorul {user.id} la adresa {email}")
+            create_security_event(
+                user=user,
+                event_type='email_verification',
+                description=f"Confirmarea vot prezidențial tur 2 trimisă cu succes prin email către {email}",
+                additional_data={
+                    'email_type': 'vote_confirmation',
+                    'vote_type': 'presidential_round2',
+                    'vote_reference': vote.vote_reference,
+                    'recipient_email': email,
+                    'status': 'success'
+                },
+                risk_level='low'
+            )
+            
+            
             return True
         except Exception as e:
             logger.error(f"Eroare la trimiterea chitanței prin email: {e}")
+            create_security_event(
+                user=user,
+                event_type='email_verification',
+                description=f"Eșec trimitere confirmarea vot prezidențial tur 2 prin email către {email}: {str(e)}",
+                additional_data={
+                    'email_type': 'vote_confirmation',
+                    'vote_type': 'presidential_round2',
+                    'vote_reference': vote.vote_reference,
+                    'recipient_email': email,
+                    'status': 'failed',
+                    'error': str(e)
+                },
+                risk_level='medium'
+            )
             return False
 
 class GeneratePresidentialRound2VoteReceiptPDFView(APIView):

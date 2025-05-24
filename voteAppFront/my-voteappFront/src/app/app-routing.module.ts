@@ -42,6 +42,7 @@ import { StatisticsComponent } from './statistics/statistics.component';
 import { ResultsComponent } from './results/results.component';
 import { PresenceComponent } from './presence/presence.component';
 import { CsvDownloadComponent } from './csv-download/csv-download.component';
+import { SecurityComponent } from './security/security.component';
 
 const routes: Routes = [
   { path: '', component: HomeComponent },
@@ -81,6 +82,7 @@ const routes: Routes = [
       // Rute pentru vot și simulare
       { path: 'simulare-vot', component: VoteSimulationComponent },
       { path: 'csv-download', component: CsvDownloadComponent },
+      { path: 'securitate', component: SecurityComponent, canActivate: [AuthGuard] },
       { path: 'vot/prezidentiale', component: PresidentialVoteComponent, canActivate: [AuthGuard] },
       { path: 'vot/prezidentiale-tur2', component: PresidentialRound2VoteComponent, canActivate: [AuthGuard] },
       { path: 'vot/parlamentare', component: ParliamentaryVoteComponent, canActivate: [AuthGuard] },

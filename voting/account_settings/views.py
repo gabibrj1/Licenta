@@ -14,6 +14,7 @@ import qrcode
 import io
 from django.conf import settings
 from .serializers import TwoFactorVerifySerializer
+from security.utils import log_vote_security_event, log_captcha_attempt, create_security_event
 
 from .models import ProfileImage, AccountSettings
 from .serializers import (
@@ -55,8 +56,25 @@ class UserProfileView(APIView):
                         {'email': 'Un utilizator cu acest email există deja.'},
                         status=status.HTTP_400_BAD_REQUEST
                     )
-            
+            changed_fields = []
+
+            for field, value in request.data.items():
+                if hasattr(user, field) and getattr(user, field) != value:
+                    changed_fields.append(field)
+
             serializer.save()
+            create_security_event(
+                user=user,
+                event_type='profile_update',
+                description=f"Profil actualizat pentru {user.email if user.email else 'CNP: ' + user.cnp[:3] + '***'}",
+                request=request,
+                additional_data={
+                    'changed_fields': changed_fields,
+                    'update_method': 'profile_settings'
+                },
+                risk_level='low'
+            )
+
             return Response(serializer.data)
         
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -140,6 +158,13 @@ class ChangePasswordView(APIView):
             
             # Check old password
             if not user.check_password(serializer.validated_data['old_password']):
+                create_security_event(
+                    user=user,
+                    event_type='password_change',
+                    description=f"Încercare schimbare parolă cu parolă curentă incorectă pentru {user.email if user.email else 'CNP: ' + user.cnp[:3] + '***'}",
+                    request=request,
+                    risk_level='medium'
+                )
                 return Response(
                     {'old_password': 'Parola actuală este incorectă.'},
                     status=status.HTTP_400_BAD_REQUEST
@@ -157,7 +182,16 @@ class ChangePasswordView(APIView):
             # Set new password
             user.set_password(serializer.validated_data['new_password'])
             user.save()
-            
+
+            create_security_event(
+                user=user,
+                event_type='password_change',
+                description=f"Parolă schimbată cu succes pentru {user.email if user.email else 'CNP: ' + user.cnp[:3] + '***'}",
+                request=request,
+                additional_data={'change_method': 'user_settings'},
+                risk_level='low'
+            )
+
             return Response(
                 {'message': 'Parola a fost schimbată cu succes.'},
                 status=status.HTTP_200_OK
@@ -309,6 +343,14 @@ class TwoFactorSetupView(APIView):
             account_settings.save()
             
             logger.info(f"2FA enabled successfully for user {user.id}")
+            create_security_event(
+                user=user,
+                event_type='2fa_enabled',
+                description=f"Autentificare 2FA activată pentru {user.email if user.email else 'CNP: ' + user.cnp[:3] + '***'}",
+                request=request,
+                risk_level='low'
+            )
+
             
             return Response({
                 'message': 'Autentificarea în doi pași a fost activată cu succes.',
@@ -337,7 +379,54 @@ class TwoFactorSetupView(APIView):
         account_settings.save()
         
         logger.info(f"2FA disabled for user {user.id}")
+        create_security_event(
+            user=user,
+            event_type='2fa_disabled',
+            description=f"Autentificare 2FA dezactivată pentru {user.email if user.email else 'CNP: ' + user.cnp[:3] + '***'}",
+            request=request,
+            risk_level='low'
+        )
         
         return Response({
             'message': 'Autentificarea în doi pași a fost dezactivată cu succes.'
         })
+    
+class BlockAccountView(APIView):
+    permission_classes = [IsAuthenticated]
+    
+    def post(self, request):
+        user = request.user
+        reason = request.data.get('reason', 'Manual block')
+        
+        user.is_active = False
+        user.save()
+        
+        create_security_event(
+            user=user,
+            event_type='account_locked',
+            description=f"Cont blocat pentru {user.email if user.email else 'CNP: ' + user.cnp[:3] + '***'}",
+            request=request,
+            additional_data={'block_reason': reason},
+            risk_level='high'
+        )
+        
+        return Response({'message': 'Cont blocat cu succes'})
+
+class UnblockAccountView(APIView):
+    permission_classes = [IsAuthenticated]
+    
+    def post(self, request):
+        user = request.user
+        
+        user.is_active = True
+        user.save()
+        
+        create_security_event(
+            user=user,
+            event_type='account_unlocked',
+            description=f"Cont deblocat pentru {user.email if user.email else 'CNP: ' + user.cnp[:3] + '***'}",
+            request=request,
+            risk_level='low'
+        )
+        
+        return Response({'message': 'Cont deblocat cu succes'})

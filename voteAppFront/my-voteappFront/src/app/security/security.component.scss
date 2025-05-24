@@ -1,0 +1,1792 @@
+.security-page {
+  padding: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+  
+  h2 {
+    color: #fff;
+    margin: 0;
+    
+    i {
+      margin-right: 10px;
+      color: #4CAF50;
+    }
+  }
+  
+  .btn-refresh {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    
+    &:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+    
+    i {
+      margin-right: 5px;
+    }
+  }
+}
+
+.security-tabs {
+  display: flex;
+  gap: 5px;
+  margin-bottom: 30px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+  padding: 5px;
+  
+  .tab-button {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: #ccc;
+    padding: 12px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    
+    &.active {
+      background: #2196F3;
+      color: white;
+    }
+    
+    &:hover:not(.active) {
+      background: rgba(255, 255, 255, 0.1);
+      color: white;
+    }
+    
+    i {
+      margin-right: 8px;
+    }
+    
+    .alert-badge {
+      position: absolute;
+      top: 5px;
+      right: 5px;
+      background: #f44336;
+      color: white;
+      border-radius: 10px;
+      padding: 2px 6px;
+      font-size: 11px;
+      font-weight: bold;
+    }
+  }
+}
+
+.loading-section, .error-section {
+  text-align: center;
+  padding: 40px 20px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  
+  i {
+    font-size: 24px;
+    margin-bottom: 15px;
+    display: block;
+  }
+  
+  p {
+    color: #fff;
+    margin-bottom: 15px;
+  }
+}
+
+.loading-section i {
+  color: #2196F3;
+}
+
+.error-section i {
+  color: #f44336;
+}
+
+// Dashboard Content
+.dashboard-content {
+  .security-score-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 12px;
+    padding: 30px;
+    margin-bottom: 30px;
+    color: white;
+    
+    .score-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      
+      h3 {
+        margin: 0;
+        font-size: 24px;
+      }
+      
+      .score-circle {
+        text-align: center;
+        
+        .score-value {
+          font-size: 48px;
+          font-weight: bold;
+          display: block;
+        }
+        
+        .score-label {
+          font-size: 14px;
+          opacity: 0.8;
+        }
+      }
+    }
+    
+    .score-description {
+      margin-top: 20px;
+      opacity: 0.9;
+    }
+  }
+  
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+    
+    .stat-card {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      padding: 20px;
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      
+      &.warning {
+        border-left: 4px solid #FF9800;
+      }
+      
+      .stat-icon {
+        font-size: 24px;
+        color: #2196F3;
+        width: 40px;
+        text-align: center;
+      }
+      
+      .stat-content {
+        h4 {
+          color: #fff;
+          margin: 0 0 5px 0;
+          font-size: 14px;
+          font-weight: normal;
+        }
+        
+        .stat-number {
+          color: #fff;
+          font-size: 28px;
+          font-weight: bold;
+          margin: 0 0 5px 0;
+        }
+        
+        .stat-subtitle {
+          color: #ccc;
+          font-size: 12px;
+          margin: 0;
+        }
+      }
+    }
+  }
+}
+
+.recent-events-section,
+.active-sessions-section,
+.active-alerts-section {
+  margin-bottom: 30px;
+  
+  h3 {
+    color: #fff;
+    margin-bottom: 15px;
+    font-size: 18px;
+  }
+}
+
+.events-list {
+  .event-item {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: flex-start;
+    gap: 15px;
+    
+    .event-icon {
+      width: 20px;
+      padding-top: 2px;
+    }
+    
+    .event-content {
+      flex: 1;
+      
+      h4 {
+        color: #fff;
+        margin: 0 0 5px 0;
+        font-size: 14px;
+      }
+      
+      p {
+        color: #ccc;
+        margin: 0 0 10px 0;
+        font-size: 13px;
+      }
+      
+      .event-meta {
+        display: flex;
+        gap: 15px;
+        font-size: 12px;
+        
+        .timestamp {
+          color: #ccc;
+        }
+        
+        .ip-address {
+          color: #2196F3;
+        }
+        
+        .risk-badge {
+          padding: 2px 8px;
+          border-radius: 12px;
+          color: white;
+          font-weight: bold;
+        }
+      }
+    }
+  }
+}
+
+.sessions-preview {
+  .session-preview-item {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    
+    .session-icon {
+      position: relative;
+      width: 40px;
+      text-align: center;
+      
+      i {
+        font-size: 20px;
+        color: #2196F3;
+      }
+      
+      .current-badge {
+        position: absolute;
+        top: -5px;
+        right: -10px;
+        background: #4CAF50;
+        color: white;
+        font-size: 8px;
+        padding: 2px 4px;
+        border-radius: 4px;
+        font-weight: bold;
+      }
+    }
+    
+    .session-content {
+      .device-name {
+        color: #fff;
+        margin: 0 0 5px 0;
+        font-weight: bold;
+      }
+      
+      .session-details {
+        color: #ccc;
+        margin: 0;
+        font-size: 12px;
+      }
+    }
+  }
+}
+
+.alerts-list {
+  .alert-item {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 15px;
+    display: flex;
+    gap: 15px;
+    
+    &.critical,
+    &.error {
+      border-left: 4px solid #f44336;
+    }
+    
+    &.warning {
+      border-left: 4px solid #FF9800;
+    }
+    
+    .alert-icon {
+      width: 30px;
+      padding-top: 2px;
+      
+      i {
+        font-size: 20px;
+      }
+    }
+    
+    .alert-content {
+      flex: 1;
+      
+      .alert-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+        
+        h4 {
+          color: #fff;
+          margin: 0;
+        }
+        
+        .severity-badge {
+          padding: 4px 12px;
+          border-radius: 4px;
+          color: white;
+          font-size: 12px;
+          font-weight: bold;
+        }
+      }
+      
+      p {
+        color: #ccc;
+        margin: 0 0 15px 0;
+      }
+      
+      .alert-meta {
+        display: flex;
+        gap: 20px;
+        margin-bottom: 15px;
+        font-size: 12px;
+        
+        .alert-time,
+        .alert-type {
+          color: #ccc;
+        }
+      }
+      
+      .alert-actions {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        
+        .alert-time {
+          color: #ccc;
+          font-size: 12px;
+        }
+      }
+    }
+  }
+}
+
+// Events Tab
+.events-content {
+  .events-filters {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+    display: flex;
+    gap: 20px;
+    align-items: end;
+    flex-wrap: wrap;
+    
+    .filter-group {
+      label {
+        display: block;
+        color: #fff;
+        margin-bottom: 5px;
+        font-size: 14px;
+      }
+      
+      select {
+        background: rgba(0, 0, 0, 0.3);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: #fff;
+        padding: 8px 12px;
+        border-radius: 6px;
+        min-width: 150px;
+        
+        option {
+          background: #2c2c2c;
+          color: #fff;
+        }
+      }
+    }
+  }
+  
+  .events-table {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    overflow: hidden;
+    
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      
+      th {
+        background: rgba(0, 0, 0, 0.3);
+        color: #fff;
+        padding: 15px;
+        text-align: left;
+        font-weight: bold;
+      }
+      
+      td {
+        padding: 15px;
+        color: #ccc;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        
+        &:last-child {
+          border-bottom: none;
+        }
+      }
+      
+      .event-type-badge {
+        background: #2196F3;
+        color: white;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 12px;
+      }
+      
+      .risk-badge {
+        padding: 4px 8px;
+        border-radius: 4px;
+        color: white;
+        font-size: 12px;
+        font-weight: bold;
+      }
+      
+      .device-cell {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        
+        i {
+          color: #2196F3;
+        }
+      }
+    }
+  }
+}
+
+// Sessions Tab - ÎMBUNĂTĂȚIT
+.sessions-content {
+  // Explicația funcționalității - NOU
+  .sessions-explanation {
+    margin-bottom: 30px;
+
+    .info-banner {
+      background: rgba(33, 150, 243, 0.1);
+      border: 1px solid rgba(33, 150, 243, 0.3);
+      border-radius: 8px;
+      padding: 20px;
+      display: flex;
+      gap: 15px;
+      align-items: flex-start;
+
+      i {
+        color: #2196F3;
+        font-size: 24px;
+        margin-top: 5px;
+        min-width: 24px;
+      }
+
+      .info-content {
+        flex: 1;
+
+        h4 {
+          color: #2196F3;
+          margin: 0 0 15px 0;
+          font-size: 18px;
+        }
+
+        p {
+          color: #ccc;
+          margin: 0 0 15px 0;
+          line-height: 1.6;
+        }
+
+        ul {
+          color: #ccc;
+          margin: 0;
+          padding-left: 20px;
+
+          li {
+            margin-bottom: 8px;
+            line-height: 1.5;
+
+            strong {
+              color: #fff;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  .sessions-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 20px;
+    
+    h3 {
+      color: #fff;
+      margin: 0;
+      font-size: 20px;
+    }
+
+    .sessions-actions {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 8px;
+
+      .action-info {
+        font-size: 12px;
+        color: #ccc;
+        font-style: italic;
+        max-width: 250px;
+        text-align: right;
+      }
+    }
+  }
+
+  .no-sessions {
+    text-align: center;
+    padding: 60px 20px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    
+    i {
+      font-size: 48px;
+      color: #2196F3;
+      margin-bottom: 20px;
+      display: block;
+    }
+    
+    p {
+      color: #ccc;
+      font-size: 18px;
+      margin: 0;
+    }
+  }
+  
+  .sessions-list {
+    .session-item {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 15px;
+      display: flex;
+      gap: 20px;
+      transition: all 0.3s ease;
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.15);
+        transform: translateY(-2px);
+      }
+
+      &.current {
+        border: 1px solid #4CAF50;
+        background: rgba(76, 175, 80, 0.1);
+      }
+      
+      .session-status {
+        width: 80px;
+        text-align: center;
+        
+        i {
+          font-size: 32px;
+          color: #2196F3;
+          display: block;
+          margin-bottom: 10px;
+        }
+        
+        .current-badge {
+          background: #4CAF50;
+          color: white;
+          font-size: 10px;
+          padding: 4px 8px;
+          border-radius: 12px;
+          font-weight: bold;
+          white-space: nowrap;
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          justify-content: center;
+
+          i {
+            font-size: 10px;
+            margin: 0;
+          }
+        }
+
+        .active-badge {
+          background: #2196F3;
+          color: white;
+          font-size: 10px;
+          padding: 4px 8px;
+          border-radius: 12px;
+          font-weight: bold;
+          white-space: nowrap;
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          justify-content: center;
+
+          i {
+            font-size: 10px;
+            margin: 0;
+          }
+        }
+      }
+      
+      .session-details {
+        flex: 1;
+        
+        h4 {
+          color: #fff;
+          margin: 0 0 15px 0;
+          font-size: 16px;
+        }
+        
+        .session-info {
+          .info-row {
+            display: flex;
+            margin-bottom: 8px;
+            align-items: center;
+
+            .label {
+              font-weight: 600;
+              color: #fff;
+              min-width: 120px;
+              font-size: 14px;
+            }
+
+            .value {
+              color: #ccc;
+              font-size: 14px;
+
+              &.status-text {
+                color: #4CAF50;
+                font-weight: 500;
+              }
+            }
+          }
+        }
+      }
+      
+      .session-actions {
+        display: flex;
+        align-items: center;
+
+        .btn-danger {
+          background: #f44336;
+          
+          &:hover {
+            background: #d32f2f;
+          }
+        }
+      }
+
+      .current-session-info {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: #4CAF50;
+        font-size: 14px;
+        font-weight: 500;
+        background: rgba(76, 175, 80, 0.2);
+        padding: 10px 15px;
+        border-radius: 6px;
+
+        i {
+          color: #4CAF50;
+        }
+      }
+    }
+  }
+
+  // Sfaturi de securitate - NOU
+  .security-tips {
+    background: rgba(255, 193, 7, 0.1);
+    border: 1px solid rgba(255, 193, 7, 0.3);
+    padding: 20px;
+    border-radius: 8px;
+    margin-top: 30px;
+
+    h4 {
+      color: #FFC107;
+      margin: 0 0 15px 0;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+
+      i {
+        color: #FF9800;
+      }
+    }
+
+    ul {
+      margin: 0;
+      padding-left: 20px;
+      color: #FFC107;
+
+      li {
+        margin-bottom: 8px;
+        line-height: 1.5;
+      }
+    }
+  }
+}
+
+// Alerts Tab
+.alerts-content {
+  h3 {
+    color: #fff;
+    margin-bottom: 20px;
+  }
+  
+  .no-alerts {
+    text-align: center;
+    padding: 60px 20px;
+    background: rgba(76, 175, 80, 0.1);
+    border-radius: 8px;
+    border: 1px solid rgba(76, 175, 80, 0.3);
+    
+    i {
+      font-size: 48px;
+      color: #4CAF50;
+      margin-bottom: 20px;
+      display: block;
+    }
+    
+    p {
+      color: #4CAF50;
+      font-size: 18px;
+      margin: 0;
+    }
+  }
+}
+
+// Devices Tab - ÎMBUNĂTĂȚIT
+.devices-content {
+  // Explicația funcționalității - NOU
+  .devices-explanation {
+    margin-bottom: 30px;
+
+    .info-banner {
+      background: rgba(156, 39, 176, 0.1);
+      border: 1px solid rgba(156, 39, 176, 0.3);
+      border-radius: 8px;
+      padding: 20px;
+      display: flex;
+      gap: 15px;
+      align-items: flex-start;
+
+      i {
+        color: #9C27B0;
+        font-size: 24px;
+        margin-top: 5px;
+        min-width: 24px;
+      }
+
+      .info-content {
+        flex: 1;
+
+        h4 {
+          color: #9C27B0;
+          margin: 0 0 15px 0;
+          font-size: 18px;
+        }
+
+        p {
+          color: #ccc;
+          margin: 0;
+          line-height: 1.6;
+        }
+      }
+    }
+  }
+
+  h3 {
+    color: #fff;
+    margin-bottom: 20px;
+  }
+  
+  .device-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+    
+    .device-stat-card {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      padding: 20px;
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      transition: all 0.3s ease;
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.15);
+        transform: translateY(-2px);
+      }
+      
+      &.trusted {
+        border-left: 4px solid #4CAF50;
+      }
+      
+      &.suspicious {
+        border-left: 4px solid #f44336;
+      }
+      
+      .stat-icon {
+        font-size: 24px;
+        color: #2196F3;
+        width: 40px;
+        text-align: center;
+      }
+      
+      .stat-content {
+        flex: 1;
+
+        h4 {
+          color: #fff;
+          margin: 0 0 5px 0;
+          font-size: 14px;
+          font-weight: normal;
+        }
+        
+        .stat-number {
+          color: #fff;
+          font-size: 24px;
+          font-weight: bold;
+          margin: 0 0 5px 0;
+        }
+
+        .stat-subtitle {
+          color: #ccc;
+          font-size: 12px;
+          margin: 0;
+        }
+      }
+    }
+  }
+
+  // Toate Dispozitivele - NOU
+  .all-devices-section {
+    margin-bottom: 30px;
+
+    h4 {
+      color: #fff;
+      margin: 0 0 20px 0;
+      font-size: 18px;
+    }
+
+    .no-devices {
+      text-align: center;
+      padding: 60px 20px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      
+      i {
+        font-size: 48px;
+        color: #2196F3;
+        margin-bottom: 20px;
+        display: block;
+      }
+      
+      p {
+        color: #ccc;
+        font-size: 18px;
+        margin: 0;
+      }
+    }
+
+    .devices-list {
+      .device-item {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 15px;
+        display: flex;
+        gap: 20px;
+        transition: all 0.3s ease;
+        border: 1px solid transparent;
+
+        &:hover {
+          background: rgba(255, 255, 255, 0.15);
+          transform: translateY(-2px);
+        }
+
+        &.trusted {
+          border-color: #4CAF50;
+          background: rgba(76, 175, 80, 0.1);
+        }
+
+        &.current {
+          border-color: #2196F3;
+          background: rgba(33, 150, 243, 0.1);
+        }
+
+        .device-status {
+          width: 80px;
+          text-align: center;
+
+          i {
+            font-size: 32px;
+            color: #2196F3;
+            display: block;
+            margin-bottom: 10px;
+          }
+
+          .device-badges {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            align-items: center;
+
+            .current-badge {
+              background: #2196F3;
+              color: white;
+              padding: 4px 8px;
+              border-radius: 12px;
+              font-size: 10px;
+              font-weight: bold;
+              display: flex;
+              align-items: center;
+              gap: 4px;
+              white-space: nowrap;
+
+              i {
+                font-size: 10px;
+                margin: 0;
+              }
+            }
+
+            .trusted-badge {
+              background: #4CAF50;
+              color: white;
+              padding: 4px 8px;
+              border-radius: 12px;
+              font-size: 10px;
+              font-weight: bold;
+              display: flex;
+              align-items: center;
+              gap: 4px;
+              white-space: nowrap;
+
+              i {
+                font-size: 10px;
+                margin: 0;
+              }
+            }
+
+            .unknown-badge {
+              background: #757575;
+              color: white;
+              padding: 4px 8px;
+              border-radius: 12px;
+              font-size: 10px;
+              font-weight: bold;
+              display: flex;
+              align-items: center;
+              gap: 4px;
+              white-space: nowrap;
+
+              i {
+                font-size: 10px;
+                margin: 0;
+              }
+            }
+          }
+        }
+
+        .device-details {
+          flex: 1;
+
+          h5 {
+            color: #fff;
+            margin: 0 0 15px 0;
+            font-size: 16px;
+          }
+
+          .device-info {
+            .info-row {
+              display: flex;
+              margin-bottom: 8px;
+              align-items: center;
+
+              .label {
+                font-weight: 600;
+                color: #fff;
+                min-width: 140px;
+                font-size: 14px;
+              }
+
+              .value {
+                color: #ccc;
+                font-size: 14px;
+
+                &.device-id {
+                  font-family: 'Courier New', monospace;
+                  font-size: 12px;
+                  background: rgba(0, 0, 0, 0.3);
+                  padding: 2px 6px;
+                  border-radius: 4px;
+                }
+              }
+            }
+          }
+        }
+
+        .device-actions {
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+
+          .btn {
+            padding: 8px 16px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+
+            &.btn-success {
+              background: #4CAF50;
+              color: white;
+
+              &:hover {
+                background: #388E3C;
+              }
+            }
+
+            &.btn-warning {
+              background: #FF9800;
+              color: white;
+
+              &:hover {
+                background: #F57C00;
+              }
+            }
+
+            &.btn-small {
+              padding: 6px 12px;
+              font-size: 11px;
+            }
+          }
+        }
+
+        .current-device-info {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          color: #2196F3;
+          font-size: 14px;
+          font-weight: 500;
+          background: rgba(33, 150, 243, 0.2);
+          padding: 10px 15px;
+          border-radius: 6px;
+
+          i {
+            color: #2196F3;
+          }
+        }
+      }
+    }
+  }
+  
+  .trusted-devices-section {
+    h4 {
+      color: #fff;
+      margin-bottom: 15px;
+    }
+    
+    .no-devices {
+      text-align: center;
+      padding: 40px 20px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      
+      i {
+        font-size: 32px;
+        color: #ccc;
+        margin-bottom: 15px;
+        display: block;
+      }
+      
+      p {
+        color: #ccc;
+        margin: 0;
+      }
+    }
+    
+    .devices-list {
+      .device-item {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 15px;
+        display: flex;
+        gap: 20px;
+        
+        .device-icon {
+          width: 60px;
+          text-align: center;
+          position: relative;
+          
+          i {
+            font-size: 32px;
+            color: #4CAF50;
+          }
+          
+          .current-badge {
+            position: absolute;
+            bottom: -5px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #2196F3;
+            color: white;
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: bold;
+            white-space: nowrap;
+          }
+        }
+        
+        .device-details {
+          flex: 1;
+          
+          h5 {
+            color: #fff;
+            margin: 0 0 15px 0;
+          }
+          
+          .device-info {
+            p {
+              color: #ccc;
+              margin: 0 0 5px 0;
+              font-size: 14px;
+              
+              strong {
+                color: #fff;
+              }
+            }
+          }
+        }
+        
+        .device-actions {
+          display: flex;
+          align-items: center;
+        }
+      }
+    }
+  }
+
+  // Sfaturi pentru dispozitive - NOU
+  .device-tips {
+    background: rgba(76, 175, 80, 0.1);
+    border: 1px solid rgba(76, 175, 80, 0.3);
+    padding: 20px;
+    border-radius: 8px;
+    margin-top: 30px;
+
+    h4 {
+      color: #4CAF50;
+      margin: 0 0 15px 0;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+
+      i {
+        color: #66BB6A;
+      }
+    }
+
+    ul {
+      margin: 0;
+      padding-left: 20px;
+      color: #4CAF50;
+
+      li {
+        margin-bottom: 8px;
+        line-height: 1.5;
+      }
+    }
+  }
+}
+
+// Analytics Tab
+.analytics-content {
+  .analytics-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+    
+    h3 {
+      color: #fff;
+      margin: 0;
+    }
+    
+    .range-selector {
+      display: flex;
+      gap: 5px;
+      
+      .btn {
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: #ccc;
+        padding: 8px 16px;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        
+        &.active {
+          background: #2196F3;
+          color: white;
+          border-color: #2196F3;
+        }
+        
+        &:hover:not(.active) {
+          background: rgba(255, 255, 255, 0.2);
+          color: white;
+        }
+      }
+    }
+  }
+  
+  .analytics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+    
+    .analytics-card {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      padding: 20px;
+      position: relative;
+      
+      &.full-width {
+        grid-column: 1 / -1;
+        overflow-x: auto; // Scroll horizontal când e necesar
+      }
+      
+      h4 {
+        color: #fff;
+        margin: 0 0 15px 0;
+        font-size: 16px;
+        position: sticky;
+        left: 0;
+        background: rgba(255, 255, 255, 0.1);
+        padding: 5px 0;
+        z-index: 1;
+      }
+      
+      .distribution-list {
+        .distribution-item {
+          display: flex;
+          justify-content: space-between;
+          padding: 8px 0;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+          
+          &:last-child {
+            border-bottom: none;
+          }
+          
+          .event-name,
+          .risk-name,
+          .ip-address {
+            color: #fff;
+          }
+          
+          .event-count,
+          .risk-count,
+          .ip-count {
+            color: #ccc;
+            font-weight: bold;
+          }
+        }
+      }
+      
+      // Fix pentru Activitatea Zilnică - ÎMBUNĂTĂȚIT
+      .activity-chart {
+        display: flex;
+        gap: 2px;
+        align-items: end;
+        height: 120px; // Înălțime mărită
+        min-width: 100%;
+        padding: 10px 0;
+        overflow-x: auto;
+        position: relative;
+        
+        // Pentru perioada de 7 zile - bare late
+        &[data-period="7"] {
+          gap: 4px;
+          
+          .activity-bar {
+            min-width: 40px;
+            
+            .day-label {
+              font-size: 11px;
+              transform: rotate(-45deg);
+              white-space: nowrap;
+            }
+          }
+        }
+        
+        // Pentru perioada de 30 zile - bare medii
+        &[data-period="30"] {
+          gap: 3px;
+          
+          .activity-bar {
+            min-width: 20px;
+            
+            .day-label {
+              font-size: 10px;
+              transform: rotate(-45deg);
+              white-space: nowrap;
+            }
+          }
+        }
+        
+        // Pentru perioada de 90 zile - bare înguste și selective
+        &[data-period="90"] {
+          gap: 1px;
+          min-width: 800px; // Lățime minimă pentru 90 de zile
+          
+          &::before {
+            content: "← Scroll pentru a vedea toate zilele →";
+            position: absolute;
+            top: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #ccc;
+            font-size: 11px;
+            white-space: nowrap;
+            pointer-events: none;
+          }
+          
+          .activity-bar {
+            min-width: 8px;
+            flex: 0 0 8px; // Lățime fixă
+            
+            .day-label {
+              font-size: 8px;
+              transform: rotate(-90deg);
+              white-space: nowrap;
+              
+              // Afișează doar la fiecare 7 zile
+              &:not(:nth-child(7n)) {
+                opacity: 0;
+                visibility: hidden;
+              }
+            }
+            
+            // Alternative - afișează la fiecare 10 zile
+            &:nth-child(10n) .day-label {
+              opacity: 1;
+              visibility: visible;
+              font-weight: bold;
+              color: #fff;
+            }
+          }
+          
+          // Custom scrollbar pentru 90 zile
+          &::-webkit-scrollbar {
+            height: 6px;
+          }
+          
+          &::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+          }
+          
+          &::-webkit-scrollbar-thumb {
+            background: rgba(33, 150, 243, 0.6);
+            border-radius: 3px;
+            
+            &:hover {
+              background: rgba(33, 150, 243, 0.8);
+            }
+          }
+        }
+        
+        .activity-bar {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          max-width: 50px; // Limitează lățimea maximă
+          
+          .bar {
+            background: #2196F3;
+            width: 100%;
+            min-height: 2px;
+            margin-bottom: 5px;
+            border-radius: 2px;
+            transition: all 0.3s ease;
+            
+            &:hover {
+              background: #1976D2;
+              transform: scaleY(1.1);
+            }
+          }
+          
+          .day-label {
+            color: #ccc;
+            font-size: 10px;
+            transform: rotate(-45deg);
+            white-space: nowrap;
+            transform-origin: center;
+            margin-top: 5px;
+            max-width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+          }
+        }
+      }
+    }
+  }
+}
+
+// CAPTCHA Stats
+.captcha-stats {
+  .captcha-overview {
+    margin-bottom: 20px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 15px;
+    
+    .captcha-metric {
+      text-align: center;
+      padding: 15px;
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 6px;
+
+      .metric-label {
+        display: block;
+        color: #ccc;
+        font-size: 12px;
+        margin-bottom: 5px;
+      }
+      
+      .metric-value {
+        color: #fff;
+        font-size: 20px;
+        font-weight: bold;
+      }
+    }
+  }
+  
+  .captcha-contexts {
+    h5 {
+      color: #fff;
+      margin-bottom: 10px;
+      font-size: 14px;
+    }
+    
+    .context-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 6px 0;
+      font-size: 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      
+      &:last-child {
+        border-bottom: none;
+      }
+      
+      .context-name {
+        color: #fff;
+        flex: 1;
+      }
+      
+      .context-attempts,
+      .context-success {
+        color: #ccc;
+        margin-left: 10px;
+        min-width: 80px;
+        text-align: right;
+      }
+    }
+  }
+}
+
+// Common button styles
+.btn {
+  background: #2196F3;
+  color: white;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  
+  &:hover {
+    background: #1976D2;
+    transform: translateY(-1px);
+  }
+  
+  &.btn-danger {
+    background: #f44336;
+    
+    &:hover {
+      background: #d32f2f;
+    }
+  }
+  
+  &.btn-secondary {
+    background: rgba(255, 255, 255, 0.2);
+    
+    &:hover {
+      background: rgba(255, 255, 255, 0.3);
+    }
+  }
+
+  &.btn-success {
+    background: #4CAF50;
+    
+    &:hover {
+      background: #388E3C;
+    }
+  }
+
+  &.btn-warning {
+    background: #FF9800;
+    
+    &:hover {
+      background: #F57C00;
+    }
+  }
+  
+  &.btn-small {
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+  
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    
+    &:hover {
+      transform: none;
+    }
+  }
+}
+
+// Pagination
+.pagination {
+  display: flex;
+  justify-content: center;
+  gap: 5px;
+  margin-top: 20px;
+  
+  .pagination-btn {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #ccc;
+    padding: 8px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    
+    &.active {
+      background: #2196F3;
+      color: white;
+      border-color: #2196F3;
+    }
+    
+    &:hover:not(.active):not(:disabled) {
+      background: rgba(255, 255, 255, 0.2);
+      color: white;
+    }
+    
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  }
+}
+
+// Responsive design
+@media (max-width: 1200px) {
+  .analytics-card .activity-chart {
+    &[data-period="90"] {
+      min-width: 600px;
+      
+      .activity-bar {
+        min-width: 6px;
+        flex: 0 0 6px;
+        
+        .day-label {
+          font-size: 7px;
+        }
+      }
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  .security-page {
+    padding: 15px;
+  }
+  
+  .page-header {
+    flex-direction: column;
+    gap: 15px;
+    text-align: center;
+  }
+  
+  .security-tabs {
+    flex-direction: column;
+    
+    .tab-button {
+      text-align: center;
+    }
+  }
+  
+  .stats-grid,
+  .device-stats-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .events-filters {
+    flex-direction: column;
+    gap: 15px;
+  }
+  
+  .sessions-header {
+    flex-direction: column;
+    gap: 15px;
+    text-align: center;
+
+    .sessions-actions {
+      align-items: stretch;
+
+      .action-info {
+        text-align: left;
+      }
+    }
+  }
+  
+  .session-item,
+  .device-item {
+    flex-direction: column;
+    text-align: center;
+
+    .session-details,
+    .device-details {
+      .info-row {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+
+        .label {
+          min-width: auto;
+        }
+      }
+    }
+  }
+  
+  .analytics-header {
+    flex-direction: column;
+    gap: 15px;
+    text-align: center;
+  }
+  
+  .analytics-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .captcha-overview {
+    grid-template-columns: 1fr;
+  }
+
+  .info-banner {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  // Mobile specific pentru activity chart
+  .analytics-card .activity-chart {
+    height: 100px;
+    
+    &[data-period="90"] {
+      min-width: 450px;
+      gap: 0.5px;
+      
+      .activity-bar {
+        min-width: 4px;
+        flex: 0 0 4px;
+        
+        .day-label {
+          font-size: 6px;
+          
+          // Pe mobile, afișează doar la fiecare 14 zile
+          &:not(:nth-child(14n)) {
+            display: none;
+          }
+        }
+      }
+    }
+    
+    &[data-period="30"] {
+      .activity-bar {
+        min-width: 12px;
+        
+        .day-label {
+          font-size: 8px;
+        }
+      }
+    }
+    
+    &[data-period="7"] {
+      .activity-bar {
+        min-width: 30px;
+        
+        .day-label {
+          font-size: 10px;
+        }
+      }
+    }
+  }
+}

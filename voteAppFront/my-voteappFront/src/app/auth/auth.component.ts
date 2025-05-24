@@ -420,10 +420,12 @@ onSubmit(): void {
   console.log('onSubmit apelat, tip autentificare:', this.useIdCardAuth ? 'Buletin' : 'Email');
   
   if (!this.isCaptchaVerified) {
+    this.authService.verifyRecaptcha('', 'login_attempt').subscribe();
     this.showErrorMessage('Te rugăm să confirmi că nu ești un robot înainte de a continua.');
     this.showCaptchaChallenge();
     return;
   }
+  this.authService.verifyRecaptcha(this.captchaResponse!, 'login_success').subscribe();
   this.isLoading = true;
 
   if (this.useIdCardAuth) {

@@ -15,7 +15,7 @@ from .views import RegisterWithIDCardView
 from .views import LoginWithIDCardView
 from .views import VerifyRecaptchaView
 from .views import ResetPasswordView, RequestPasswordResetView, VerifyResetCodeView, VerifyTwoFactorLoginView
-
+from .views import LogoutView
 
 urlpatterns = [
     path('register/', RegisterView.as_view(), name='register'),
@@ -43,4 +43,5 @@ urlpatterns = [
     path('verify-reset-code/', VerifyResetCodeView.as_view(), name='verify-reset-code'),
     path('reset-password/', ResetPasswordView.as_view(), name='reset-password'),
     path('verify-two-factor/', views.VerifyTwoFactorLoginView.as_view(), name='verify-two-factor'),
+    path('logout/', LogoutView.as_view(), name='logout'),
 ]

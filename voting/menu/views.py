@@ -19,11 +19,11 @@ from django.http import HttpResponseRedirect
 from django.db import transaction
 from django.utils import timezone
 from django.shortcuts import render
+from security.utils import log_vote_security_event, log_captcha_attempt, create_security_event
 
 
 
 logger = logging.getLogger(__name__)
-
 class UserProfileView(APIView):
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
@@ -32,6 +32,18 @@ class UserProfileView(APIView):
         user = request.user
         logger.info(f"🔹 Autentificare utilizator: ID={user.id} | Email={user.email} | CNP={getattr(user, 'cnp', None)}")
 
+        
+        create_security_event(
+            user=user,
+            event_type='profile_access',
+            description=f"Acces la profilul utilizatorului {user.email if user.email else 'CNP: ' + user.cnp[:3] + '***'}",
+            request=request,
+            additional_data={
+                'user_id': user.id,
+                'auth_method': 'email' if user.email else 'id_card'
+            },
+            risk_level='low'
+        )
         if not user.is_active:
             logger.info(f"Utilizatorul {user.id} este inactiv. Activăm utilizatorul.")
             user.is_active = True
@@ -75,8 +87,6 @@ class ContactInfoView(APIView):
     
 # view pentru trimiterea formularului de contact pe mail
 @api_view(['POST'])
-
-
 @permission_classes([AllowAny])
 def send_contact_message(request):
     name = request.data.get('name')
@@ -85,6 +95,20 @@ def send_contact_message(request):
     
     # Verificăm dacă avem toate datele necesare
     if not name or not email or not message:
+        create_security_event(
+            user=request.user if request.user.is_authenticated else None,
+            event_type='profile_update',
+            description=f"Încercare contact cu date incomplete de la {email or 'email necunoscut'}",
+            request=request,
+            additional_data={
+                'missing_fields': {
+                    'name': not name,
+                    'email': not email,
+                    'message': not message
+                }
+            },
+            risk_level='low'
+        )
         return Response(
             {'error': 'Toate câmpurile sunt obligatorii: nume, email și mesaj.'},
             status=status.HTTP_400_BAD_REQUEST
@@ -121,8 +145,36 @@ def send_contact_message(request):
     
     try:
         email_obj.send()
+        create_security_event(
+            user=request.user if request.user.is_authenticated else None,
+            event_type='profile_update',
+            description=f"Mesaj de contact trimis de {email}",
+            request=request,
+            additional_data={
+                'sender_email': email,
+                'sender_email': email,
+                'message_length': len(message),
+                'is_authenticated': request.user.is_authenticated
+            },
+            risk_level='low'
+        )
+
+
+
         return Response({'message': 'Mesajul tău a fost trimis cu succes!'}, status=status.HTTP_200_OK)
     except Exception as e:
+        create_security_event(
+            user=request.user if request.user.is_authenticated else None,
+            event_type='profile_update',
+            description=f"Eroare la trimiterea mesajului de contact de la {email}: {str(e)}",
+            request=request,
+            additional_data={
+                'sender_email': email,
+                'sender_name': name,
+                'error': str(e)
+            },
+            risk_level='medium'
+        )
         return Response({'error': f'Eroare la trimiterea mesajului: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
