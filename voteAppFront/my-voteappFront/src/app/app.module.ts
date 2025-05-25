@@ -83,6 +83,9 @@ import { CsvDownloadComponent } from './csv-download/csv-download.component';
 import { CsvDownloadService } from './services/csv-download.service';
 import { SecurityComponent } from './security/security.component';
 import { SecurityService } from './services/security.service';
+import { AccessibilityComponent } from './accessibility/accessibility.component';
+import { AccessibilityService } from './services/accessibility.service';
+import { ScreenReaderService } from './services/screen-reader.service';
 
 @NgModule({
   declarations: [
@@ -131,6 +134,7 @@ import { SecurityService } from './services/security.service';
     PresenceComponent,
     CsvDownloadComponent,
     SecurityComponent,
+    AccessibilityComponent,
 
   ],
   imports: [
@@ -179,6 +183,9 @@ import { SecurityService } from './services/security.service';
     PresidentialRound2VoteService,
     CsvDownloadService,
     SecurityService,
+    AccessibilityService,
+    ScreenReaderService,
+
   ],
   bootstrap: [AppComponent]
 })

@@ -557,7 +557,7 @@ getVoteTypeText(voteType: string | null): string {
         this.router.navigate(['menu/setari/notificari']);
         break;
       case 'accesibilitate':
-        this.router.navigate(['menu/setari/accesibilitate']);
+        this.router.navigate(['menu/accesibilitate']);
         break;
       
       default:

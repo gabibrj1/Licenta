@@ -1,0 +1,364 @@
+<div class="accessibility-page" role="main" aria-labelledby="accessibility-title">
+  <div class="page-header">
+    <h1 id="accessibility-title">
+      <i class="fas fa-universal-access" aria-hidden="true"></i>
+      Setări de Accesibilitate
+    </h1>
+    <p class="page-description">
+      Personalizați aplicația pentru o experiență optimă de utilizare și vot accesibil
+    </p>
+  </div>
+
+  <!-- Screen Reader Status Banner -->
+  <div class="screen-reader-status" *ngIf="isScreenReaderActive">
+    <div class="status-banner">
+      <i class="fas fa-volume-up" aria-hidden="true"></i>
+      <div class="status-content">
+        <h3>Cititor de Ecran Activ</h3>
+        <p>Navigați cu mouse-ul peste elemente pentru a auzi descrierea lor în română</p>
+        <div class="shortcuts">
+          <span class="shortcut">Escape</span> oprește vocea
+        </div>
+      </div>
+      <button class="btn btn-small" (click)="toggleScreenReader()">
+        <i class="fas fa-volume-mute" aria-hidden="true"></i>
+        Dezactivează
+      </button>
+    </div>
+  </div>
+
+  <!-- Keyboard Test Status Banner -->
+  <div class="keyboard-test-status" *ngIf="isKeyboardTestActive">
+    <div class="status-banner keyboard-banner">
+      <i class="fas fa-keyboard" aria-hidden="true"></i>
+      <div class="status-content">
+        <h3>Test Navigare cu Tastatura Activ</h3>
+        <p>Elementele focusabile sunt evidențiate cu numere. Folosiți Tab pentru navigare.</p>
+        <div class="shortcuts">
+          <span class="shortcut">Escape</span> sau butonul de mai jos pentru a opri testul
+        </div>
+      </div>
+      <button class="btn btn-small" (click)="stopKeyboardTest()">
+        <i class="fas fa-stop" aria-hidden="true"></i>
+        Oprește Test
+      </button>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="isLoading" class="loading-section" role="status" aria-live="polite">
+    <i class="fas fa-spinner fa-spin" aria-hidden="true"></i>
+    <p>Se încarcă setările de accesibilitate...</p>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="error" class="error-section" role="alert" aria-live="assertive">
+    <i class="fas fa-exclamation-triangle" aria-hidden="true"></i>
+    <p>{{ error }}</p>
+    <button class="btn btn-secondary" (click)="loadSettings()">
+      <i class="fas fa-redo" aria-hidden="true"></i> Încearcă din nou
+    </button>
+  </div>
+
+  <!-- Success Message -->
+  <div *ngIf="successMessage" class="success-section" role="alert" aria-live="polite">
+    <i class="fas fa-check-circle" aria-hidden="true"></i>
+    <p>{{ successMessage }}</p>
+  </div>
+
+  <!-- Main Content -->
+  <div *ngIf="!isLoading && !error" class="accessibility-content">
+    
+    <!-- Quick Actions -->
+    <div class="quick-actions-section">
+      <h2>Acțiuni Rapide</h2>
+      <div class="quick-actions">
+        <button class="btn" 
+                [class.btn-success]="isScreenReaderActive"
+                [class.btn-primary]="!isScreenReaderActive"
+                (click)="toggleScreenReader()" 
+                [attr.aria-describedby]="'screen-reader-toggle-desc'">
+          <i class="fas" 
+             [class.fa-volume-up]="isScreenReaderActive"
+             [class.fa-volume-mute]="!isScreenReaderActive" 
+             aria-hidden="true"></i>
+          {{ isScreenReaderActive ? 'Dezactivează' : 'Activează' }} Cititor de Ecran
+        </button>
+        <span id="screen-reader-toggle-desc" class="btn-description">
+          Status: {{ screenReaderStatus }}. {{ isScreenReaderActive ? 'Click pentru dezactivare' : 'Click pentru activare pe toată aplicația' }}
+        </span>
+        
+        <button class="btn btn-secondary" (click)="testScreenReader()" 
+                [attr.aria-describedby]="'screen-reader-desc'">
+          <i class="fas fa-volume-up" aria-hidden="true"></i>
+          Testează Cititorul
+        </button>
+        <span id="screen-reader-desc" class="btn-description">
+          Testează funcționarea cititorului de ecran
+        </span>
+        
+        <button class="btn" 
+                [class.btn-warning]="isKeyboardTestActive"
+                [class.btn-secondary]="!isKeyboardTestActive"
+                (click)="toggleKeyboardTest()" 
+                [attr.aria-describedby]="'keyboard-nav-desc'">
+          <i class="fas" 
+             [class.fa-stop]="isKeyboardTestActive"
+             [class.fa-keyboard]="!isKeyboardTestActive" 
+             aria-hidden="true"></i>
+          {{ isKeyboardTestActive ? 'Oprește Test' : 'Testează Navigarea' }}
+        </button>
+        <span id="keyboard-nav-desc" class="btn-description">
+          Status: {{ keyboardTestStatus }}. {{ isKeyboardTestActive ? 'Click pentru oprirea testului' : 'Evidențiază elementele focusabile pentru navigarea cu tastatura' }}
+        </span>
+        
+        <button class="btn btn-info" (click)="openAccessibilityGuide()" 
+                [attr.aria-describedby]="'guide-desc'">
+          <i class="fas fa-book-open" aria-hidden="true"></i>
+          Ghid Accesibilitate
+        </button>
+        <span id="guide-desc" class="btn-description">
+          Deschide ghidul complet de accesibilitate
+        </span>
+      </div>
+    </div>
+
+    <!-- Settings Form -->
+    <form class="accessibility-form" (ngSubmit)="saveSettings()" #accessibilityForm="ngForm">
+      
+      <!-- Visual Settings -->
+      <fieldset class="settings-group">
+        <legend>Setări Vizuale</legend>
+        
+        <div class="setting-item">
+          <label for="font-size">Mărimea Fontului:</label>
+          <select id="font-size"
+                  name="fontSize"
+                  [(ngModel)]="settings.font_size"
+                  (change)="onSettingChange('font_size', $any($event.target).value)"
+                  aria-describedby="font-size-help">
+            <option *ngFor="let option of fontSizeOptions" [value]="option.value">
+              {{ option.label }}
+            </option>
+          </select>
+          <small id="font-size-help" class="help-text">
+            Alegeți mărimea fontului pentru o citire confortabilă
+          </small>
+        </div>
+
+        <div class="setting-item">
+          <label for="contrast-mode">Modul de Contrast:</label>
+          <select id="contrast-mode"
+                  name="contrastMode"
+                  [(ngModel)]="settings.contrast_mode"
+                  (change)="onSettingChange('contrast_mode', $any($event.target).value)"
+                  aria-describedby="contrast-help">
+            <option *ngFor="let option of contrastOptions" [value]="option.value">
+              {{ option.label }}
+            </option>
+          </select>
+          <small id="contrast-help" class="help-text">
+            Contrastul ridicat îmbunătățește vizibilitatea textului
+          </small>
+        </div>
+
+        <div class="setting-item">
+          <label for="animations">Animații:</label>
+          <select id="animations" 
+                  name="animations" 
+                  [(ngModel)]="settings.animations"
+                  (change)="onSettingChange('animations', $any($event.target).value)"
+                  aria-describedby="animations-help">
+            <option *ngFor="let option of animationOptions" [value]="option.value">
+              {{ option.label }}
+            </option>
+          </select>
+          <small id="animations-help" class="help-text">
+            Reduceți animațiile pentru a evita distragerea atenției
+          </small>
+        </div>
+
+        <div class="setting-item checkbox-item">
+          <input type="checkbox" 
+                 id="focus-highlights" 
+                 name="focusHighlights"
+                 [(ngModel)]="settings.focus_highlights"
+                 (change)="onSettingChange('focus_highlights', $any($event.target).checked)"
+                 aria-describedby="focus-help">
+          <label for="focus-highlights">Evidențiere focus îmbunătățită</label>
+          <small id="focus-help" class="help-text">
+            Evidențiază elementul curent în navigarea cu tastatura
+          </small>
+        </div>
+
+        <div class="setting-item checkbox-item">
+          <input type="checkbox" 
+                 id="large-buttons" 
+                 name="largeButtons"
+                 [(ngModel)]="settings.large_buttons"
+                 (change)="onSettingChange('large_buttons', $any($event.target).checked)"
+                 aria-describedby="buttons-help">
+          <label for="large-buttons">Butoane mari</label>
+          <small id="buttons-help" class="help-text">
+            Mărește dimensiunea butoanelor pentru acces mai ușor
+          </small>
+        </div>
+      </fieldset>
+
+      <!-- Voting Assistance Settings -->
+      <fieldset class="settings-group">
+        <legend>Asistență pentru Vot</legend>
+        
+        <div class="setting-item checkbox-item">
+          <input type="checkbox" 
+                 id="extended-time" 
+                 name="extendedTime"
+                 [(ngModel)]="settings.extended_time"
+                 disabled
+                 aria-describedby="time-help">
+          <label for="extended-time">Timp extins pentru procesul de vot</label>
+          <small id="time-help" class="help-text">
+            <i class="fas fa-info-circle"></i> Activat automat - aplicația oferă timp suplimentar pentru completarea votului
+          </small>
+        </div>
+
+        <div class="setting-item checkbox-item">
+          <input type="checkbox" 
+                 id="audio-assistance" 
+                 name="audioAssistance"
+                 [(ngModel)]="settings.audio_assistance"
+                 (change)="onSettingChange('audio_assistance', $any($event.target).checked)"
+                 aria-describedby="audio-help">
+          <label for="audio-assistance">Asistență audio pentru vot</label>
+          <small id="audio-help" class="help-text">
+            Activează cititorul de ecran și ghidarea vocală prin procesul de vot
+          </small>
+        </div>
+
+        <div class="setting-item checkbox-item">
+          <input type="checkbox" 
+                 id="extra-confirmations" 
+                 name="extraConfirmations"
+                 [(ngModel)]="settings.extra_confirmations"
+                 disabled
+                 aria-describedby="confirmations-help">
+          <label for="extra-confirmations">Confirmări suplimentare</label>
+          <small id="confirmations-help" class="help-text">
+            <i class="fas fa-info-circle"></i> Activat automat - solicitări suplimentare de confirmare pentru acțiuni importante
+          </small>
+        </div>
+      </fieldset>
+
+      <!-- Navigation Settings -->
+      <fieldset class="settings-group">
+        <legend>Setări de Navigare</legend>
+        
+        <div class="setting-item checkbox-item">
+          <input type="checkbox" 
+                 id="keyboard-navigation" 
+                 name="keyboardNavigation"
+                 [(ngModel)]="settings.keyboard_navigation"
+                 (change)="onSettingChange('keyboard_navigation', $any($event.target).checked)"
+                 aria-describedby="keyboard-help">
+          <label for="keyboard-navigation">Prioritate navigare cu tastatura</label>
+          <small id="keyboard-help" class="help-text">
+            Optimizează aplicația pentru navigarea cu tastatura și activează testul automat
+          </small>
+        </div>
+
+        <div class="setting-item checkbox-item">
+          <input type="checkbox" 
+                 id="screen-reader" 
+                 name="screenReader"
+                 [(ngModel)]="settings.screen_reader_support"
+                 disabled
+                 aria-describedby="reader-help">
+          <label for="screen-reader">Suport pentru cititorul de ecran</label>
+          <small id="reader-help" class="help-text">
+            <i class="fas fa-info-circle"></i> Activat automat - funcții speciale pentru cititorii de ecran
+          </small>
+        </div>
+      </fieldset>
+
+      <!-- Form Actions -->
+      <div class="form-actions">
+        <button type="submit" 
+                class="btn btn-primary"
+                [disabled]="isSaving"
+                aria-describedby="save-help">
+          <i class="fas fa-save" aria-hidden="true"></i>
+          <span *ngIf="!isSaving">Salvează Setările</span>
+          <span *ngIf="isSaving">Se salvează...</span>
+        </button>
+        <small id="save-help" class="help-text">
+          Salvează setările modificabile de accesibilitate
+        </small>
+
+        <button type="button" 
+                class="btn btn-secondary"
+                (click)="resetToDefaults()"
+                [disabled]="isSaving"
+                aria-describedby="reset-help">
+          <i class="fas fa-undo" aria-hidden="true"></i>
+          Resetează Setările
+        </button>
+        <small id="reset-help" class="help-text">
+          Resetează setările modificabile la valorile implicite
+        </small>
+      </div>
+    </form>
+
+    <!-- Accessibility Features Info -->
+    <div class="features-section" *ngIf="features.length > 0">
+      <h2>Funcții de Accesibilitate Disponibile</h2>
+      <div class="features-grid">
+        <div *ngFor="let feature of features" 
+             class="feature-card"
+             [class.available]="feature.available">
+          <div class="feature-status">
+            <i class="fas" 
+               [class.fa-check-circle]="feature.available"
+               [class.fa-times-circle]="!feature.available"
+               [style.color]="feature.available ? '#2ecc71' : '#e74c3c'"
+               aria-hidden="true"></i>
+          </div>
+          <div class="feature-content">
+            <h3>{{ feature.title }}</h3>
+            <p>{{ feature.description }}</p>
+            <span class="availability-badge" 
+                  [class.available]="feature.available">
+              {{ feature.available ? 'Disponibil' : 'În dezvoltare' }}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Contact Information -->
+    <div class="contact-section" *ngIf="contactInfo">
+      <h2>Suport pentru Accesibilitate</h2>
+      <div class="contact-info">
+        <p>
+          <i class="fas fa-envelope" aria-hidden="true"></i>
+          Pentru asistență în utilizarea funcțiilor de accesibilitate, contactați-ne:
+        </p>
+        <ul>
+          <li>
+            <strong>Email:</strong> 
+            <a href="mailto:g.brujbeanu18&#64;gmail.com">g.brujbeanu18&#64;gmail.com</a>
+          </li>
+          <li>
+            <strong>Telefon:</strong> 
+            <a [href]="'tel:' + contactInfo.phone">{{ contactInfo.phone }}</a>
+          </li>
+          <li>
+            <strong>Program:</strong> {{ contactInfo.hours }}
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen Reader Only Content -->
+  <div class="sr-only" aria-live="polite" aria-atomic="true" id="announcements"></div>
+</div>
