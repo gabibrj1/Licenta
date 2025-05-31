@@ -53,7 +53,18 @@ from .utils import ProcessorCNP
 from security.utils import create_security_event, log_captcha_attempt, log_2fa_event, log_gdpr_event
 from django.utils import timezone
 
+
 logger = logging.getLogger(__name__)
+
+@api_view(['GET', 'POST'])
+@permission_classes([AllowAny])
+def test_endpoint(request):
+    return Response({
+        'status': 'OK',
+        'method': request.method,
+        'user_authenticated': request.user.is_authenticated,
+        'timestamp': timezone.now().isoformat()
+    })
 
 class RegisterWithIDCardView(APIView):
     parser_classes = (MultiPartParser, FormParser)

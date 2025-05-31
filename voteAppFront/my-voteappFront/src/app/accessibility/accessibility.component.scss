@@ -592,6 +592,157 @@
       border: 0 !important;
     }
   }
+
+  // STILURI PENTRU TEMA ALBĂ
+  &.accessibility-contrast-light {
+    background-color: #ffffff !important;
+    color: #000000 !important;
+    
+    // Headers și titluri
+    h1, h2, h3, h4, h5, h6 {
+      color: #2c3e50 !important;
+    }
+    
+    // Linkuri
+    a {
+      color: #2980b9 !important;
+      
+      &:hover {
+        color: #3498db !important;
+      }
+    }
+    
+    // Butoane în tema albă
+    .btn {
+      &.btn-primary {
+        background-color: #3498db !important;
+        color: white !important;
+        border-color: #3498db !important;
+      }
+      
+      &.btn-secondary {
+        background-color: #6c757d !important;
+        color: white !important;
+        border-color: #6c757d !important;
+      }
+      
+      &.btn-success {
+        background-color: #28a745 !important;
+        color: white !important;
+        border-color: #28a745 !important;
+      }
+      
+      &.btn-warning {
+        background-color: #f39c12 !important;
+        color: white !important;
+        border-color: #f39c12 !important;
+      }
+      
+      &.btn-info {
+        background-color: #17a2b8 !important;
+        color: white !important;
+        border-color: #17a2b8 !important;
+      }
+    }
+    
+    // Carduri și containere
+    .card, .modal, .dropdown-menu, .nav-menu, 
+    .settings-group, .feature-card {
+      background-color: #f8f9fa !important;
+      border-color: #dee2e6 !important;
+      color: #212529 !important;
+    }
+    
+    // Sidebar și navigare
+    .side-nav, .sidebar {
+      background-color: #f8f9fa !important;
+      border-right: 1px solid #dee2e6 !important;
+      
+      .nav-item a {
+        color: #495057 !important;
+        
+        &:hover, &.active {
+          background-color: #e9ecef !important;
+          color: #212529 !important;
+        }
+      }
+    }
+    
+    // Formulare
+    input, select, textarea {
+      background-color: #ffffff !important;
+      border: 1px solid #ced4da !important;
+      color: #495057 !important;
+      
+      &:focus {
+        border-color: #3498db !important;
+        box-shadow: 0 0 0 0.2rem rgba(52, 152, 219, 0.25) !important;
+      }
+    }
+    
+    // Tabele
+    table {
+      background-color: #ffffff !important;
+      color: #212529 !important;
+      
+      th {
+        background-color: #f8f9fa !important;
+        border-color: #dee2e6 !important;
+      }
+      
+      td {
+        border-color: #dee2e6 !important;
+      }
+    }
+    
+    // Alert-uri și notificări
+    .alert, .success-section, .error-section, .loading-section {
+      &.success-section {
+        background-color: #d4edda !important;
+        color: #155724 !important;
+        border-color: #c3e6cb !important;
+      }
+      
+      &.error-section {
+        background-color: #f8d7da !important;
+        color: #721c24 !important;
+        border-color: #f5c6cb !important;
+      }
+      
+      &.loading-section {
+        background-color: #d1ecf1 !important;
+        color: #0c5460 !important;
+        border-color: #bee5eb !important;
+      }
+    }
+    
+    // Status banners
+    .status-banner {
+      &:not(.keyboard-banner) {
+        background: linear-gradient(135deg, #28a745, #20c997) !important;
+        color: white !important;
+      }
+      
+      &.keyboard-banner {
+        background: linear-gradient(135deg, #f39c12, #e67e22) !important;
+        color: white !important;
+      }
+    }
+    
+    // Text secundar
+    .help-text, .btn-description {
+      color: #6c757d !important;
+    }
+    
+    // Focus și hover states pentru tema albă
+    *:focus {
+      outline-color: #3498db !important;
+    }
+    
+    .clickable:hover, button:hover:not(:disabled) {
+      background-color: #e9ecef !important;
+    }
+  }
 }
 
 // Media queries pentru responsive design

@@ -1,14 +1,14 @@
 import { TestBed } from '@angular/core/testing';
-import { HttpInterceptorFn } from '@angular/common/http';
+import { AuthBypassInterceptor } from './auth-bypass.interceptor';
 
-import { authBypassInterceptor } from './auth-bypass.interceptor';
-
-describe('authBypassInterceptor', () => {
-  const interceptor: HttpInterceptorFn = (req, next) => 
-    TestBed.runInInjectionContext(() => authBypassInterceptor(req, next));
+describe('AuthBypassInterceptor', () => {
+  let interceptor: AuthBypassInterceptor;
 
   beforeEach(() => {
-    TestBed.configureTestingModule({});
+    TestBed.configureTestingModule({
+      providers: [AuthBypassInterceptor]
+    });
+    interceptor = TestBed.inject(AuthBypassInterceptor);
   });
 
   it('should be created', () => {
