@@ -90,6 +90,8 @@ export class MenuComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     console.log('Inițializare componentă menu...');
+
+    sessionStorage.setItem('menu_accessed', 'true');
     
     // Verificăm query parameters pentru turul curent
     this.route.queryParams.subscribe(params => {
@@ -622,6 +624,9 @@ switchLocation(location: string): void {
   }
 
   logout(): void {
+    // Șterge marcajul de acces la meniu
+    sessionStorage.removeItem('menu_accessed');
+    
     this.authService.logout();
   }
 }

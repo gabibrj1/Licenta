@@ -84,6 +84,8 @@ export class AuthComponent implements OnInit {
   async ngOnInit() {
     console.log('Initializare componenta auth...');
 
+    this.checkAndHandleBackNavigation();
+
     //Adaugam functiile de callback reCAPTCHA la window
     (window as any).onCaptchaResolved = (response: string) => this.ngZone.run(() => this.onCaptchaResolved(response));
     (window as any).onCaptchaExpired = () => this.ngZone.run(() => this.onCaptchaExpired());
@@ -169,6 +171,68 @@ export class AuthComponent implements OnInit {
     });
   }
   
+private checkAndHandleBackNavigation(): void {
+    // Verifică dacă utilizatorul era autentificat (are tokeni în localStorage)
+    const accessToken = localStorage.getItem('access_token');
+    const refreshToken = localStorage.getItem('refresh_token');
+    const menuAccessed = sessionStorage.getItem('menu_accessed');
+    
+    // Dacă există tokeni ȘI utilizatorul a accesat meniul anterior, înseamnă că se întoarce înapoi
+    if ((accessToken || refreshToken) && menuAccessed) {
+      console.log('Detectată navigare înapoi de la meniu - se efectuează logout automat');
+      
+      // Șterge toate datele de autentificare
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('refresh_token');
+      localStorage.removeItem('user_data');
+      localStorage.removeItem('user_cnp');
+      localStorage.removeItem('auth_method');
+      
+      // Șterge și marcajul de acces la meniu
+      sessionStorage.removeItem('menu_accessed');
+      
+      // Golește și toate datele din componență
+      this.email = '';
+      this.password = '';
+      this.cnp = '';
+      this.series = '';
+      this.firstName = '';
+      this.lastName = '';
+      this.useIdCardAuth = false;
+      
+      // Oprește camera dacă este activă
+      this.stopCamera();
+      this.isFaceRecognitionActive = false;
+      
+      // Afișează un mesaj informativ
+      this.showWarningMessage(
+        'Pentru securitate, ați fost deconectat automat după navigarea înapoi. Vă rugăm să vă autentificați din nou.',
+        6000
+      );
+      
+      // Asigură-te că suntem pe pagina de autentificare și previne navigarea înainte
+      if (this.router.url !== '/auth') {
+        this.router.navigate(['/auth'], { replaceUrl: true });
+      }
+      
+      // Adaugă o verificare pentru a preveni navigarea înainte
+      window.history.pushState(null, '', window.location.href);
+      window.addEventListener('popstate', this.preventForwardNavigation.bind(this));
+    }
+}
+
+// Metodă pentru a preveni navigarea înainte după logout automat
+private preventForwardNavigation(event: PopStateEvent): void {
+    // Forțează utilizatorul să rămână pe pagina de autentificare
+    window.history.pushState(null, '', '/auth');
+    
+    this.showWarningMessage(
+      'Pentru securitate, trebuie să vă autentificați din nou.',
+      4000
+    );
+}
+
+  
   
     // Reîncarcă widget-ul reCAPTCHA (utilă când avem nevoie să resetăm CAPTCHA)
     resetCaptcha() {
@@ -226,6 +290,7 @@ export class AuthComponent implements OnInit {
         }
       }
     }
+
     showCaptchaChallenge() {
       console.log('Forțăm afișarea challenge-ului');
       if ((window as any).grecaptcha && (window as any).grecaptcha.execute) {
@@ -494,6 +559,8 @@ onSubmit(): void {
             this.showSuccessMessage('Autentificare reușită!');
             
             console.log('Navighez către /menu folosind window.location.href');
+            
+            sessionStorage.removeItem('menu_accessed');
             window.location.href = '/menu'; 
           }, 300);
         } else {
@@ -1292,5 +1359,7 @@ forgotPassword() {
   }
   ngOnDestroy(): void {
     this.stopCamera();
+     // Elimină event listener-ul pentru navigare
+    window.removeEventListener('popstate', this.preventForwardNavigation.bind(this));
   }
 }
