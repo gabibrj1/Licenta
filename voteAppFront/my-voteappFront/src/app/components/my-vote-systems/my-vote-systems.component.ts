@@ -44,7 +44,6 @@ export class MyVoteSystemsComponent implements OnInit {
   // Filtrare și sortare
   applyFilters(): void {
     this.loadVoteSystems();
-    // În implementarea reală, am trimite parametrii de filtrare către backend
   }
 
   // Navighează către detaliile unui sistem de vot

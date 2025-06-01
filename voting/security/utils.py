@@ -12,7 +12,7 @@ def get_client_info(request):
     if not request:
         return {}
     
-    # IP Address
+    # Adresa IP 
     x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
     if x_forwarded_for:
         ip_address = x_forwarded_for.split(',')[0]
@@ -23,7 +23,7 @@ def get_client_info(request):
     user_agent_string = request.META.get('HTTP_USER_AGENT', '')
     user_agent = user_agents.parse(user_agent_string)
     
-    # Device Info
+    # Informații despre dispozitiv
     device_info = {
         'browser': f"{user_agent.browser.family} {user_agent.browser.version_string}",
         'os': f"{user_agent.os.family} {user_agent.os.version_string}",
@@ -35,7 +35,7 @@ def get_client_info(request):
         'type': 'mobile' if user_agent.is_mobile else 'tablet' if user_agent.is_tablet else 'desktop'
     }
     
-    # Location Info basic
+    # informații despre locație (placeholder, poate fi extins cu o API de geolocalizare)
     location_info = {
         'ip': ip_address,
         'country': 'Unknown',
@@ -87,7 +87,7 @@ def create_security_alert(user, alert_type, severity, title, message, details=No
         logger.error(f"Eroare la crearea alertei de securitate: {e}")
 
 def log_captcha_attempt(request, is_success, captcha_type='recaptcha', context='', user=None):
-    """Logează o încercare de CAPTCHA - ÎMBUNĂTĂȚIT"""
+    """Logează o încercare de CAPTCHA"""
     try:
         client_info = get_client_info(request)
         
@@ -102,7 +102,7 @@ def log_captcha_attempt(request, is_success, captcha_type='recaptcha', context='
             user_agent=client_info.get('user_agent', '')
         )
         
-        # Creează eveniment de securitate ÎNTOTDEAUNA
+        # Creează eveniment de securitate 
         event_type = 'captcha_success' if is_success else 'captcha_failed'
         risk_level = 'low' if is_success else 'medium'
         

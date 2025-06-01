@@ -1,4 +1,4 @@
-// Variables pentru culori și fonturi
+// variabile pentru culori și fonturi
 $primary-color: #2e86de;
 $primary-light: #54a0ff;
 $primary-dark: #2259b0;
@@ -25,7 +25,7 @@ $background-color: rgba(0, 0, 0, 0.5);
   font-family: Arial, sans-serif;
 }
 
-// Loading indicator
+// indicator loading
 .loading-container {
   display: flex;
   flex-direction: column;
@@ -53,7 +53,7 @@ $background-color: rgba(0, 0, 0, 0.5);
   100% { transform: rotate(360deg); }
 }
 
-// Error message
+// mesaj eroare
 .error-message {
   background-color: rgba($danger-color, 0.2);
   border-left: 4px solid $danger-color;

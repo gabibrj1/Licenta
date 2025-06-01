@@ -52,6 +52,7 @@ const routes: Routes = [
   { 
     path: 'menu', 
     component: MenuComponent,
+    canActivate: [AuthGuard],
     children: [
       { path: 'despre/contact', component: ContactComponent },
       { path: 'despre/misiune', component: MisiuneComponent},
@@ -92,9 +93,7 @@ const routes: Routes = [
       { path: 'vot/locale', component: LocalVoteComponent, canActivate: [AuthGuard] },
 
       
-      
-      // Aici poți adăuga alte rute pentru conținutul din meniu
-      { path: '', redirectTo: '', pathMatch: 'full' } 
+      { path: '', redirectTo: 'simulare-vot', pathMatch: 'full' }
     ]
   },
   { path: 'verify-email', component: VerifyEmailComponent },

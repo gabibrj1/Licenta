@@ -913,7 +913,7 @@ export class AccessibilityComponent implements OnInit, OnDestroy {
 
   resetToDefaults(): void {
     if (confirm('Sunteți sigur că doriți să resetați setările modificabile la valorile implicite?')) {
-      // Force disable screen reader first
+      // Forțează dezactivarea cititorului de ecran mai întâi
       if (this.isScreenReaderActive) {
         this.disableScreenReader();
       }
@@ -923,17 +923,17 @@ export class AccessibilityComponent implements OnInit, OnDestroy {
         contrast_mode: 'normal',
         animations: 'enabled',
         focus_highlights: false,
-        extended_time: true, // Keep enabled
+        extended_time: true, // Mențineți activat
         simplified_interface: false,
         audio_assistance: false,
         keyboard_navigation: false,
-        extra_confirmations: true, // Keep enabled
+        extra_confirmations: true, // Mențineți activat
         large_buttons: false,
-        screen_reader_support: false, // Always start disabled - manual activation only
+        screen_reader_support: false, // Pornire întotdeauna dezactivată - doar activare manuală
         audio_notifications: false
       };
       
-      // Reset auto-enabled flags
+      // reseteaza auto-enabled flags
       this.screenReaderAutoEnabled = false;
       this.keyboardTestAutoEnabled = false;
       

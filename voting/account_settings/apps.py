@@ -6,7 +6,4 @@ class AccountSettingsConfig(AppConfig):
     name = 'account_settings'
     
     def ready(self):
-        """
-        Initialize signals when the app is ready
-        """
         import account_settings.signals

@@ -4,25 +4,21 @@
         <i class="fas fa-arrow-left"></i> Înapoi la lista de sisteme
       </button>
     </div>
-    
-    <!-- Loading spinner -->
+  
     <div class="loading-container" *ngIf="isLoading">
       <div class="spinner"></div>
       <p>Se încarcă detaliile sistemului de vot...</p>
     </div>
     
-    <!-- Error message -->
     <div class="error-message" *ngIf="errorMessage && !isLoading">
       <i class="fas fa-exclamation-triangle"></i>
       <p>{{ errorMessage }}</p>
     </div>
     
-    <!-- Vote system details -->
     <div class="vote-system-content" *ngIf="voteSystem && !isLoading">
       <div class="system-header">
         <h1>{{ voteSystem.name }}</h1>
         
-        <!-- Status badge - simplificat pentru a evita erori -->
         <div class="status-badge" [ngClass]="getStatusClass()">
           <span>{{ getStatusText() }}</span>
         </div>
@@ -38,8 +34,6 @@
       </div>
 
       
-
-      <!-- Tabs navigation -->
       <div class="system-tabs">
         <div class="tab" [class.active]="activeTab === 'overview'" (click)="setActiveTab('overview')">
           <i class="fas fa-info-circle"></i> Prezentare
@@ -54,8 +48,7 @@
           <i class="fas fa-cog"></i> Setări
         </div>
       </div>
-      
-      <!-- Overview Tab -->
+
       <div class="tab-content" *ngIf="activeTab === 'overview'">
         <div class="overview-container">
           <div class="system-description">
@@ -87,7 +80,6 @@
             </div>
           </div>
           
-          <!-- Voting Form -->
           <div class="voting-section" *ngIf="isVoteActive() && !voteSubmitted">
             <h3>Votează</h3>
             
@@ -117,8 +109,7 @@
               </button>
             </form>
           </div>
-          
-          <!-- Vote Submitted Message -->
+
           <div class="vote-success" *ngIf="voteSubmitted">
             <div class="success-icon">
               <i class="fas fa-check-circle"></i>
@@ -129,7 +120,6 @@
         </div>
       </div>
       
-      <!-- Results Tab -->
       <div class="tab-content" *ngIf="activeTab === 'results'">
         <div class="results-container">
           <h3>Rezultate vot</h3>
@@ -187,7 +177,6 @@
         </div>
       </div>
       
-      <!-- Share Tab -->
       <div class="tab-content" *ngIf="activeTab === 'share'">
         <div class="share-container">
           <h3>Distribuie sistem de vot</h3>
@@ -203,7 +192,6 @@
               </div>
             </div>
             
-<!-- Adaugă acest fragment de cod în secțiunea share -->
 <div class="share-item">
   <h4>Cod QR</h4>
   <div class="qr-image">
@@ -243,24 +231,20 @@
         </div>
       </div>
       
-<!-- Settings Tab -->
 <div class="tab-content" *ngIf="activeTab === 'settings'">
   <div class="settings-container">
     <h3>Setări sistem de vot</h3>
     
-    <!-- Mesaj de succes -->
     <div class="success-message" *ngIf="editSuccess">
       <i class="fas fa-check-circle"></i>
       {{ editSuccess }}
     </div>
     
-    <!-- Mesaj de eroare -->
     <div class="error-message" *ngIf="editError">
       <i class="fas fa-exclamation-triangle"></i>
       {{ editError }}
     </div>
     
-    <!-- Butoane de acțiune -->
     <div class="settings-actions" *ngIf="!isEditing && !deleteConfirmationOpen">
       <button 
         class="btn-edit" 
@@ -276,7 +260,6 @@
       </button>
     </div>
     
-    <!-- Formular de editare -->
     <div class="edit-form-container" *ngIf="isEditing">
       <form [formGroup]="editForm" (ngSubmit)="submitEditForm()">
         <h4>Editare sistem de vot</h4>
@@ -419,7 +402,6 @@
           </button>
         </div>
         
-        <!-- SECȚIUNE NOUĂ: Gestionare email-uri votanți -->
         <h4>Gestionare email-uri votanți</h4>
         
         <div class="form-group">
@@ -460,8 +442,7 @@
         </div>
       </form>
     </div>
-    
-    <!-- Dialog confirmare ștergere -->
+
     <div class="delete-confirmation" *ngIf="deleteConfirmationOpen">
       <div class="confirmation-header">
         <i class="fas fa-exclamation-triangle"></i>
@@ -496,7 +477,6 @@
       </div>
     </div>
     
-    <!-- Informații suplimentare -->
     <div class="settings-info" *ngIf="!isEditing && !deleteConfirmationOpen">
       <div class="info-box">
         <div class="info-icon">

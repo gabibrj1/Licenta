@@ -6,4 +6,4 @@ class ForumConfig(AppConfig):
     verbose_name = 'Forum'
     
     def ready(self):
-        import forum.signals  # Importăm semnalele
+        import forum.signals  

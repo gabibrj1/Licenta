@@ -9,8 +9,6 @@ def create_mention_notifications(sender, instance, created, **kwargs):
     """
     Când o postare este creată, verificăm dacă utilizatorul a menționat pe cineva
     și creăm notificări pentru cei menționați
-    
-    IMPORTANT: Modificat pentru a căuta după email în loc de username
     """
     if created:
         # Regex pentru a găsi mențiuni în format @email

@@ -20,7 +20,7 @@ class CSVDownloadView(APIView):
     permission_classes = [AllowAny]
     
     def get(self, request):
-        """Descarcă CSV cu datele de prezență"""
+        #Descarcă CSV cu datele de prezență
         location = request.query_params.get('location', 'romania')
         round_type = request.query_params.get('round', 'tur1_2024')
         
@@ -49,7 +49,7 @@ class CSVDownloadView(APIView):
         response = HttpResponse(content_type='text/csv; charset=utf-8')
         response['Content-Disposition'] = f'attachment; filename="{filename}"'
         
-        # Adaugă BOM pentru UTF-8 (pentru Excel)
+        # Adaugă BOM pentru UTF-8(pt Excel)
         response.write('\ufeff')
         
         writer = csv.writer(response)
@@ -131,7 +131,7 @@ class CSVDownloadView(APIView):
                 vote_datetime__lte=end_date
             )
         
-        # Calculează prezența pe județe/țări pe baza voturilor reale
+        # Calculează prezența pe județe sau țări pe baza voturilor reale
         presence_data = self.calculate_live_presence_from_votes(votes_query, location)
         
         count = 0

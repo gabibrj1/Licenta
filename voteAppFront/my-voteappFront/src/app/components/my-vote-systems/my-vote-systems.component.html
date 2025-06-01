@@ -32,20 +32,17 @@
         </div>
       </div>
     </div>
-    
-    <!-- Loading spinner -->
+
     <div class="loading-container" *ngIf="isLoading">
       <div class="spinner"></div>
       <p>Se încarcă sistemele de vot...</p>
     </div>
     
-    <!-- Error message -->
     <div class="error-message" *ngIf="errorMessage && !isLoading">
       <i class="fas fa-exclamation-triangle"></i>
       <p>{{ errorMessage }}</p>
     </div>
     
-    <!-- No systems message -->
     <div class="no-systems-message" *ngIf="voteSystems.length === 0 && !isLoading && !errorMessage">
       <div class="empty-illustration">
         <i class="fas fa-box-open fa-4x"></i>
@@ -57,7 +54,6 @@
       </button>
     </div>
     
-    <!-- Vote systems list -->
     <div class="vote-systems-grid" *ngIf="voteSystems.length > 0 && !isLoading">
       <div class="vote-system-card" *ngFor="let system of voteSystems" (click)="viewVoteSystem(system.id)">
         <div class="status-badge" [ngClass]="getStatusClass(system.status)">

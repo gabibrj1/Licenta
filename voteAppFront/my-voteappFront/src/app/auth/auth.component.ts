@@ -35,7 +35,7 @@ export class AuthComponent implements OnInit {
   captchaWidgetId: any = null;
   private recaptchaSiteKey: string = environment.recaptcha.siteKey;
   
-  // Face recognition related properties
+  // proprietăți pentru recunoașterea facială
   isFaceRecognitionActive: boolean = false;
   faceDetected: boolean = false;
   faceMatched: boolean = false;
@@ -52,7 +52,7 @@ export class AuthComponent implements OnInit {
   videoCaptureInterval: any = null;
   videoStream: MediaStream | null = null;
 
-  // Adaugă aceste proprietăți la clasa AuthComponent:
+  // Adaugă aceste proprietăți la clasa AuthComponent
   showTwoFactorForm: boolean = false;
   twoFactorCode: string = '';
   twoFactorEmail: string | null = null;

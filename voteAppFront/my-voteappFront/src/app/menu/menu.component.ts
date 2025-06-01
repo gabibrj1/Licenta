@@ -32,7 +32,7 @@ export class MenuComponent implements OnInit, OnDestroy {
   authMethod: 'email' | 'id_card' = 'email';
   
   // UI state
-  currentView: string = 'prezenta';
+  currentView: string = 'simulare-vot';
   electionDate: Date = new Date('2024-12-08');
   currentTime: Date = new Date();
   locationFilter: string = 'romania'; // romania sau strainatate

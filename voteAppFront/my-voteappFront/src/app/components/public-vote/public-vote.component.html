@@ -1,22 +1,18 @@
 <div class="public-vote-container">
-  <!-- Loading spinner -->
   <div class="loading-container" *ngIf="isLoading">
     <div class="spinner"></div>
     <p>Se încarcă sistemul de vot...</p>
   </div>
   
-  <!-- Error message -->
   <div class="error-message" *ngIf="errorMessage && !isLoading">
     <i class="fas fa-exclamation-triangle"></i>
     <p>{{ errorMessage }}</p>
   </div>
   
-  <!-- Vote system details -->
   <div class="vote-system-content" *ngIf="voteSystem && !isLoading">
     <div class="system-header">
       <h1>{{ voteSystem.name }}</h1>
       
-      <!-- Status badge -->
       <div class="status-badge" [class.status-active]="isVoteActive()">
         <span *ngIf="isVoteActive()">Activ</span>
         <span *ngIf="!isVoteActive()">Inactiv</span>
@@ -36,7 +32,6 @@
       <p>{{ voteSystem.description }}</p>
     </div>
     
-    <!-- Verificare email token dacă este necesar -->
     <div class="email-verification-section" *ngIf="requiresEmailVerification && !emailVerified && isVoteActive() && !voteSubmitted">
       <div class="token-verification-container">
         <h3>Verificare cod de acces</h3>
@@ -98,12 +93,10 @@
       </div>
     </div>
     
-    <!-- Mesaj pentru verificare prin email -->
     <div class="email-verification-notice" *ngIf="requiresEmailVerification && !emailVerified && !voteSubmitted && isVoteActive()">
       <p>Pentru a vota în acest sistem, trebuie să verifici adresa de email folosind codul primit.</p>
     </div>
     
-    <!-- Voting Form -->
     <div class="voting-section" *ngIf="isVoteActive() && !voteSubmitted && (!requiresEmailVerification || emailVerified)">
       <h3>Votează</h3>
       
@@ -138,7 +131,6 @@
       </form>
     </div>
     
-    <!-- Vote Submitted Message -->
     <div class="vote-success" *ngIf="voteSubmitted">
       <div class="success-icon">
         <i class="fas fa-check-circle"></i>
@@ -147,7 +139,6 @@
       <p>Îți mulțumim pentru participare.</p>
     </div>
     
-    <!-- Results section -->
     <div class="results-container" *ngIf="showResults">
       <h3>Rezultate vot</h3>
       
@@ -175,7 +166,6 @@
       </div>
     </div>
     
-    <!-- Footer cu informații despre sistemul de vot -->
     <div class="system-footer">
       <div class="footer-info">
         <span>Creat de: {{ voteSystem.creator_name || 'Administratorul sistemului' }}</span>

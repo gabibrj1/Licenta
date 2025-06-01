@@ -29,9 +29,8 @@ class ForumPagination(PageNumberPagination):
     max_page_size = 100
 
 class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
-    """
-    API endpoint pentru vizualizarea categoriilor
-    """
+
+    # API endpoint pentru vizualizarea categoriilor
     queryset = Category.objects.filter(is_active=True).order_by('order', 'name')
     serializer_class = CategorySerializer
     permission_classes = [AllowAny]
@@ -49,9 +48,9 @@ class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
         return paginator.get_paginated_response(serializer.data)
 
 class TopicViewSet(viewsets.ModelViewSet):
-    """
-    API endpoint pentru gestionarea subiectelor
-    """
+    
+    # API endpoint pentru gestionarea subiectelor
+ 
     queryset = Topic.objects.filter(is_approved=True)
     permission_classes = [IsAuthenticated]
     pagination_class = ForumPagination

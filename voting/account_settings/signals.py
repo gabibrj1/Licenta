@@ -7,14 +7,11 @@ User = get_user_model()
 
 @receiver(post_save, sender=User)
 def create_account_settings(sender, instance, created, **kwargs):
-    """
-    Create account settings for new users
-    """
+    # Creeaza setările de cont pentru utilizatorul nou creat
     if created:
         AccountSettings.objects.create(user=instance)
         print(f"Setări de cont create pentru utilizatorul {instance.id}")
     else:
-        # Asigură-te că există setări pentru toți utilizatorii existenți
         if not hasattr(instance, 'account_settings'):
             try:
                 AccountSettings.objects.get(user=instance)

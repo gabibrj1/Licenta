@@ -214,7 +214,7 @@ def schedule_appointment(request):
                 'message': 'Data programării nu poate fi în trecut.'
             }, status=status.HTTP_400_BAD_REQUEST)
         
-        # Verifică disponibilitatea în intervalul orar (cu o marjă de protecție)
+        # Verifică disponibilitatea în intervalul orar cu o marjă de protecție
         start_time = date_time.replace(minute=0, second=0, microsecond=0)
         end_time = date_time.replace(minute=59, second=59, microsecond=999999)
         

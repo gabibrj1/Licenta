@@ -1,11 +1,8 @@
 <div class="vote-system-status-container">
-    <!-- Loading spinner -->
     <div class="loading-container" *ngIf="isLoading">
       <div class="spinner"></div>
       <p>Se verifică starea sistemului de vot...</p>
     </div>
-    
-    <!-- Error message -->
     <div class="error-message" *ngIf="errorMessage && !isLoading">
       <i class="fas fa-exclamation-triangle"></i>
       <p>{{ errorMessage }}</p>
@@ -20,7 +17,6 @@
       </div>
     </div>
     
-    <!-- System in verification -->
     <div class="verification-status" *ngIf="voteSystem && voteSystem.status === 'pending'">
       <div class="status-icon pending">
         <i class="fas fa-clock"></i>

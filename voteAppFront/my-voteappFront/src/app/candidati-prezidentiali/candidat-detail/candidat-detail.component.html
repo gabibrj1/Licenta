@@ -1,11 +1,11 @@
 <div class="candidate-detail-container">
-  <!-- Loading indicator -->
+  <!-- indicator loading -->
   <div *ngIf="isLoading" class="loading-container">
     <div class="spinner"></div>
     <p>Se încarcă datele candidatului...</p>
   </div>
   
-  <!-- Error message -->
+  <!-- mesaj eroare -->
   <div *ngIf="loadingError" class="error-message">
     <i class="fas fa-exclamation-triangle"></i>
     <p>{{ loadingError }}</p>
@@ -13,7 +13,7 @@
     <a routerLink="/menu/candidati_prezidentiali" class="back-link">Înapoi la lista de candidați</a>
   </div>
   
-  <!-- Candidate details -->
+  <!-- detalii candidat -->
   <div *ngIf="candidate && !isLoading && !loadingError" class="candidate-details">
     <div class="back-navigation">
       <!-- Înlocuim linkul routerLink cu butonul care apelează metoda goBack() -->
@@ -36,7 +36,7 @@
       </div>
     </div>
     
-    <!-- Navigation tabs -->
+    <!-- tab de navigatie -->
     <div class="detail-tabs">
       <div class="tab" [ngClass]="{'active': activeTab === 'biography'}" (click)="changeTab('biography')">
         <i class="fas fa-user"></i> Biografie
@@ -49,7 +49,7 @@
       </div>
     </div>
     
-    <!-- Biography tab -->
+    <!-- tab de biografie -->
     <div *ngIf="activeTab === 'biography'" class="tab-content">
       <div class="candidate-bio-section">
         <h2>Biografie</h2>
@@ -69,7 +69,7 @@
       </div>
     </div>
     
-    <!-- Electoral history tab -->
+    <!-- tab istoric electoral -->
     <div *ngIf="activeTab === 'electoral-history'" class="tab-content">
       <h2>Istoric Electoral</h2>
       
@@ -113,7 +113,7 @@
       </ng-container>
     </div>
     
-    <!-- Controversies tab -->
+    <!-- tab controverse -->
     <div *ngIf="activeTab === 'controversies'" class="tab-content">
       <h2>Controverse</h2>
       

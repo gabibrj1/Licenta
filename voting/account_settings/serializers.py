@@ -6,7 +6,7 @@ import pyotp
 User = get_user_model()
 
 class UserProfileSerializer(serializers.ModelSerializer):
-    """Serializer for User model with minimal fields for profile display"""
+    # Serializer pentru modelul User cu câmpuri minimale pentru afișarea profilului
     class Meta:
         model = User
         fields = ['id', 'email', 'first_name', 'last_name', 'cnp', 'series', 'number',
@@ -14,7 +14,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'cnp', 'is_verified_by_id', 'is_active']
 
 class ProfileImageSerializer(serializers.ModelSerializer):
-    """Serializer for profile images"""
+    # Serializer pentru imaginile de profil
     image_url = serializers.SerializerMethodField(read_only=True)
     
     class Meta:
@@ -31,7 +31,7 @@ class ProfileImageSerializer(serializers.ModelSerializer):
         return None
 
 class AccountSettingsSerializer(serializers.ModelSerializer):
-    """Serializer for account settings"""
+    # Serializer pentru setările contului
     class Meta:
         model = AccountSettings
         fields = [
@@ -43,7 +43,7 @@ class AccountSettingsSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'last_updated']
 
 class CompleteUserProfileSerializer(serializers.ModelSerializer):
-    """Comprehensive serializer for user profile including settings and image"""
+    # Serializer pentru profilul utilizatorului incluzând setări și imagini
     profile_image = ProfileImageSerializer(read_only=True)
     account_settings = AccountSettingsSerializer(read_only=True)
     auth_method = serializers.SerializerMethodField()
@@ -57,39 +57,39 @@ class CompleteUserProfileSerializer(serializers.ModelSerializer):
         ]
     
     def get_auth_method(self, obj):
-        """Determine authentication method based on user data"""
+        # Determină metoda de autentificare pe baza datelor utilizatorului
         if obj.cnp and obj.is_verified_by_id:
             return 'id_card'
         return 'email'
 
 class ChangePasswordSerializer(serializers.Serializer):
-    """Serializer for password change endpoint"""
+    # Serializer pentru endpoint-ul de schimbare a parolei
     old_password = serializers.CharField(required=True)
     new_password = serializers.CharField(required=True, min_length=8)
     confirm_password = serializers.CharField(required=True, min_length=8)
     
     def validate(self, data):
-        """Check that new password and confirm password match"""
+        # Verifică dacă noua parolă și confirmarea parolei se potrivesc
         if data['new_password'] != data['confirm_password']:
             raise serializers.ValidationError({"confirm_password": "Parolele nu se potrivesc"})
         return data
     
 class TwoFactorSetupSerializer(serializers.Serializer):
-    """Serializer pentru configurarea autentificării în doi pași"""
+    # Serializer pentru configurarea autentificării în doi pași
     verification_code = serializers.CharField(required=False)
     
     def validate_verification_code(self, value):
-        """Validează codul de verificare introdus de utilizator"""
+        # Validează codul de verificare introdus de utilizator
         if not value or len(value.strip()) != 6 or not value.isdigit():
             raise serializers.ValidationError("Codul de verificare trebuie să conțină 6 cifre.")
         return value
 
 class TwoFactorVerifySerializer(serializers.Serializer):
-    """Serializer pentru verificarea codului TOTP"""
+    # Serializer pentru verificarea codului TOTP
     code = serializers.CharField(required=True)
     
     def validate_code(self, value):
-        """Validează codul TOTP"""
+        # Validează codul TOTP
         if not value or len(value.strip()) != 6 or not value.isdigit():
             raise serializers.ValidationError("Codul trebuie să conțină 6 cifre.")
         return value

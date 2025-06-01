@@ -29,28 +29,27 @@ User = get_user_model()
 logger = logging.getLogger(__name__)
 
 class UserProfileView(APIView):
-    """API view for retrieving and updating user profile information"""
+    # API view pentru obținerea și actualizarea informațiilor profilului utilizatorului
     permission_classes = [IsAuthenticated]
     
     def get(self, request):
-        """Get complete user profile with settings and image"""
+        # Obține profilul complet al utilizatorului cu setări și imagine
         user = request.user
         
-        # Ensure user has account settings
         AccountSettings.objects.get_or_create(user=user)
         
         serializer = CompleteUserProfileSerializer(user, context={'request': request})
         return Response(serializer.data)
     
     def patch(self, request):
-        """Update user profile information"""
+        # Actualizează informațiile profilului utilizatorului
         user = request.user
         serializer = UserProfileSerializer(user, data=request.data, partial=True)
         
         if serializer.is_valid():
-            # If user tries to change email, validate it
+            # Dacă utilizatorul încearcă să schimbe email-ul, trebuie validat
             if 'email' in request.data and request.data['email'] != user.email:
-                # Check if email already exists
+                # Verifică dacă email-ul există deja
                 if User.objects.filter(email=request.data['email']).exists():
                     return Response(
                         {'email': 'Un utilizator cu acest email există deja.'},
@@ -80,18 +79,18 @@ class UserProfileView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class ProfileImageView(APIView):
-    """API view for managing profile images"""
+    # API view pentru gestionarea imaginilor de profil
     permission_classes = [IsAuthenticated]
     parser_classes = [MultiPartParser, FormParser]
     
     def post(self, request):
-        """Upload a new profile image"""
+        # Încarcă o nouă imagine de profil
         user = request.user
         
-        # Get or create profile image object
+        # Obține sau creează obiectul imaginii de profil
         profile_image, created = ProfileImage.objects.get_or_create(user=user)
         
-        # Save new image
+        # Salvează noua imagine
         serializer = ProfileImageSerializer(
             profile_image,
             data=request.data,
@@ -106,16 +105,16 @@ class ProfileImageView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
     def delete(self, request):
-        """Delete profile image"""
+        # Șterge imaginea de profil
         user = request.user
         
         try:
             profile_image = ProfileImage.objects.get(user=user)
-            # Delete the image file
+            # Șterge fișierul imaginii
             if profile_image.image:
                 profile_image.image.delete(save=False)
             
-            # Reset the image field
+            # Resetează câmpul imaginii
             profile_image.image = None
             profile_image.save()
             
@@ -126,17 +125,17 @@ class ProfileImageView(APIView):
                           status=status.HTTP_404_NOT_FOUND)
 
 class AccountSettingsView(APIView):
-    """API view for account settings"""
+    # API view pentru setările contului
     permission_classes = [IsAuthenticated]
     
     def get(self, request):
-        # Get or create account settings for user
+        # Obține sau creează setările contului pentru utilizator
         account_settings, created = AccountSettings.objects.get_or_create(user=request.user)
         serializer = AccountSettingsSerializer(account_settings)
         return Response(serializer.data)
     
     def put(self, request):
-        # Get or create account settings for user
+        # Obține sau creează setările contului pentru utilizator
         account_settings, created = AccountSettings.objects.get_or_create(user=request.user)
         serializer = AccountSettingsSerializer(account_settings, data=request.data)
         
@@ -147,7 +146,7 @@ class AccountSettingsView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class ChangePasswordView(APIView):
-    """API view for changing user password"""
+    # API view pentru schimbarea parolei utilizatorului
     permission_classes = [IsAuthenticated]
     
     def post(self, request):
@@ -156,7 +155,7 @@ class ChangePasswordView(APIView):
         if serializer.is_valid():
             user = request.user
             
-            # Check old password
+            # Verifică parola veche
             if not user.check_password(serializer.validated_data['old_password']):
                 create_security_event(
                     user=user,
@@ -170,7 +169,7 @@ class ChangePasswordView(APIView):
                     status=status.HTTP_400_BAD_REQUEST
                 )
             
-            # Validate password complexity
+            # Validează complexitatea parolei
             try:
                 self.validate_password_complexity(
                     serializer.validated_data['new_password'],
@@ -179,7 +178,7 @@ class ChangePasswordView(APIView):
             except ValidationError as e:
                 return Response({'new_password': e.messages}, status=status.HTTP_400_BAD_REQUEST)
             
-            # Set new password
+            # Setează noua parolă
             user.set_password(serializer.validated_data['new_password'])
             user.save()
 
@@ -200,26 +199,26 @@ class ChangePasswordView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
     def validate_password_complexity(self, password, user):
-        """Validate password complexity requirements"""
+        # Validează cerințele de complexitate ale parolei
         errors = []
         
-        # Length validation
+        # Validarea lungimii
         if len(password) < 8:
             errors.append('Parola trebuie să aibă cel puțin 8 caractere.')
         
-        # Uppercase letter
+        # Literă mare
         if not re.search(r'[A-Z]', password):
             errors.append('Parola trebuie să conțină cel puțin o literă mare.')
         
-        # Special character
+        # Caracter special
         if not re.search(r'[!@#$%^&*(),.?":{}|<>]', password):
             errors.append('Parola trebuie să conțină cel puțin un caracter special.')
         
-        # Digit
+        # Cifră
         if not re.search(r'\d', password):
             errors.append('Parola trebuie să conțină cel puțin o cifră.')
         
-        # Check for personal info
+        # Verifică informațiile personale
         email = getattr(user, 'email', "")
         first_name = getattr(user, 'first_name', "").lower()
         last_name = getattr(user, 'last_name', "").lower()
@@ -234,7 +233,7 @@ class ChangePasswordView(APIView):
             email_lower = email.lower()
             password_lower = password.lower()
             
-            # Check for email parts
+            # Verifică părțile din email
             email_parts = re.split(r'[.@_-]', email_lower)
             for part in email_parts:
                 if len(part) >= 3 and part in password_lower:
@@ -247,13 +246,13 @@ class ChangePasswordView(APIView):
         return True
 
 class DeleteAccountView(APIView):
-    """API view for deactivating a user account"""
+    # API view pentru dezactivarea unui cont de utilizator
     permission_classes = [IsAuthenticated]
     
     def post(self, request):
         user = request.user
         
-        # Deactivate account rather than permanently deleting
+        # Dezactivează contul în loc să îl șteargă permanent
         user.is_active = False
         user.save()
         
@@ -263,15 +262,15 @@ class DeleteAccountView(APIView):
         )
     
 class TwoFactorSetupView(APIView):
-    """API view pentru configurarea autentificării în doi pași"""
+    # API view pentru configurarea autentificării în doi factori
     permission_classes = [IsAuthenticated]
     
     def get(self, request):
-        """Generează secretul TOTP și codul QR"""
+        # Generează TOTP și codul QR
         user = request.user
         account_settings, _ = AccountSettings.objects.get_or_create(user=user)
         
-        # Generează un secret nou dacă nu există sau nu a fost verificat
+        # Generează un two_factor_secret nou dacă nu există sau nu a fost verificat
         if not account_settings.two_factor_secret or not account_settings.two_factor_verified:
             # Generează secretul pentru TOTP
             secret = pyotp.random_base32()
@@ -309,14 +308,14 @@ class TwoFactorSetupView(APIView):
         })
     
     def post(self, request):
-        """Verifică codul TOTP și activează 2FA"""
+        # Verifică codul TOTP și activează 2FA
         user = request.user
         account_settings = AccountSettings.objects.get(user=user)
         
         # Verifică dacă există un secret
         if not account_settings.two_factor_secret:
             return Response(
-                {'error': 'Nu există un secret configurat pentru autentificarea în doi pași.'},
+                {'error': 'Nu există un secret configurat pentru autentificarea în doi factori.'},
                 status=status.HTTP_400_BAD_REQUEST
             )
         
@@ -336,8 +335,8 @@ class TwoFactorSetupView(APIView):
         # Verifică codul TOTP cu toleranță extinsă
         totp = pyotp.TOTP(account_settings.two_factor_secret)
         
-        if totp.verify(code, valid_window=1):  # Adăugăm o fereastră de toleranță de 1 interval (±30 secunde)
-            # Activează autentificarea în doi pași
+        if totp.verify(code, valid_window=1):  # Adăugă o fereastră de toleranță de 1 interval (+- 30 secunde)
+            # Activează autentificarea în doi factori
             account_settings.two_factor_verified = True
             account_settings.two_factor_enabled = True
             account_settings.save()
@@ -353,7 +352,7 @@ class TwoFactorSetupView(APIView):
 
             
             return Response({
-                'message': 'Autentificarea în doi pași a fost activată cu succes.',
+                'message': 'Autentificarea în doi factori a fost activată cu succes.',
                 'is_verified': True
             })
         else:
@@ -369,7 +368,7 @@ class TwoFactorSetupView(APIView):
             )
     
     def delete(self, request):
-        """Dezactivează autentificarea în doi pași"""
+        # Dezactivează autentificarea în doi facctori
         user = request.user
         account_settings = AccountSettings.objects.get(user=user)
         
@@ -388,7 +387,7 @@ class TwoFactorSetupView(APIView):
         )
         
         return Response({
-            'message': 'Autentificarea în doi pași a fost dezactivată cu succes.'
+            'message': 'Autentificarea în doi factori a fost dezactivată cu succes.'
         })
     
 class BlockAccountView(APIView):

@@ -4,7 +4,7 @@
     <p class="subtitle">Informații despre candidații la alegerile prezidențiale din România</p>
   </div>
   
-  <!-- Navigation tabs -->
+  <!-- taburi navigatie -->
   <div class="nav-tabs">
     <div class="tab" [class.active]="activeTab === 'current'" (click)="changeTab('current')">
       <i class="fas fa-user-tie"></i> Candidați Actuali
@@ -45,7 +45,7 @@
     <button (click)="loadCurrentCandidates()">Reîncercați</button>
   </div>
   
-  <!-- Current candidates tab -->
+  <!-- tab pentru candidatii curenti -->
   <div *ngIf="activeTab === 'current' && !isLoading && !loadingError" class="tab-content">
     <h2>Candidați la Alegerile Prezidențiale 2025</h2>
     <p class="description">
@@ -73,7 +73,7 @@
     </div>
   </div>
   
-  <!-- Historical candidates tab -->
+  <!-- tab pentru candidatii istorici -->
   <div *ngIf="activeTab === 'historical' && !isLoading && !loadingError" class="tab-content">
     <h2>Candidați din Alegerile Trecute</h2>
     <p class="description">

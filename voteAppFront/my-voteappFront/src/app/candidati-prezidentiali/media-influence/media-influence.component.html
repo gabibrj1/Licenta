@@ -12,13 +12,13 @@
       </div>
     </div>
     
-    <!-- Loading indicator -->
+    <!-- indicator loading -->
     <div *ngIf="isLoading" class="loading-container">
       <div class="spinner"></div>
       <p>Se încarcă datele despre influența media...</p>
     </div>
     
-    <!-- Error message -->
+    <!-- mesaj eroare -->
     <div *ngIf="loadingError" class="error-message">
       <i class="fas fa-exclamation-triangle"></i>
       <p>{{ loadingError }}</p>
