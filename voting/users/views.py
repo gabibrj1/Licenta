@@ -52,6 +52,7 @@ from account_settings.models import AccountSettings
 from .utils import ProcessorCNP
 from security.utils import create_security_event, log_captcha_attempt, log_2fa_event, log_gdpr_event
 from django.utils import timezone
+from core.ai_services import face_recognition_service, id_card_service
 
 
 logger = logging.getLogger(__name__)
@@ -177,10 +178,10 @@ MODEL_PATH = r"C:\Users\brj\Desktop\voting\media\models\l_version_1_300.pt"
 
 class FaceRecognitionView(APIView):
     permission_classes = [AllowAny]
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        # Incarca modelul YOLO pentru detectarea spoofing-ului
-        self.model = YOLO(MODEL_PATH)
+    # def __init__(self, **kwargs):
+    #     super().__init__(**kwargs)
+    #     # Incarca modelul YOLO pentru detectarea spoofing-ului
+    #     self.model = YOLO(MODEL_PATH)
 
     def detect_spoofing(self, image_array):
         """Verifica daca imaginea este reala sau falsa folosind YOLO."""
@@ -310,7 +311,7 @@ class FaceRecognitionView(APIView):
             id_card_array = np.array(id_card_pil)
             live_array = np.array(live_pil)
 
-            match, message = self.compare_faces(id_card_array, live_array)
+            match, message = face_recognition_service.compare_faces(id_card_array, live_array)
 
             return Response({'message': message, 'match': match}, status=status.HTTP_200_OK)
         except Exception as e:
@@ -715,8 +716,9 @@ class AutofillScanDataView(APIView):
             return Response({'error': 'Fișierul nu a fost găsit.'}, status=status.HTTP_404_NOT_FOUND)
 
         # Procesează imaginea cu modelul IDCardProcessor
-        processor = IDCardProcessor()
-        extracted_info = processor.process_id_card(absolute_path)
+        # processor = IDCardProcessor()
+        # extracted_info = processor.process_id_card(absolute_path)
+        extracted_info = id_card_service.process_id_card(absolute_path)
 
         return Response({
             'message': 'Datele au fost extrase cu succes.',
@@ -923,9 +925,9 @@ class SocialLoginCallbackView(APIView):
 class LoginWithIDCardView(APIView):
     permission_classes = [AllowAny]
     
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.model = YOLO(MODEL_PATH)
+    # def __init__(self, **kwargs):
+    #     super().__init__(**kwargs)
+    #     self.model = YOLO(MODEL_PATH)
     
     def detect_spoofing(self, image_array):
         try:
@@ -1132,7 +1134,7 @@ class LoginWithIDCardView(APIView):
                 id_card_array = np.array(id_card_pil)
                 live_array = np.array(live_pil)
                 
-                match, message = self.compare_faces(id_card_array, live_array)
+                match, message = face_recognition_service.compare_faces(id_card_array, live_array)
                 
                 if not match:
                     if 'spoofing' in message.lower() or 'fraud' in message.lower():
@@ -1266,7 +1268,6 @@ class LoginWithIDCardView(APIView):
         return Response(response_data, status=200)
 
 #Endpoint pentru verificarea reCAPTCHA
-# ÎNLOCUIEȘTE VerifyRecaptchaView din inregistrare_autentificare/views.py
 class VerifyRecaptchaView(APIView):
     permission_classes = [AllowAny]
     

@@ -48,7 +48,7 @@ from datetime import timedelta
 from django.db.models import Count, Sum
 from .models import PresidentialRound2Candidate, PresidentialRound2Vote
 from security.utils import log_vote_security_event, log_captcha_attempt, create_security_event
-
+from core.ai_services import vote_monitoring_service
 
 
 logger = logging.getLogger(__name__)
@@ -555,9 +555,9 @@ User = get_user_model()
 class VoteMonitoringView(APIView):
     permission_classes = [IsAuthenticated]
     
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.monitoring_service = VoteMonitoringService()
+    # def __init__(self, **kwargs):
+    #     super().__init__(**kwargs)
+    #     self.monitoring_service = VoteMonitoringService()
     
     def post(self, request):
         """Primește imagini pentru monitorizarea votului și verifică identitatea utilizatorului"""
@@ -616,7 +616,7 @@ class VoteMonitoringView(APIView):
             id_card_array = np.array(id_card_image)
             
             # Extragem encoding-ul feței din buletin
-            reference_encoding, error, _ = self.monitoring_service.detect_and_encode_face(id_card_array)
+            reference_encoding, error, _ = vote_monitoring_service.detect_and_encode_face(id_card_array)
             if reference_encoding is None:
                 log_vote_security_event(
                     user=user,
@@ -630,7 +630,7 @@ class VoteMonitoringView(APIView):
             live_image_data = live_image.read()
             
             # Verificăm identitatea
-            match, message, num_faces = self.monitoring_service.verify_voter_identity(
+            match, message, num_faces = vote_monitoring_service.verify_voter_identity(
                 reference_encoding, 
                 live_image_data
             )

@@ -23,6 +23,7 @@ import face_recognition
 import logging
 logger = logging.getLogger(__name__)
 import requests
+from core.model_manager import model_manager
 
 def verify_recaptcha(recaptcha_response):
     """
@@ -709,12 +710,14 @@ class ProcessorCNP:
 class IDCardProcessor:
     def __init__(self):
         self.procesor_cnp = ProcessorCNP()
-        try:
-            print(f"Incarca modelul YOLO de la adresa {MODEL_PATH}")
-            self.model = YOLO(MODEL_PATH)
-            print("Modelul YOLO a fost incarcat cu succes!")
-        except Exception as e:
-            print(f"Eroare la incarcarea modelului YOLO: {e}")
+        # NU mai încărcăm modelul aici - folosim model_manager!
+        logger.info("IDCardProcessor inițializat cu ModelManager")
+
+    def get_model(self):
+        """
+        Returnează modelul YOLO pentru procesarea buletinelor
+        """
+        return model_manager.get_model('yolo_id_card')
 
     def preprocess_black_white(self, region):
         gray = cv2.cvtColor(region, cv2.COLOR_BGR2GRAY)
@@ -797,34 +800,85 @@ class IDCardProcessor:
         return text.strip()
 
     def process_id_card(self, image_path: str) -> Dict:
-        image = cv2.imread(image_path)
-        results = self.model.predict(image_path)
-        extracted_info = {}
+        """
+        Procesează cartea de identitate și extrage informațiile
+        """
+        try:
+            # Obține modelul prin ModelManager
+            model = self.get_model()
+            if model is None:
+                logger.error("Modelul YOLO pentru buletine nu este disponibil")
+                return {"error": "Modelul YOLO nu este disponibil"}
+            
+            # Verifică dacă fișierul imaginii există
+            if not os.path.exists(image_path):
+                logger.error(f"Imaginea nu există la calea: {image_path}")
+                return {"error": "Fișierul imaginii nu există"}
 
-        for result in results:
-            for box in result.boxes:
-                x1, y1, x2, y2 = map(int, box.xyxy[0].cpu().numpy())
-                class_name = self.model.names[int(box.cls[0].cpu().numpy())]
+            # Încarcă imaginea
+            image = cv2.imread(image_path)
+            if image is None:
+                logger.error(f"Nu s-a putut încărca imaginea de la: {image_path}")
+                return {"error": "Nu s-a putut încărca imaginea"}
 
-                if class_name == "CNP":
-                    rezultat_cnp = self.procesor_cnp.proceseaza_regiune_cnp(
-                        image, 
-                        (x1, y1, x2, y2)
-                    )
-                    if rezultat_cnp.valid:
-                        extracted_info["CNP"] = {
-                            "value": rezultat_cnp.cnp,
-                            "status": "CNP valid",
-                            "errors": []
-                        }
-                    else:
-                        extracted_info["CNP"] = {
-                            "value": rezultat_cnp.cnp if rezultat_cnp.cnp else "",
-                            "status": "CNP invalid",
-                            "errors": rezultat_cnp.errors
-                        }
-                else:
-                    raw_text = self.extract_text_from_region(image, [x1, y1, x2, y2], field_name=class_name)
-                    extracted_info[class_name] = self.clean_extracted_text(raw_text, class_name)
+            # Rulează predicția YOLO
+            logger.info(f"Procesează imaginea cu YOLO: {image_path}")
+            results = model.predict(image_path)
+            
+            extracted_info = {}
 
-        return extracted_info
+            # Procesează rezultatele
+            for result in results:
+                if not hasattr(result, 'boxes') or result.boxes is None:
+                    continue
+                    
+                for box in result.boxes:
+                    try:
+                        # Extrage coordonatele
+                        x1, y1, x2, y2 = map(int, box.xyxy[0].cpu().numpy())
+                        
+                        # Extrage numele clasei
+                        class_id = int(box.cls[0].cpu().numpy())
+                        class_name = model.names[class_id]  # FOLOSEȘTE model, NU self.model!
+                        
+                        logger.debug(f"Detectat câmp: {class_name} la coordonatele [{x1}, {y1}, {x2}, {y2}]")
+
+                        if class_name == "CNP":
+                            # Procesează CNP-ul special
+                            rezultat_cnp = self.procesor_cnp.proceseaza_regiune_cnp(
+                                image, 
+                                (x1, y1, x2, y2)
+                            )
+                            if rezultat_cnp.valid:
+                                extracted_info["CNP"] = {
+                                    "value": rezultat_cnp.cnp,
+                                    "status": "CNP valid",
+                                    "errors": []
+                                }
+                                logger.info(f"CNP valid detectat: {rezultat_cnp.cnp}")
+                            else:
+                                extracted_info["CNP"] = {
+                                    "value": rezultat_cnp.cnp if rezultat_cnp.cnp else "",
+                                    "status": "CNP invalid",
+                                    "errors": rezultat_cnp.errors
+                                }
+                                logger.warning(f"CNP invalid detectat: {rezultat_cnp.errors}")
+                        else:
+                            # Procesează alte câmpuri
+                            raw_text = self.extract_text_from_region(image, [x1, y1, x2, y2], field_name=class_name)
+                            cleaned_text = self.clean_extracted_text(raw_text, class_name)
+                            extracted_info[class_name] = cleaned_text
+                            logger.debug(f"Câmp {class_name}: '{cleaned_text}'")
+                            
+                    except Exception as e:
+                        logger.error(f"Eroare la procesarea box-ului pentru clasa {class_name}: {e}")
+                        continue
+
+            logger.info(f"Procesare completă. Câmpuri detectate: {list(extracted_info.keys())}")
+            return extracted_info
+
+        except Exception as e:
+            logger.error(f"Eroare generală la procesarea buletinului: {e}")
+            import traceback
+            logger.error(f"Stack trace: {traceback.format_exc()}")
+            return {"error": f"Eroare la procesarea buletinului: {str(e)}"}
