@@ -14,6 +14,10 @@ import { environment } from '../../src/environments/environment';
   styleUrls: ['./auth.component.scss']
 })
 export class AuthComponent implements OnInit {
+
+  public faceVerificationRequired: boolean = true;
+  public faceVerificationCompleted: boolean = false;
+  
   email: string = '';
   password: string = '';
   cnp: string = '';
@@ -499,6 +503,13 @@ onSubmit(): void {
       this.isLoading = false;
       return;
     }
+    if (this.faceVerificationRequired && !this.faceVerificationCompleted) {
+      this.showErrorMessage('Pentru securitate, este necesară verificarea facială înainte de autentificare.');
+      this.isLoading = false;
+      return;
+    }
+
+    
 
     const idCardAuthData = {
       cnp: this.cnp,
@@ -1200,6 +1211,7 @@ async sendFrameForRecognition(liveImageBlob: Blob): Promise<void> {
         this.faceMatchMessage = "✅ Identificare reușită!";
         this.faceBoxClass = 'face-match-success';
         this.resultIcon = '✅';
+        this.faceVerificationCompleted = true;
         
         localStorage.setItem('access_token', response.access);
         localStorage.setItem('refresh_token', response.refresh);
@@ -1357,6 +1369,19 @@ forgotPassword() {
     
     console.log("Camera oprită!");
   }
+
+  // Metode pentru controlul recunoasterii faciale
+  private disableFaceVerification(): void {
+  this.faceVerificationRequired = false;
+  console.log('🔓 Recunoașterea facială a fost dezactivată');
+}
+private enableFaceVerification(): void {
+  this.faceVerificationRequired = true;
+  this.faceVerificationCompleted = false;
+  console.log('🔒 Recunoașterea facială a fost activată');
+}
+
+
   ngOnDestroy(): void {
     this.stopCamera();
      // Elimină event listener-ul pentru navigare

@@ -121,10 +121,16 @@
       </div>
 
       <!-- Buton de submit pentru autentificare -->
-      <button mat-raised-button color="primary" type="submit" [disabled]="isLoading || !isCaptchaVerified">
+      <button mat-raised-button color="primary" type="submit" [disabled]="isLoading || !isCaptchaVerified || (useIdCardAuth && faceVerificationRequired && !faceVerificationCompleted)">
         <span *ngIf="!isLoading">Autentificare</span>
         <mat-spinner *ngIf="isLoading" diameter="25" color="accent"></mat-spinner>
       </button>
+
+      <div *ngIf="useIdCardAuth && faceVerificationRequired && !faceVerificationCompleted" 
+        class="face-verification-warning" 
+        style="color: #ff9800; font-size: 0.9em; margin-top: 10px; text-align: center;">
+  ⚠️    Pentru a continua autentificarea, este necesară verificarea facială
+      </div>
       
       <!-- Link către resetarea parolei -->
       <div class="forgot-password">

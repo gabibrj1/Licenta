@@ -1023,9 +1023,25 @@ class LoginWithIDCardView(APIView):
         first_name = request.data.get('first_name')
         last_name = request.data.get('last_name')
         id_series = request.data.get('id_series')
+
+        FACE_VERIFICATION_REQUIRED = True
         
         is_facial_recognition = live_image is not None
         is_manual_id_auth = first_name is not None and last_name is not None and id_series is not None
+        
+        if FACE_VERIFICATION_REQUIRED and not is_facial_recognition:
+            create_security_event(
+                user=None,
+                event_type='login_failed',
+                description=f"Încercare autentificare fără recunoaștere facială pentru CNP: {cnp[:3] if cnp else 'necunoscut'}***",
+                request=request,
+                risk_level='medium'
+            )
+            return Response(
+                {"detail": "Autentificarea cu buletin necesită recunoaștere facială."},
+                status=400
+            )
+        
         
         auth_type = 'Recunoaștere facială' if is_facial_recognition else 'Manual cu buletin' if is_manual_id_auth else 'Necunoscut'
         logger.info(f"Tip autentificare: {auth_type}")
