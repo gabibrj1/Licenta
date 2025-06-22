@@ -8,7 +8,7 @@ Sistemul se bazează pe o arhitectură tehnologică complexă care combină recu
 
 ---
 
-## 📌 Progres Dezvoltare (Noiembrie 2024 - Iunie 2025)
+## 📌 Progres Dezvoltare (Mai 2024 - Iunie 2025)
 
 ### 🔥 Ultimele Actualizări (Iunie 2025)
 - ✅ **Recunoaștere facială obligatorie** pentru autentificare cu buletin
@@ -219,8 +219,3 @@ Proiectul VoteAI este dezvoltat ca cercetare academică pentru modernizarea proc
 ## 📄 Licență
 
 Acest proiect este dezvoltat în scop educațional și de cercetare pentru procesele democratice moderne.
-
----
-
-**Ultima actualizare**: Iunie 2025  
-**Versiune**: 2.0 (Production Ready)
