@@ -7,12 +7,7 @@ VoteAI este o platformă inovatoare de votare electronică care integrează tehn
 Sistemul se bazează pe o arhitectură tehnologică complexă care combină recunoașterea facială cu detectarea anti-spoofing pentru autentificarea biometrică a utilizatorilor, procesarea automată a buletinelor românești prin modele YOLO personalizate și identificarea inteligentă a secțiilor de votare.
 
 ---
-
-<<<<<<< HEAD
-## 📌 Progres Dezvoltare (Iunie 2024 - Iunie 2025)
-=======
 ## 📌 Progres Dezvoltare (Mai 2024 - Iunie 2025)
->>>>>>> a332d14d532ab2630f2357dea9011928667c80ff
 
 ### 🔥 Ultimele Actualizări (Iunie 2025)
 - ✅ **Recunoaștere facială obligatorie** pentru autentificare cu buletin cu posibilitate de dezactivare
