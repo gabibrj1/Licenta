@@ -8,6 +8,7 @@ import { ActivatedRoute } from '@angular/router';
 import { MapService } from '../services/map.service';
 import { VoteSettingsService } from '../services/vote-settings.service';
 import { SecurityService } from '../services/security.service';
+import screenfull from 'screenfull';
 export interface ElectionRound {
   id: string;
   name: string;
@@ -30,6 +31,7 @@ export class MenuComponent implements OnInit, OnDestroy {
   userCNP: string | null = null;
   userData: any = null;
   authMethod: 'email' | 'id_card' = 'email';
+
   
   // UI state
   currentView: string = 'simulare-vot';
@@ -37,6 +39,10 @@ export class MenuComponent implements OnInit, OnDestroy {
   currentTime: Date = new Date();
   locationFilter: string = 'romania'; // romania sau strainatate
   isDropdownOpen: boolean = false; // Stare pentru dropdown
+  isHistoryDropdownOpen = false;
+  isSettingsDropdownOpen = false;
+  isSidebarHidden = false;
+
 
   // Tururile de alegeri disponibile
   availableRounds: ElectionRound[] = [
@@ -162,6 +168,32 @@ export class MenuComponent implements OnInit, OnDestroy {
     if (this.voteSettingsInterval) {
       this.voteSettingsInterval.unsubscribe();
     }
+  }
+
+  // Functie pentru fullscreen
+toggleFullscreen(): void {
+  if (screenfull.isEnabled) screenfull.toggle();
+}
+
+toggleSettingsDropdown(): void {
+  this.isSettingsDropdownOpen = !this.isSettingsDropdownOpen;
+  if (this.isSettingsDropdownOpen) this.isHistoryDropdownOpen = false;
+}
+
+toggleSidebarVisibility(): void {
+  this.isSidebarHidden = !this.isSidebarHidden;
+}
+
+  goToSettings(): void {
+    this.navigateTo('setari-cont');
+    this.isSettingsDropdownOpen = false;
+  }
+
+
+  // Dropdown istoric
+  toggleHistoryDropdown(): void {
+    this.isHistoryDropdownOpen = !this.isHistoryDropdownOpen;
+    if (this.isHistoryDropdownOpen) this.isSettingsDropdownOpen = false;
   }
   
   // Toggle dropdown
@@ -331,6 +363,7 @@ switchRound(round: ElectionRound): void {
   
   // Închide dropdown-ul
   this.isDropdownOpen = false;
+  this.isHistoryDropdownOpen = false;
   
   // Notificăm serviciul de hartă despre schimbarea turului
   this.mapService.setCurrentRound(round.id, round.hasData);

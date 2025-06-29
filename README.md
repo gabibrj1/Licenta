@@ -8,14 +8,13 @@ Sistemul se bazează pe o arhitectură tehnologică complexă care combină recu
 
 ---
 
-## 📌 Progres Dezvoltare (Noiembrie 2024 - Iunie 2025)
+## 📌 Progres Dezvoltare (Iunie 2024 - Iunie 2025)
 
 ### 🔥 Ultimele Actualizări (Iunie 2025)
-- ✅ **Recunoaștere facială obligatorie** pentru autentificare cu buletin
+- ✅ **Recunoaștere facială obligatorie** pentru autentificare cu buletin cu posibilitate de dezactivare
 - ✅ **ModelManager singleton** pentru optimizarea modelelor AI și reducerea consumului de memorie
 - ✅ **Protecție anti-navigare** cu validare token în AuthGuard
 - ✅ **Teste automate complete** pentru Django și Angular
-- ✅ **Diacritice complete** în toate comentariile și interfața
 
 ### 🗳️ **Sistem Complet de Vot Electoral**
 - **Voturi oficiale**: Prezidențiale (Tur 1 & 2), Parlamentare, Locale
@@ -26,7 +25,7 @@ Sistemul se bazează pe o arhitectură tehnologică complexă care combină recu
 
 ### 🔐 **Securitate și Autentificare Multi-Modal**
 - **Autentificare cu buletin**: Procesare automată + verificare biometrică
-- **Autentificare clasică**: Email/parolă cu validare puternică
+- **Autentificare clasică**: Email/parolă cu validare prin mail
 - **2FA (Two-Factor Authentication)**: TOTP cu Google Authenticator
 - **Autentificare socială**: Google și Facebook (în dezvoltare)
 - **RECAPTCHA obligatoriu** pentru toate procesele de autentificare
@@ -104,7 +103,6 @@ Sistemul se bazează pe o arhitectură tehnologică complexă care combină recu
 - **Anti-spoofing**: Model YOLO specializat pentru detectarea falsificărilor
 
 ### **Dezvoltare și Testare**
-- **Containerizare**: Docker support (în dezvoltare)
 - **Version Control**: Git cu Git LFS pentru fișiere mari
 - **Testing**: Django unittest + Angular Jasmine/Karma
 - **Training**: Google Colab cu GPU Tesla T4

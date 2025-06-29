@@ -16,6 +16,13 @@
   position: relative;
 }
 
+.main-layout {
+  display: flex;
+  flex: 1 1 auto;
+  height: calc(100vh - 60px); // scade headerul
+  width: 100%;
+}
+
 // Header Bar
 .header-bar {
   display: flex;
@@ -152,6 +159,27 @@
           border-radius: 4px 4px 0 0;
         }
       }
+      .dropdown-content.show {
+      display: flex;
+      opacity: 1;
+      pointer-events: auto;
+    }
+      .dropdown-checkbox {
+      padding: 0.5rem 1rem;
+      label {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: #fff;
+        font-size: 0.9rem;
+        cursor: pointer;
+        input[type="checkbox"] {
+          margin-right: 0.5rem;
+        }
+      }
+    }
+
+
     }
     
     // Afișează dropdown-ul la hover și îl menține afișat cu un delay
@@ -216,8 +244,8 @@
 
 // Side Navigation - creșterea lățimii pentru a acomoda textele mai lungi
 .side-nav {
-  width: 270px; // Lățime mărită de la 220px la 250px pentru a acomoda textele
-  min-width: 270px; // Asigură lățimea minimă
+  width: 270px;
+  min-width: 270px;
   background-color: #1a1a1a;
   border-right: 1px solid #333;
   display: flex;
@@ -225,10 +253,20 @@
   height: calc(100vh - 60px);
   overflow-y: auto;
   overflow-x: hidden;
-  position: fixed; 
-  top: 60px; // Adaugă această linie - înălțimea header-ului
-  left: 0; // Adaugă această linie
+  position: fixed;
+  top: 60px;
+  left: 0;
   z-index: 10;
+  transition: transform 0.3s, width 0.3s, min-width 0.3s;
+
+  &.is-hidden {
+    transform: translateX(-100%);
+    width: 0 !important;
+    min-width: 0 !important;
+    border: none;
+    pointer-events: none;
+  }
+
 
   
   // Customizare scrollbar pentru aspect modern
@@ -623,9 +661,37 @@
       display: none;
     }
   }
-  
-  .main-content {
-    margin-left: 60px;
-    width: calc(100% - 60px);
+
+  .settings-dropdown {
+
+  padding: 0.5rem;
+  a {
+    display: block;
+    padding: 0.5rem;
+    &:hover {
+      background-color: #2a3d5f;
+    }
   }
+  .dropdown-checkbox {
+    padding: 0.5rem;
+    label {
+      display: flex;
+      align-items: center;
+      cursor: pointer;
+      input {
+        margin-right: 0.5rem;
+      }
+    }
+  }
+} 
+.main-content {
+  margin-left: 270px;
+  width: calc(100% - 270px);
+  transition: margin-left 0.3s, width 0.3s;
+
+  &.is-sidebar-hidden {
+    margin-left: 0 !important;
+    width: 100% !important;
+  }
+}
 }

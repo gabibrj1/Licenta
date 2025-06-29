@@ -30,20 +30,37 @@
           </a>
         </div>
       </div>
-      <button class="btn-icon">
-        <i class="fas fa-history"></i> ISTORIC
-      </button>
-      <button class="btn-icon">
+
+  <div class="dropdown-container">
+    <button class="btn-icon" (click)="toggleHistoryDropdown(); $event.stopPropagation()">
+      <i class="fas fa-history"></i> ISTORIC
+    </button>
+    <div class="dropdown-content history-dropdown" [class.show]="isHistoryDropdownOpen">
+      <a *ngFor="let round of availableRounds"
+         (click)="switchRound(round); isHistoryDropdownOpen=false; $event.stopPropagation();"
+         [class.active]="round.id === currentRound.id">
+        {{ round.name }}
+      </a>
+    </div>
+  </div>
+      <button class="btn-icon" (click)="toggleFullscreen()">
         <i class="fas fa-expand"></i>
       </button>
-      <button class="btn-icon">
+
+    <div class="dropdown-container settings-dropdown-container">
+      <button class="btn-icon" (click)="toggleSettingsDropdown()">
         <i class="fas fa-cog"></i>
       </button>
+      <div class="dropdown-content settings-dropdown">
+        <a (click)="goToSettings()">Setări cont</a>
+      </div>
     </div>
+  </div>
   </header>
 
   <!-- Side Navigation -->
-  <nav class="side-nav">
+  <div class="main-layout">
+  <nav class="side-nav" [class.is-hidden]="isSidebarHidden">
     <div class="language-selector">
       <button class="btn-language" [class.active]="locationFilter === 'romania'" (click)="switchLocation('romania')">România</button>
       <button class="btn-language" [class.active]="locationFilter === 'strainatate'" (click)="switchLocation('strainatate')">Străinătate</button>
@@ -130,10 +147,10 @@
       </li>
      </ul>
     
-     <!-- Sectiunea de procese verbale -->
+     <!-- Sectiunea de procese verbale 
     <div class="nav-section">
       <span class="section-title">Procese-verbale</span>
-    </div>
+    </div> -->
     
     <ul class="nav-menu">
       <li class="nav-item" [class.active]="currentView === 'rezultate'">
@@ -247,7 +264,8 @@
   </nav>
 
   <!-- Main Content Area -->
-  <main class="main-content">
+  <main class="main-content" [class.is-sidebar-hidden]="isSidebarHidden">
     <router-outlet></router-outlet>
   </main>
+</div>
 </div>

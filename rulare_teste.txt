@@ -1,0 +1,3 @@
+python manage.py test users.test_authentication --verbosity=2
+ng test --include=src/app/services/auth.service.spec.ts
+ng test --include=src/app/menu/menu.component.spec.ts
